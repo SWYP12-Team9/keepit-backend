@@ -1,11 +1,17 @@
 package swyp12.team9.server.api;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import swyp12.team9.server.domain.user.dto.request.UserRequest;
@@ -20,6 +26,7 @@ import swyp12.team9.server.domain.user.service.UserService;
  * 2. Service에서 비즈니스 로직 검증 -> 실패 시 커스텀 예외(UserNotFoundException 등) 발생
  * 3. GlobalExceptionHandler가 모든 예외를 catch하여 ErrorResponse로 통일된 응답 반환
  */
+@Tag(name = "User", description = "사용자 관리 API")
 @Slf4j
 @RestController
 @RequestMapping("/api/users")
@@ -28,7 +35,11 @@ public class UserController {
 
     private final UserService userService;
 
-    // 자체 로그인 유저 존재 확인
+    @Operation(summary = "유저 존재 확인", description = "username으로 자체 로그인 유저 존재 여부 확인")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = Boolean.class)))
+    })
     @PostMapping(value = "/exist", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> existUser(
             @Validated(UserRequest.existGroup.class) @RequestBody UserRequest request
@@ -36,7 +47,12 @@ public class UserController {
         return ResponseEntity.ok(userService.existUser(request));
     }
 
-    // 회원가입
+    @Operation(summary = "회원가입", description = "새로운 사용자 등록")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "회원가입 성공",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패, 이메일 중복 등)")
+    })
     @PostMapping(value = "/signup", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserResponse> signup(
             @Validated(UserRequest.addGroup.class) @RequestBody UserRequest request
@@ -45,13 +61,26 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // 유저 정보
+    @Operation(summary = "내 정보 조회", description = "로그인한 사용자의 정보 조회")
+    @SecurityRequirement(name = "AccessToken")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)")
+    })
     @GetMapping(value = "/user")
     public UserResponse userMe() {
         return userService.readUser();
     }
 
-    // 유저 수정 (자체 로그인 유저만)
+    @Operation(summary = "내 정보 수정", description = "로그인한 사용자의 정보 수정 (자체 로그인 유저만)")
+    @SecurityRequirement(name = "AccessToken")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효성 검증 실패)"),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)")
+    })
     @PutMapping(value = "/update", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserResponse> updateUser(
             @Validated(UserRequest.updateGroup.class) @RequestBody UserRequest request
@@ -60,7 +89,13 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    // 유저 제거 (자체/소셜)
+    @Operation(summary = "회원 탈퇴", description = "로그인한 사용자의 계정 삭제 (자체/소셜)")
+    @SecurityRequirement(name = "AccessToken")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "탈퇴 성공",
+                    content = @Content(schema = @Schema(implementation = Boolean.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)")
+    })
     @DeleteMapping(value = "/delete")
     public ResponseEntity<Boolean> deleteUser() {
         userService.deleteUser();
