@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.user.dto;
+package swyp12.team9.server.domain.user.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
