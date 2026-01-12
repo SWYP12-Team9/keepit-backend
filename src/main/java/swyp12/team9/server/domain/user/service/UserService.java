@@ -2,49 +2,225 @@ package swyp12.team9.server.domain.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.domain.user.dto.UserCreateRequest;
-import swyp12.team9.server.domain.user.dto.UserPasswordUpdateRequest;
-import swyp12.team9.server.domain.user.dto.UserResponse;
-import swyp12.team9.server.domain.user.dto.UserUpdateRequest;
+import swyp12.team9.server.domain.jwt.service.JwtService;
+import swyp12.team9.server.domain.user.dto.*;
+import swyp12.team9.server.domain.user.dto.request.UserPasswordUpdateRequest;
+import swyp12.team9.server.domain.user.dto.request.UserRequest;
+import swyp12.team9.server.domain.user.dto.request.UserUpdateRequest;
+import swyp12.team9.server.domain.user.dto.response.UserResponse;
+import swyp12.team9.server.domain.user.model.SocialProviderType;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.exception.DuplicateEmailException;
 import swyp12.team9.server.domain.user.exception.InvalidPasswordException;
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
+import swyp12.team9.server.domain.user.model.UserRoleType;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserService {
+public class UserService extends DefaultOAuth2UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    // 자체 로그인 - 회원 가입 존재 여부
+    @Transactional(readOnly = true)
+    public Boolean existUser(UserRequest userRequest) {
+        return userRepository.existsByUsername(userRequest.getUsername());
+    }
+
+    // 회원 가입
+    @Transactional
+    public UserResponse createUser(UserRequest request) {
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("이미 유저가 존재합니다.");
+        }
+
+        // 이메일 중복 체크
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateEmailException("이미 사용 중인 이메일입니다 " + request.getEmail());
+        }
+
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        User user = request.toEntity(encodedPassword);
+        User savedUser = userRepository.save(user);
+
+        log.info("회원가입 완료 : {}, {}", savedUser.getUsername(), savedUser.getEmail());
+        return UserResponse.from(savedUser);
+        //return user.getId();
+    }
+
+    // 자체 로그인
+    @Transactional(readOnly = true)
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
+        User user = userRepository.findByUsernameAndIsLockAndIsSocial(username, false, false)
+                .orElseThrow(() -> new UsernameNotFoundException(username));
+
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getUsername())
+                .password(user.getPassword())
+                .roles(user.getRoleType().name())
+                .accountLocked(user.getIsLock())
+                .build();
+    }
+
+    // 자체 로그인 회원 정보 수정
+    @Transactional
+    public UserResponse updateUser(UserRequest userRequest) {
+
+        // 세션에서 로그인한 사용자의 username 자동 획득
+        String sessionUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByUsernameAndIsLockAndIsSocial(sessionUsername, false, false)
+                .orElseThrow(() -> new UsernameNotFoundException(sessionUsername));
+
+        // 회원 정보 수정
+        user.updateUser(userRequest);
+
+        log.info("사용자 정보 수정 완료: {}, {}", user.getUsername(), user.getEmail());
+        return UserResponse.from(user);
+        //return userRepository.save(user).getId();
+    }
+
+    // 자체/소셜 로그인 회원 탈퇴
+    @Transactional
+    public void deleteUser() {
+
+        // 세션에서 로그인한 사용자의 username 자동 획득
+        String sessionUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // 유저 제거
+        userRepository.deleteByUsername(sessionUsername);
+
+        // Refresh 토큰 제거
+        jwtService.removeRefreshUser(sessionUsername);
+    }
+
+    // 소셜 로그인 (매 로그인 시 : 신규 = 가입, 기존 = 업데이트)
+    @Override
+    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+
+        // 부모 메소드 호출
+        OAuth2User oAuth2User = super.loadUser(userRequest);
+
+        // 데이터
+        Map<String, Object> attributes;
+        List<GrantedAuthority> authorities;
+
+        String username;
+        String role = UserRoleType.USER.name();
+        String email;
+        String nickname;
+
+        // provider 제공자별 데이터 획득
+        String registrationId = userRequest.getClientRegistration().getRegistrationId().toUpperCase();
+        if (registrationId.equals(SocialProviderType.NAVER.name())) { // 네이버
+
+            attributes = (Map<String, Object>) oAuth2User.getAttributes().get("response");
+            username = registrationId + "_" + attributes.get("id");
+            email = attributes.get("email").toString();
+            nickname = attributes.get("nickname").toString();
+
+        } else if (registrationId.equals(SocialProviderType.GOOGLE.name())) { // 구글
+
+            attributes = (Map<String, Object>) oAuth2User.getAttributes();
+            username = registrationId + "_" + attributes.get("sub");
+            email = attributes.get("email").toString();
+            nickname = attributes.get("name").toString();
+
+        } else {
+            throw new OAuth2AuthenticationException("지원하지 않는 소셜 로그인입니다.");
+        }
+
+        // 데이터베이스 조회 -> 존재하면 업데이트, 없으면 신규 가입
+        Optional<User> user = userRepository.findByUsernameAndIsSocial(username, true);
+        if (user.isPresent()) {
+            // role 조회
+            role = user.get().getRoleType().name();
+
+            // 기존 유저 업데이트
+            UserRequest request = new UserRequest();
+            request.setNickname(nickname);
+            request.setEmail(email);
+            user.get().updateUser(request);
+
+            userRepository.save(user.get());
+        } else {
+            // 신규 유저 추가 (소셜)
+            User newUser = User.builder()
+                    .username(username)
+                    .password("")
+                    .isLock(false)
+                    .isSocial(true)
+                    .socialProviderType(SocialProviderType.valueOf(registrationId))
+                    .roleType(UserRoleType.USER)
+                    .nickname(nickname)
+                    .email(email)
+                    .build();
+
+            userRepository.save(newUser);
+        }
+
+        authorities = List.of(new SimpleGrantedAuthority(role));
+
+        return new CustomOAuth2User(attributes, authorities, username);
+    }
+
+    // 자체/소셜 유저 정보 조회
+    @Transactional(readOnly = true)
+    public UserResponse readUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByUsernameAndIsLock(username, false)
+                .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + username));
+
+        return UserResponse.from(user);
+    }
 
     /**
      * 사용자 생성
      * 예외 처리 예시: 이메일 중복 검증
      */
-    @Transactional
-    public UserResponse createUser(UserCreateRequest request) {
-        // 이메일 중복 체크 - 중복 시 DuplicateEmailException 발생
-        if (userRepository.existsByEmail(request.email())) {
-            throw new DuplicateEmailException("이미 사용 중인 이메일입니다: " + request.email());
-        }
-
-        String encodedPassword = passwordEncoder.encode(request.password());
-        User user = request.toEntity(encodedPassword);
-        User savedUser = userRepository.save(user);
-
-        log.info("사용자 생성 완료: {}", savedUser.getEmail());
-        return UserResponse.from(savedUser);
-    }
+//    @Transactional
+//    public UserResponse createUser(UserCreateRequest request) {
+//        // 이메일 중복 체크 - 중복 시 DuplicateEmailException 발생
+//        if (userRepository.existsByEmail(request.email())) {
+//            throw new DuplicateEmailException("이미 사용 중인 이메일입니다: " + request.email());
+//        }
+//
+//        String encodedPassword = passwordEncoder.encode(request.password());
+//        User user = request.toEntity(encodedPassword);
+//        User savedUser = userRepository.save(user);
+//
+//        log.info("사용자 생성 완료: {}", savedUser.getEmail());
+//        return UserResponse.from(savedUser);
+//    }
 
     /**
      * 사용자 조회
@@ -81,16 +257,16 @@ public class UserService {
      * 사용자 정보 수정
      * 예외 처리 예시: 존재하지 않는 사용자 수정 시도
      */
-    @Transactional
-    public UserResponse updateUser(Long userId, UserUpdateRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
-
-        user.updateName(request.name());
-
-        log.info("사용자 정보 수정 완료: {}", user.getEmail());
-        return UserResponse.from(user);
-    }
+//    @Transactional
+//    public UserResponse updateUser(Long userId, UserUpdateRequest request) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
+//
+//        user.updateName(request.name());
+//
+//        log.info("사용자 정보 수정 완료: {}", user.getEmail());
+//        return UserResponse.from(user);
+//    }
 
     /**
      * 비밀번호 변경
@@ -116,15 +292,15 @@ public class UserService {
      * 사용자 비활성화
      * 예외 처리 예시: 존재하지 않는 사용자 비활성화 시도
      */
-    @Transactional
-    public void deactivateUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
-
-        user.deactivate();
-
-        log.info("사용자 비활성화 완료: {}", user.getEmail());
-    }
+//    @Transactional
+//    public void deactivateUser(Long userId) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
+//
+//        user.deactivate();
+//
+//        log.info("사용자 비활성화 완료: {}", user.getEmail());
+//    }
 
     /**
      * 사용자 삭제 (Hard Delete)
