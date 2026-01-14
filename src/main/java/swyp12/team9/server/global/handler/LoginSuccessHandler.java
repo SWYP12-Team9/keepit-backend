@@ -8,6 +8,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import swyp12.team9.server.domain.jwt.service.JwtService;
+import swyp12.team9.server.domain.user.model.User;
+import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.global.util.JwtUtil;
 
 import java.io.IOException;
@@ -18,21 +20,28 @@ import java.io.IOException;
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public LoginSuccessHandler(JwtService jwtService) {
+    public LoginSuccessHandler(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
 
         // username, role
-        String username =  authentication.getName();
+        String username = authentication.getName();
         String role = authentication.getAuthorities().iterator().next().getAuthority();
 
-        // JWT(Access/Refresh) 발급
-        String accessToken = JwtUtil.createJWT(username, role, true);
-        String refreshToken = JwtUtil.createJWT(username, role, false);
+        // userId 조회
+        User user = userRepository.findByUsernameAndIsLockAndIsSocial(username, false, false)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        Long userId = user.getId();
+
+        // JWT(Access/Refresh) 발급 - userId 포함
+        String accessToken = JwtUtil.createJWT(userId, username, role, true);
+        String refreshToken = JwtUtil.createJWT(userId, username, role, false);
 
         // 발급한 Refresh DB 테이블 저장 (Refresh whitelist)
         jwtService.addRefresh(username, refreshToken);

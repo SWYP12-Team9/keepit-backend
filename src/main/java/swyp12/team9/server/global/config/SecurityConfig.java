@@ -105,7 +105,7 @@ public class SecurityConfig {
                         // 시큐리티 인가 설정
                         // 회원 관련
                         .requestMatchers("/jwt/exchange", "/jwt/refresh", "/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users/exist", "/api/users/signup", "api/users/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/exist", "/api/users/signup", "/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/*").hasRole(UserRoleType.USER.name())
                         .requestMatchers(HttpMethod.PUT, "/api/users/*").hasRole(UserRoleType.USER.name())
                         .requestMatchers(HttpMethod.DELETE, "/api/users/*").hasRole(UserRoleType.USER.name())

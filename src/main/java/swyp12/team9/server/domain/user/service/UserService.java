@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserService extends DefaultOAuth2UserService implements UserDetailsService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -82,146 +82,49 @@ public class UserService extends DefaultOAuth2UserService implements UserDetails
         User user = userRepository.findByUsernameAndIsLockAndIsSocial(username, false, false)
                 .orElseThrow(() -> new UsernameNotFoundException(username));
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPassword())
-                .roles(user.getRoleType().name())
-                .accountLocked(user.getIsLock())
-                .build();
+        // 기존 Spring Security User 대신 CustomUserDetails 반환
+        return CustomUserDetails.from(user);
     }
 
-    // 자체 로그인 회원 정보 수정
+    // 회원 정보 수정
     @Transactional
-    public UserResponse updateUser(UserRequest userRequest) {
+    public UserResponse updateUser(Long userId, UserRequest userRequest) {
 
-        // 세션에서 로그인한 사용자의 username 자동 획득
-        String sessionUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + userId));
 
-        User user = userRepository.findByUsernameAndIsLockAndIsSocial(sessionUsername, false, false)
-                .orElseThrow(() -> new UsernameNotFoundException(sessionUsername));
-
-        // 회원 정보 수정
         user.updateUser(userRequest);
 
         log.info("사용자 정보 수정 완료: {}, {}", user.getUsername(), user.getEmail());
         return UserResponse.from(user);
-        //return userRepository.save(user).getId();
     }
 
     // 자체/소셜 로그인 회원 탈퇴
     @Transactional
-    public void deleteUser() {
+    public void deleteUser(Long userId) {
 
-        // 세션에서 로그인한 사용자의 username 자동 획득
-        String sessionUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + userId));
 
         // 유저 제거
-        userRepository.deleteByUsername(sessionUsername);
+        userRepository.delete(user);
 
         // Refresh 토큰 제거
-        jwtService.removeRefreshUser(sessionUsername);
-    }
+        jwtService.removeRefreshUser(user.getUsername());
 
-    // 소셜 로그인 (매 로그인 시 : 신규 = 가입, 기존 = 업데이트)
-    @Override
-    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-
-        // 부모 메소드 호출
-        OAuth2User oAuth2User = super.loadUser(userRequest);
-
-        // 데이터
-        Map<String, Object> attributes;
-        List<GrantedAuthority> authorities;
-
-        String username;
-        String role = UserRoleType.USER.name();
-        String email;
-        String nickname;
-
-        // provider 제공자별 데이터 획득
-        String registrationId = userRequest.getClientRegistration().getRegistrationId().toUpperCase();
-        if (registrationId.equals(SocialProviderType.NAVER.name())) { // 네이버
-
-            attributes = (Map<String, Object>) oAuth2User.getAttributes().get("response");
-            username = registrationId + "_" + attributes.get("id");
-            email = attributes.get("email").toString();
-            nickname = attributes.get("nickname").toString();
-
-        } else if (registrationId.equals(SocialProviderType.GOOGLE.name())) { // 구글
-
-            attributes = (Map<String, Object>) oAuth2User.getAttributes();
-            username = registrationId + "_" + attributes.get("sub");
-            email = attributes.get("email").toString();
-            nickname = attributes.get("name").toString();
-
-        } else {
-            throw new OAuth2AuthenticationException("지원하지 않는 소셜 로그인입니다.");
-        }
-
-        // 데이터베이스 조회 -> 존재하면 업데이트, 없으면 신규 가입
-        Optional<User> user = userRepository.findByUsernameAndIsSocial(username, true);
-        if (user.isPresent()) {
-            // role 조회
-            role = user.get().getRoleType().name();
-
-            // 기존 유저 업데이트
-            UserRequest request = new UserRequest();
-            request.setNickname(nickname);
-            request.setEmail(email);
-            user.get().updateUser(request);
-
-            userRepository.save(user.get());
-        } else {
-            // 신규 유저 추가 (소셜)
-            User newUser = User.builder()
-                    .username(username)
-                    .password("")
-                    .isLock(false)
-                    .isSocial(true)
-                    .socialProviderType(SocialProviderType.valueOf(registrationId))
-                    .roleType(UserRoleType.USER)
-                    .nickname(nickname)
-                    .email(email)
-                    .build();
-
-            userRepository.save(newUser);
-        }
-
-        authorities = List.of(new SimpleGrantedAuthority(role));
-
-        return new CustomOAuth2User(attributes, authorities, username);
+        log.info("사용자 삭제 완료: {}", user.getEmail());
     }
 
     // 자체/소셜 유저 정보 조회
     @Transactional(readOnly = true)
-    public UserResponse readUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        User user = userRepository.findByUsernameAndIsLock(username, false)
-                .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + username));
+    public UserResponse readUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다: " + userId));
 
         return UserResponse.from(user);
     }
 
-    /**
-     * 사용자 생성
-     * 예외 처리 예시: 이메일 중복 검증
-     */
-//    @Transactional
-//    public UserResponse createUser(UserCreateRequest request) {
-//        // 이메일 중복 체크 - 중복 시 DuplicateEmailException 발생
-//        if (userRepository.existsByEmail(request.email())) {
-//            throw new DuplicateEmailException("이미 사용 중인 이메일입니다: " + request.email());
-//        }
-//
-//        String encodedPassword = passwordEncoder.encode(request.password());
-//        User user = request.toEntity(encodedPassword);
-//        User savedUser = userRepository.save(user);
-//
-//        log.info("사용자 생성 완료: {}", savedUser.getEmail());
-//        return UserResponse.from(savedUser);
-//    }
-
+    // ///////////////////////////////
     /**
      * 사용자 조회
      * 예외 처리 예시: 사용자 없을 때 UserNotFoundException 발생
@@ -302,17 +205,4 @@ public class UserService extends DefaultOAuth2UserService implements UserDetails
 //        log.info("사용자 비활성화 완료: {}", user.getEmail());
 //    }
 
-    /**
-     * 사용자 삭제 (Hard Delete)
-     * 예외 처리 예시: 존재하지 않는 사용자 삭제 시도
-     */
-    @Transactional
-    public void deleteUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
-
-        userRepository.delete(user);
-
-        log.info("사용자 삭제 완료: {}", user.getEmail());
-    }
 }
