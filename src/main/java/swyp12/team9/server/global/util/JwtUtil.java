@@ -33,6 +33,11 @@ public class JwtUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("role", String.class);
     }
 
+    // JWT 클레임 userId 파싱
+    public static Long getUserId(String token) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("userId", Long.class);
+    }
+
     // JWT 유효 여부 (위조, 시간, Access/Refresh 여부)
     public static Boolean isValid(String token, Boolean isAccess) {
         try {
@@ -56,7 +61,7 @@ public class JwtUtil {
     }
 
     // JWT(Access/Refresh) 생성
-    public static String createJWT(String username, String role, Boolean isAccess) {
+    public static String createJWT(Long userId, String username, String role, Boolean isAccess) {
 
         long now = System.currentTimeMillis();
         long expiry = isAccess ? accessTokenExpiresIn : refreshTokenExpiresIn;
@@ -64,6 +69,7 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .claim("sub", username)
+                .claim("userId", userId)
                 .claim("role", role)
                 .claim("type", type)
                 .issuedAt(new Date(now))

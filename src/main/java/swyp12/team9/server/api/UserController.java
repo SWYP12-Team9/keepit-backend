@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import swyp12.team9.server.domain.user.dto.request.UserRequest;
 import swyp12.team9.server.domain.user.dto.response.UserResponse;
 import swyp12.team9.server.domain.user.service.UserService;
+import swyp12.team9.server.global.annotation.CurrentUserId;
 
 /**
  * 사용자 관리 API
@@ -69,8 +70,8 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)")
     })
     @GetMapping(value = "/user")
-    public UserResponse userMe() {
-        return userService.readUser();
+    public UserResponse userMe(@CurrentUserId Long userId) {
+        return userService.readUser(userId);
     }
 
     @Operation(summary = "내 정보 수정", description = "로그인한 사용자의 정보 수정 (자체 로그인 유저만)")
@@ -83,9 +84,10 @@ public class UserController {
     })
     @PutMapping(value = "/update", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserResponse> updateUser(
+            @CurrentUserId Long userId,
             @Validated(UserRequest.updateGroup.class) @RequestBody UserRequest request
     ) {
-        UserResponse response = userService.updateUser(request);
+        UserResponse response = userService.updateUser(userId, request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -97,8 +99,8 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)")
     })
     @DeleteMapping(value = "/delete")
-    public ResponseEntity<Boolean> deleteUser() {
-        userService.deleteUser();
+    public ResponseEntity<Boolean> deleteUser(@CurrentUserId Long userId) {
+        userService.deleteUser(userId);
         return ResponseEntity.status(HttpStatus.OK).body(true);
     }
 

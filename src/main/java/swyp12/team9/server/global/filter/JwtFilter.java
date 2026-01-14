@@ -10,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import swyp12.team9.server.domain.user.dto.CustomUserDetails;
 import swyp12.team9.server.global.util.JwtUtil;
 
 import java.io.IOException;
@@ -66,14 +67,23 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         // 인증 정보 세팅
+        Long userId = JwtUtil.getUserId(accessToken);
         String username = JwtUtil.getUsername(accessToken);
-        String role = JwtUtil.getRole(accessToken);
+        String roleType = JwtUtil.getRole(accessToken);
 
         List<GrantedAuthority> authorities =
-                Collections.singletonList(new SimpleGrantedAuthority(role));
+                Collections.singletonList(new SimpleGrantedAuthority(roleType));
+
+        // CustomUserDetails 생성 (userId 포함)
+        CustomUserDetails userDetails = CustomUserDetails.builder()
+                .userId(userId)
+                .username(username)
+                .roleType(roleType)
+                .authorities(authorities)
+                .build();
 
         Authentication auth =
-                new UsernamePasswordAuthenticationToken(username, null, authorities);
+                new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
 
         SecurityContextHolder.getContext().setAuthentication(auth);
 

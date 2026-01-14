@@ -31,7 +31,7 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
     public static final String SPRING_SECURITY_FORM_PASSWORD_KEY = "password";
 
     private static final RequestMatcher DEFAULT_ANT_PATH_REQUEST_MATCHER = PathPatternRequestMatcher.withDefaults()
-            .matcher(HttpMethod.POST, "/api/users/login"); // 로그인
+            .matcher(HttpMethod.POST, "/login"); // 로그인
 
     private String usernameParameter = SPRING_SECURITY_FORM_USERNAME_KEY;
 

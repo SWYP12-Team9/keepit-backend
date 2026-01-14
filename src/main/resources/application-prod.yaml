@@ -15,8 +15,8 @@ spring:
 # CORS 설정 추가
 cors:
   allowed-origins:
-    - http://localhost:5173
-    - http://localhost:3000
+#    - http://localhost:5173
+#    - http://localhost:3000
     - https://yourdomain.com
 
 logging:
