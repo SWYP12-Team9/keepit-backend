@@ -60,9 +60,11 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("이미 유저가 존재합니다.");
         }
 
-        // 이메일 중복 체크
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateEmailException("이미 사용 중인 이메일입니다 " + request.getEmail());
+        // 이메일이 제공된 경우에만 중복 체크
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new DuplicateEmailException("이미 사용 중인 이메일입니다: " + request.getEmail());
+            }
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());

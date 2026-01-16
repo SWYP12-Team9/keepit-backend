@@ -5,11 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import swyp12.team9.server.global.common.entity.BaseEntity;
-
-import java.time.LocalDateTime;
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
@@ -27,8 +24,8 @@ public class JwtRefresh extends BaseEntity {
     @Column(name = "username", nullable = false)
     private String username;
 
-    @Column(name = "refresh", nullable = false, length = 512)
-    private String refresh;
+    @Column(name = "refresh_token", nullable = false, length = 512)
+    private String refreshToken;
 }
 
 // Jwt 도메인 데이터 저장

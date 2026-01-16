@@ -62,7 +62,7 @@ public class JwtService {
         // 기존 Refresh 토큰 DB 삭제 후 신규 추가
         JwtRefresh newRefresh = JwtRefresh.builder()
                 .username(username)
-                .refresh(newRefreshToken)
+                .refreshToken(newRefreshToken)
                 .build();
 
         removeRefresh(refreshToken);
@@ -109,7 +109,7 @@ public class JwtService {
         // 기존 Refresh 토큰 DB 삭제 후 신규 추가
         JwtRefresh newRefresh = JwtRefresh.builder()
                 .username(username)
-                .refresh(newRefreshToken)
+                .refreshToken(newRefreshToken)
                 .build();
 
         removeRefresh(refreshToken);
@@ -118,12 +118,13 @@ public class JwtService {
         return new JwtResponse(newAccessToken, newRefreshToken);
     }
 
-    // JWT Refresh 토큰 발급 후 저장
+    // JWT Refresh 토큰 발급 후 저장 (기존 토큰 삭제 없이 새 토큰 추가)
+    // 로그인할 때마다 새 토큰이 추가되어 여러 개가 쌓입니다. (다중 토큰 방식)
     @Transactional
     public void addRefresh(String username, String refreshToken) {
         JwtRefresh newRefresh = JwtRefresh.builder()
                 .username(username)
-                .refresh(refreshToken)
+                .refreshToken(refreshToken)
                 .build();
 
         refreshRepository.save(newRefresh);
@@ -132,13 +133,13 @@ public class JwtService {
     // JWT Refresh 존재 확인
     @Transactional(readOnly = true)
     public Boolean existsRefresh(String refreshToken) {
-        return refreshRepository.existsByRefresh(refreshToken);
+        return refreshRepository.existsByRefreshToken(refreshToken);
     }
 
     // JWT Refresh 토큰 삭제
     @Transactional
     public void removeRefresh(String refreshToken) {
-        refreshRepository.deleteByRefresh(refreshToken);
+        refreshRepository.deleteByRefreshToken(refreshToken);
     }
 
     // 특정 유저 Refresh 토큰 모두 삭제 (탈퇴)

@@ -80,12 +80,36 @@ public class OAuthService extends DefaultOAuth2UserService {
 
     // 메서드
     private User findOrCreateUser(OAuthUserInfo userInfo) {
+
+        // 1. username으로 소셜 계정 찾기
         Optional<User> existingUser = userRepository.findByUsernameAndIsSocial(userInfo.getUsername(), true);
 
         if (existingUser.isPresent()) {
             User user = existingUser.get();
             updateUserInfo(user, userInfo);
             return userRepository.save(user);
+        }
+
+        // 2. 이메일이 있는 경우에만 중복 체크
+        if (userInfo.getEmail() != null && !userInfo.getEmail().isBlank()) {
+            Optional<User> userWithSameEmail = userRepository.findByEmail(userInfo.getEmail());
+
+            if (userWithSameEmail.isPresent()) {
+                User existingUserByEmail = userWithSameEmail.get();
+
+                // 자체 회원가입 계정이 있는 경우
+                if (!existingUserByEmail.getIsSocial()) {
+                    throw new OAuth2AuthenticationException(
+                            "이미 가입된 이메일입니다. 자체 로그인을 사용해주세요."
+                    );
+                }
+
+                // 다른 소셜 로그인으로 이미 가입된 경우
+                throw new OAuth2AuthenticationException(
+                        "이미 " + existingUserByEmail.getSocialProviderType() +
+                                " 계정으로 가입된 이메일입니다."
+                );
+            }
         }
 
         return createNewUser(userInfo);
@@ -108,6 +132,7 @@ public class OAuthService extends DefaultOAuth2UserService {
                 .roleType(UserRoleType.USER)
                 .nickname(userInfo.getNickname())
                 .email(userInfo.getEmail())
+                .name(userInfo.getNickname())
                 .build();
 
         return userRepository.save(newUser);

@@ -49,8 +49,7 @@ public class UserRequest {
     private String name;
 
     @Schema(description = "이메일", example = "test@example.com")
-    @Email(groups = {addGroup.class, updateGroup.class})
-    @NotBlank(message = "이메일은 필수입니다.")
+    @Email(groups = {updateGroup.class}, message = "올바른 이메일 형식이 아닙니다.")
     private String email;
 
     public User toEntity(String encodedPassword) {

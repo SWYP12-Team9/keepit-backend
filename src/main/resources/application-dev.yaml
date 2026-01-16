@@ -50,7 +50,7 @@ spring:
             client-authentication-method: client_secret_post
             scope:
               - profile_nickname
-              - account_email
+              #- account_email
         provider:
           naver:
             authorization-uri: https://nid.naver.com/oauth2.0/authorize

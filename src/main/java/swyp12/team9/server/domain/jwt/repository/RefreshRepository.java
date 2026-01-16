@@ -8,9 +8,9 @@ import java.time.LocalDateTime;
 
 public interface RefreshRepository extends JpaRepository<JwtRefresh, Long> {
 
-    Boolean existsByRefresh(String refreshToken);
+    Boolean existsByRefreshToken(String refreshToken);
 
-    void deleteByRefresh(String refresh);
+    void deleteByRefreshToken(String refresh);
 
     void deleteByUsername(String username);
 
