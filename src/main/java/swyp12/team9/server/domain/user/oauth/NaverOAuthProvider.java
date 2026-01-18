@@ -2,7 +2,7 @@ package swyp12.team9.server.domain.user.oauth;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
-import swyp12.team9.server.domain.user.model.SocialProviderType;
+import swyp12.team9.server.domain.user.model.SocialProvider;
 
 import java.util.Map;
 
@@ -13,8 +13,8 @@ import java.util.Map;
 public class NaverOAuthProvider implements OAuthProvider {
 
     @Override
-    public SocialProviderType getProviderType() {
-        return SocialProviderType.NAVER;
+    public SocialProvider getProviderType() {
+        return SocialProvider.NAVER;
     }
 
     @Override

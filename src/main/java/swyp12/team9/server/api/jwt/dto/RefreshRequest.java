@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.jwt.dto;
+package swyp12.team9.server.api.jwt.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

@@ -1,4 +1,4 @@
-package swyp12.team9.server.api;
+package swyp12.team9.server.api.user;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,8 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import swyp12.team9.server.domain.user.dto.request.UserRequest;
-import swyp12.team9.server.domain.user.dto.response.UserResponse;
+import swyp12.team9.server.api.user.dto.request.UserRequest;
+import swyp12.team9.server.api.user.dto.response.UserResponse;
 import swyp12.team9.server.domain.user.service.UserService;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 

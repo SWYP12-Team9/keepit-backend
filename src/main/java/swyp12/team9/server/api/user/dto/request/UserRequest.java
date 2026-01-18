@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.user.dto.request;
+package swyp12.team9.server.api.user.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import swyp12.team9.server.domain.user.model.User;
-import swyp12.team9.server.domain.user.model.UserRoleType;
+import swyp12.team9.server.domain.user.model.UserRole;
 
 @Schema(description = "사용자 요청 DTO")
 @Getter
@@ -49,8 +49,7 @@ public class UserRequest {
     private String name;
 
     @Schema(description = "이메일", example = "test@example.com")
-    @Email(groups = {addGroup.class, updateGroup.class})
-    @NotBlank(message = "이메일은 필수입니다.")
+    @Email(groups = {updateGroup.class}, message = "올바른 이메일 형식이 아닙니다.")
     private String email;
 
     public User toEntity(String encodedPassword) {
@@ -59,7 +58,7 @@ public class UserRequest {
                 .password(encodedPassword) // 비밀번호 암호화
                 .isLock(false)
                 .isSocial(false)
-                .roleType(UserRoleType.USER) // 우선 일반 유저로 가입
+                .roleType(UserRole.USER) // 우선 일반 유저로 가입
                 .nickname(nickname)
                 .email(email)
                 .name(name)

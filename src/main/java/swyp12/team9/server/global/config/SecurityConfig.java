@@ -1,7 +1,6 @@
 package swyp12.team9.server.global.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +8,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,7 +23,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import swyp12.team9.server.domain.jwt.service.JwtService;
-import swyp12.team9.server.domain.user.model.UserRoleType;
+import swyp12.team9.server.domain.user.model.UserRole;
 import swyp12.team9.server.global.filter.JwtFilter;
 import swyp12.team9.server.global.filter.LoginFilter;
 import swyp12.team9.server.global.handler.RefreshTokenLogoutHandler;
@@ -78,7 +76,7 @@ public class SecurityConfig {
     @Bean
     public RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.withRolePrefix("ROLE_")
-                .role(UserRoleType.ADMIN.name()).implies(UserRoleType.USER.name())
+                .role(UserRole.ADMIN.name()).implies(UserRole.USER.name())
                 .build();
     }
 
@@ -106,9 +104,9 @@ public class SecurityConfig {
                         // 회원 관련
                         .requestMatchers("/jwt/exchange", "/jwt/refresh", "/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/exist", "/api/users/signup", "/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/*").hasRole(UserRoleType.USER.name())
-                        .requestMatchers(HttpMethod.PUT, "/api/users/*").hasRole(UserRoleType.USER.name())
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/*").hasRole(UserRoleType.USER.name())
+                        .requestMatchers(HttpMethod.GET, "/api/users/*").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/users/*").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/*").hasRole(UserRole.USER.name())
 
                         .anyRequest().authenticated()
                 )

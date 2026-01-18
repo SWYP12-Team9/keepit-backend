@@ -2,38 +2,24 @@ package swyp12.team9.server.domain.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.jwt.service.JwtService;
-import swyp12.team9.server.domain.user.dto.*;
-import swyp12.team9.server.domain.user.dto.request.UserPasswordUpdateRequest;
-import swyp12.team9.server.domain.user.dto.request.UserRequest;
-import swyp12.team9.server.domain.user.dto.request.UserUpdateRequest;
-import swyp12.team9.server.domain.user.dto.response.UserResponse;
-import swyp12.team9.server.domain.user.model.SocialProviderType;
+import swyp12.team9.server.api.user.dto.request.UserPasswordUpdateRequest;
+import swyp12.team9.server.api.user.dto.request.UserRequest;
+import swyp12.team9.server.api.user.dto.response.UserResponse;
+import swyp12.team9.server.global.security.CustomUserDetails;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.exception.DuplicateEmailException;
 import swyp12.team9.server.domain.user.exception.InvalidPasswordException;
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
-import swyp12.team9.server.domain.user.model.UserRoleType;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -60,9 +46,11 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("이미 유저가 존재합니다.");
         }
 
-        // 이메일 중복 체크
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateEmailException("이미 사용 중인 이메일입니다 " + request.getEmail());
+        // 이메일이 제공된 경우에만 중복 체크
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new DuplicateEmailException("이미 사용 중인 이메일입니다: " + request.getEmail());
+            }
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
