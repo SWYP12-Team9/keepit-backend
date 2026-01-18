@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.user.dto;
+package swyp12.team9.server.global.security;
 
 import lombok.Builder;
 import lombok.Getter;

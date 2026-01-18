@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Schema(description = "소셜 로그인 프로바이더 타입")
-public enum SocialProviderType {
+public enum SocialProvider {
 
     @Schema(description = "네이버 로그인")
     NAVER("네이버"),
@@ -14,11 +14,14 @@ public enum SocialProviderType {
     KAKAO("카카오"),
 
     @Schema(description = "구글 로그인")
-    GOOGLE("구글");
+    GOOGLE("구글"),
+
+    @Schema(description = "자체 로그인")
+    LOCAL("로컬");
 
     private final String description;
 
-    SocialProviderType(String description) {
+    SocialProvider(String description) {
         this.description = description;
     }
 }

@@ -3,7 +3,7 @@ package swyp12.team9.server.domain.user.oauth;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
-import swyp12.team9.server.domain.user.model.SocialProviderType;
+import swyp12.team9.server.domain.user.model.SocialProvider;
 
 import java.util.Map;
 
@@ -26,7 +26,7 @@ public class OAuthUserInfo {
     private final String nickname;
 
     @Schema(description = "소셜 프로바이더 타입", example = "KAKAO")
-    private final SocialProviderType providerType;
+    private final SocialProvider providerType;
 
     @Schema(description = "소셜 프로바이더 원본 속성 데이터")
     private final Map<String, Object> attributes;

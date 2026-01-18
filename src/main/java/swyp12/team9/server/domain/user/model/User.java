@@ -2,7 +2,7 @@ package swyp12.team9.server.domain.user.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import swyp12.team9.server.domain.user.dto.request.UserRequest;
+import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 
 @Entity
@@ -35,11 +35,11 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "social_provider_type")
-    private SocialProviderType socialProviderType; // 소셜 로그인 : 카카오, 네이버, 구글 , 자체로그인 : null
+    private SocialProvider socialProvider; // 소셜 로그인 : 카카오, 네이버, 구글 , 자체로그인 : null
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role_type", nullable = false)
-    private UserRoleType roleType; // 스프링 시큐리티에서 사용 (일반 회원 or 관리자)
+    private UserRole roleType; // 스프링 시큐리티에서 사용 (일반 회원 or 관리자)
 
 //    @Enumerated(EnumType.STRING)
 //    @Column(nullable = false, length = 20)

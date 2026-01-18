@@ -9,11 +9,11 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.domain.user.dto.CustomOAuth2User;
-import swyp12.team9.server.domain.user.dto.request.UserRequest;
-import swyp12.team9.server.domain.user.model.SocialProviderType;
+import swyp12.team9.server.api.user.dto.request.UserRequest;
+import swyp12.team9.server.global.security.CustomOAuth2User;
+import swyp12.team9.server.domain.user.model.SocialProvider;
 import swyp12.team9.server.domain.user.model.User;
-import swyp12.team9.server.domain.user.model.UserRoleType;
+import swyp12.team9.server.domain.user.model.UserRole;
 import swyp12.team9.server.domain.user.oauth.OAuthProvider;
 import swyp12.team9.server.domain.user.oauth.OAuthUserInfo;
 import swyp12.team9.server.domain.user.repository.UserRepository;
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class OAuthService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
-    private final Map<SocialProviderType, OAuthProvider> providerMap;
+    private final Map<SocialProvider, OAuthProvider> providerMap;
 
     public OAuthService(UserRepository userRepository, List<OAuthProvider> providers) {
         this.userRepository = userRepository;
@@ -47,10 +47,10 @@ public class OAuthService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId().toUpperCase();
-        SocialProviderType providerType;
+        SocialProvider providerType;
 
         try {
-            providerType = SocialProviderType.valueOf(registrationId);
+            providerType = SocialProvider.valueOf(registrationId);
         } catch (IllegalArgumentException e) {
             throw new OAuth2AuthenticationException("지원하지 않는 소셜 로그인입니다: " + registrationId);
         }
@@ -106,7 +106,7 @@ public class OAuthService extends DefaultOAuth2UserService {
 
                 // 다른 소셜 로그인으로 이미 가입된 경우
                 throw new OAuth2AuthenticationException(
-                        "이미 " + existingUserByEmail.getSocialProviderType() +
+                        "이미 " + existingUserByEmail.getSocialProvider() +
                                 " 계정으로 가입된 이메일입니다."
                 );
             }
@@ -128,8 +128,8 @@ public class OAuthService extends DefaultOAuth2UserService {
                 .password("")
                 .isLock(false)
                 .isSocial(true)
-                .socialProviderType(userInfo.getProviderType())
-                .roleType(UserRoleType.USER)
+                .socialProvider(userInfo.getProviderType())
+                .roleType(UserRole.USER)
                 .nickname(userInfo.getNickname())
                 .email(userInfo.getEmail())
                 .name(userInfo.getNickname())

@@ -8,7 +8,7 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-import swyp12.team9.server.domain.user.dto.CustomUserDetails;
+import swyp12.team9.server.global.security.CustomUserDetails;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 
 /**
