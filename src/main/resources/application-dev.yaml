@@ -71,6 +71,7 @@ spring:
         # Sring Security가 이미 알고있는 provider들
         # google, facebook, github
         # 그래서 따로 google은 추가안해도 된다.
+# Google Console에 등록된 Redirect URI와 불일치 → OAuth2AuthenticationException(GlobalExceptionHandler.java) 발생
 
 logging:
   level:
