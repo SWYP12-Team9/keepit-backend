@@ -6,8 +6,8 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
-import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
-import swyp12.team9.server.domain.recommendation.dto.SimilarContentResponse;
+import swyp12.team9.server.api.dto.RecommendationResponse;
+import swyp12.team9.server.api.dto.SimilarContentResponse;
 
 import java.util.Comparator;
 import java.util.List;
