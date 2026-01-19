@@ -6,7 +6,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-
 @RestControllerAdvice
 public class CustomControllerAdvice {
 
@@ -21,7 +20,6 @@ public class CustomControllerAdvice {
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body("잘못된 요청입니다.");
+                .body("Runtime Error: " + ex.getMessage());
     }
 }
-//  Service, Controller에서 던진 예외를 받기 위한 RestControllerAdvice를 등록한다.
