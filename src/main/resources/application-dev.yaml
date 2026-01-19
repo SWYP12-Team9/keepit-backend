@@ -95,6 +95,7 @@ spring:
         # google, facebook, github
         # 그래서 따로 google은 추가안해도 된다.
 # Google Console에 등록된 Redirect URI와 불일치 → OAuth2AuthenticationException(GlobalExceptionHandler.java) 발생
+# Google Console에 등록된 Redirect URI와 불일치 → OAuth2AuthenticationException(GlobalExceptionHandler.java) 발생
 >>>>>>> a756d0e (refactor : GlobalExceptionHandler로 예외처리 통합)
 
 logging:
