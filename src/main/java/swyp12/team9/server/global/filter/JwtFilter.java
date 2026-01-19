@@ -10,7 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-import swyp12.team9.server.domain.user.dto.CustomUserDetails;
+import swyp12.team9.server.global.security.CustomUserDetails;
 import swyp12.team9.server.global.util.JwtUtil;
 
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.user.dto.response;
+package swyp12.team9.server.api.user.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
