@@ -1,11 +1,12 @@
-package swyp12.team9.server.domain.recommendation;
+package swyp12.team9.server.api.recommendation;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import swyp12.team9.server.api.dto.SimilarContentResponse;
+
+import swyp12.team9.server.api.recommendation.dto.SimilarContentResponse;
 import swyp12.team9.server.domain.recommendation.service.RecommendationService;
 
 import java.util.List;

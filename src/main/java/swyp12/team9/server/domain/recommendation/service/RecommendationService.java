@@ -1,13 +1,14 @@
 package swyp12.team9.server.domain.recommendation.service;
 
 import lombok.RequiredArgsConstructor;
+import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
+import swyp12.team9.server.api.recommendation.dto.SimilarContentResponse;
+
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
-import swyp12.team9.server.api.dto.RecommendationResponse;
-import swyp12.team9.server.api.dto.SimilarContentResponse;
 
 import java.util.Comparator;
 import java.util.List;
