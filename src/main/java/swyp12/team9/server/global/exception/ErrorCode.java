@@ -21,10 +21,19 @@ public enum ErrorCode {
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A002", "유효하지 않은 토큰입니다"),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "A003", "만료된 토큰입니다"),
 
+    // OAuth
+    OAUTH_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "O001", "소셜 로그인에 실패했습니다"),
+    OAUTH_REDIRECT_MISMATCH(HttpStatus.BAD_REQUEST, "O002", "리다이렉트 URI가 일치하지 않습니다"),
+
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다"),
     EMAIL_DUPLICATION(HttpStatus.BAD_REQUEST, "U002", "이미 사용 중인 이메일입니다"),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "U003", "잘못된 비밀번호입니다"),
+
+    // File
+    FILE_UPLOAD_FAILED(HttpStatus.BAD_REQUEST, "F001", "파일 업로드에 실패했습니다"),
+    FILE_SIZE_EXCEED(HttpStatus.BAD_REQUEST, "F002", "파일 크기가 제한을 초과했습니다"),
+
 
     ;
 
