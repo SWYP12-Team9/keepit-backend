@@ -45,8 +45,14 @@ public class User extends BaseEntity {
 //    @Column(nullable = false, length = 20)
 //    private UserStatus status;
 
-    @Column(name = "nickname")
+    @Column(name = "nickname", length = 50)
     private String nickname;
+
+    @Column(name = "introduction", length = 300)
+    private String introduction;
+
+    @Column(name = "profile_image_url", length = 1024)
+    private String profileImageUrl;
 
     @Column(name = "email", unique = true, length = 100)
     private String email;
