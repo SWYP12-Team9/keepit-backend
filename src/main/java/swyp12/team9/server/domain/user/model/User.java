@@ -8,7 +8,6 @@ import swyp12.team9.server.global.common.entity.BaseEntity;
 @Entity
 @Table(name = "users")
 @Getter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
@@ -58,11 +57,20 @@ public class User extends BaseEntity {
     private String email;
 
     @Builder
-    public User(String email, String password, String name) {
-        this.email = email;
+    public User(String username, String password, String name, String nickname,
+                String introduction, String profileImageUrl, String email,
+                Boolean isLock, Boolean isSocial, SocialProvider socialProvider, UserRole roleType) {
+        this.username = username;
         this.password = password;
         this.name = name;
-       // this.status = UserStatus.ACTIVE;
+        this.nickname = nickname;
+        this.introduction = introduction;
+        this.profileImageUrl = profileImageUrl;
+        this.email = email;
+        this.isLock = isLock;
+        this.isSocial = isSocial;
+        this.socialProvider = socialProvider;
+        this.roleType = roleType;
     }
 
     // 회원 정보 수정
