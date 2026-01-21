@@ -62,7 +62,6 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
-<<<<<<< HEAD
   #          google:
   #            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
   #            token-uri: https://oauth2.googleapis.com/token
@@ -84,19 +83,6 @@ spring:
           model: text-embedding-3-small
   elasticsearch:
     uris: http://localhost:9200
-=======
-#          google:
-#            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-#            token-uri: https://oauth2.googleapis.com/token
-#            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-#            user-name-attribute: sub
-          #google: 생략 가능
-        # Sring Security가 이미 알고있는 provider들
-        # google, facebook, github
-        # 그래서 따로 google은 추가안해도 된다.
-# Google Console에 등록된 Redirect URI와 불일치 → OAuth2AuthenticationException(GlobalExceptionHandler.java) 발생
-# Google Console에 등록된 Redirect URI와 불일치 → OAuth2AuthenticationException(GlobalExceptionHandler.java) 발생
->>>>>>> a756d0e (refactor : GlobalExceptionHandler로 예외처리 통합)
 
 logging:
   level:
