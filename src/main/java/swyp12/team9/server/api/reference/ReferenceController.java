@@ -1,0 +1,102 @@
+package swyp12.team9.server.api.reference;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import swyp12.team9.server.api.reference.dto.CreateReferenceRequest;
+import swyp12.team9.server.api.reference.dto.ReferenceResponse;
+import swyp12.team9.server.api.reference.dto.UpdateReferenceRequest;
+import swyp12.team9.server.api.user.dto.response.UserResponse;
+import swyp12.team9.server.domain.reference.model.Reference;
+import swyp12.team9.server.domain.reference.service.ReferenceService;
+import swyp12.team9.server.global.annotation.CurrentUserId;
+import swyp12.team9.server.global.common.dto.ApiResponse;
+import swyp12.team9.server.global.util.PaginationUtils;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/reference")
+@RequiredArgsConstructor
+public class ReferenceController implements ReferenceApi{
+
+    private final ReferenceService referenceService;
+
+    // 레퍼런스 생성
+    @Override
+    public ApiResponse<ReferenceResponse> createReference(@Valid @RequestBody CreateReferenceRequest request,
+                                                         @CurrentUserId Long userId) {
+
+        ReferenceResponse response = referenceService.createReference(userId, request);
+        return ApiResponse.created(response, "레퍼런스 폴더가 생성되었습니다.");
+    }
+
+    // 레퍼런스 단건 조회
+    @Override
+    public ApiResponse<ReferenceResponse> getReference(
+            @PathVariable Long referenceId,
+            @CurrentUserId Long userId) {
+
+        ReferenceResponse response = referenceService.getReference(userId, referenceId);
+        return ApiResponse.ok(response);
+    }
+
+    // 레퍼런스 수정
+    @Override
+    public ApiResponse<ReferenceResponse> updateReference(
+            @PathVariable Long referenceId,
+            @Valid @RequestBody UpdateReferenceRequest request,
+            @CurrentUserId Long userId) {
+
+        ReferenceResponse response = referenceService.updateReference(userId, referenceId, request);
+        return ApiResponse.ok(response, "레퍼런스가 수정되었습니다.");
+    }
+
+    // 레퍼런스 삭제
+    @Override
+    public ApiResponse<Void> deleteReference(
+            @PathVariable Long referenceId,
+            @CurrentUserId Long userId) {
+
+        referenceService.deleteReference(userId, referenceId);
+        return ApiResponse.noContent();
+    }
+
+    // ========== 커서 기반 페이지네이션 ==========
+    // 내 레퍼런스 목록 조회
+    @Override
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getMyReferences(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size,
+            @CurrentUserId Long userId) {
+
+        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response =
+                referenceService.getUserReferencesCursor(userId, cursor, size);
+        return ApiResponse.ok(response);
+    }
+
+    // 공개 레퍼런스 목록 조회
+    @Override
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getPublicReferences(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size) {
+
+        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response =
+                referenceService.getPublicReferencesCursor(cursor, size);
+        return ApiResponse.ok(response);
+    }
+
+    // 비공개 레퍼런스 목록 조회
+    @Override
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getNotPublicReferences(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size) {
+
+        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response =
+                referenceService.getNotPublicReferencesCursor(cursor, size);
+        return ApiResponse.ok(response);
+    }
+
+}
