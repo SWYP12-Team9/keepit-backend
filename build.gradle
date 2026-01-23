@@ -31,11 +31,11 @@ repositories {
 dependencies {
 	// 1. 아래 constraints 블록을 추가하여 버전을 강제로 맞춥니다.
 	constraints {
-		implementation('io.swagger.core.v3:swagger-annotations:2.2.25') {
-			because 'Spring Boot 3.5+ 환경에서 발생하는 NoSuchMethodError 해결'
+		implementation('io.swagger.core.v3:swagger-annotations:2.2.27') {
+			because 'springdoc-openapi 2.8.3과 호환하는 버전'
 		}
-		implementation('io.swagger.core.v3:swagger-annotations-jakarta:2.2.25')
-		implementation('io.swagger.core.v3:swagger-models-jakarta:2.2.25')
+		implementation('io.swagger.core.v3:swagger-annotations-jakarta:2.2.27')
+		implementation('io.swagger.core.v3:swagger-models-jakarta:2.2.27')
 	}
 
 	// 2. springdoc-openapi 버전도 최신 안정화 버전으로 유지
