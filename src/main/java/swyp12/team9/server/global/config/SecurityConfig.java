@@ -95,7 +95,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 필터 설정 (STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // ========== 공개 엔드포인트 ==========
+                        // 공개 엔드포인트
                         .requestMatchers(
                                 "/api/health",
                                 "/actuator/**",
@@ -104,7 +104,7 @@ public class SecurityConfig {
                                 "/swagger-resources/**"
                         ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
-                        // ========== 인증 관련 ============
+                        // 인증 관련
                         .requestMatchers("/jwt/exchange", "/jwt/refresh", "/logout").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/users/exist",
@@ -112,10 +112,14 @@ public class SecurityConfig {
                                 "/login"
                         ).permitAll()
 
-                        // ========== 관리자 전용 API (가장 먼저 체크) ==========
+                        // 공개 레퍼런스 조회 (익명 허용)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/references/public").permitAll()
+
+                        // 관리자 전용 API (가장 먼저 체크)
                         .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
 
-                        // ========== API v1 전체 (인증 필요) ==========
+                        // API v1 전체 (인증 필요)
                         .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole(UserRole.USER.name())

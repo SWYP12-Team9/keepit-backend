@@ -82,7 +82,7 @@ public interface ReferenceApi {
             <ReferenceResponse> getReference(
             @Parameter(description = "레퍼런스 ID", required = true, example = "1")
             @PathVariable Long referenceId,
-            @CurrentUserId Long userId
+            @CurrentUserId(required = false) Long userId
     );
 
     //

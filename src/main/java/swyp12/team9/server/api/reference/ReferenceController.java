@@ -37,7 +37,7 @@ public class ReferenceController implements ReferenceApi{
     @Override
     public ApiResponse<ReferenceResponse> getReference(
             @PathVariable Long referenceId,
-            @CurrentUserId Long userId) {
+            @CurrentUserId(required = false) Long userId) {
 
         ReferenceResponse response = referenceService.getReference(userId, referenceId);
         return ApiResponse.ok(response);

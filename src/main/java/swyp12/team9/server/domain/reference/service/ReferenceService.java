@@ -10,6 +10,7 @@ import swyp12.team9.server.api.reference.dto.CreateReferenceRequest;
 import swyp12.team9.server.api.reference.dto.ReferenceResponse;
 import swyp12.team9.server.api.reference.dto.UpdateReferenceRequest;
 import swyp12.team9.server.api.user.dto.response.UserResponse;
+import swyp12.team9.server.domain.reference.exception.ReferenceAccessDeniedException;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
@@ -44,14 +45,24 @@ public class ReferenceService {
     }
 
     // 레퍼런스 단건 조회
+    /*
+     * - 공개 레퍼런스: 누구나 조회 가능
+     * - 비공개 레퍼런스: 소유자만 조회 가능
+     */
     public ReferenceResponse getReference(Long userId, Long referenceId) {
         Reference reference = getReferenceById(referenceId);
 
-        // 비공개 레퍼런스는 소유자만 조회 가능
-        if (!reference.getIsPublic()) {
-            reference.validateOwner(userId);
+        // 공개 레퍼런스면 누구나 조회 가능
+        if (reference.getIsPublic()) {
+            return ReferenceResponse.from(reference);
         }
 
+        // 비공개 레퍼런스는 소유자만 조회 가능
+        if (userId == null) {
+            throw new ReferenceAccessDeniedException("비공개 레퍼런스는 로그인이 필요합니다.");
+        }
+
+        reference.validateOwner(userId);
         return ReferenceResponse.from(reference);
     }
 
