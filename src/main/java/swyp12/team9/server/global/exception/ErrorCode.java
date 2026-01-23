@@ -34,6 +34,12 @@ public enum ErrorCode {
     FILE_UPLOAD_FAILED(HttpStatus.BAD_REQUEST, "F001", "파일 업로드에 실패했습니다"),
     FILE_SIZE_EXCEED(HttpStatus.BAD_REQUEST, "F002", "파일 크기가 제한을 초과했습니다"),
 
+    // Reference
+    REFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "레퍼런스를 찾을 수 없습니다"),
+    REFERENCE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "R002", "레퍼런스에 접근할 수 없습니다."), // 인증은 됐지만 권한이 없음
+    REFERENCE_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "R003", "제목은 필수입니다"),
+    REFERENCE_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "R004", "제목은 200자를 초과할 수 없습니다"),
+    REFERENCE_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "R005", "설명은 500자를 초과할 수 없습니다"),
 
     ;
 

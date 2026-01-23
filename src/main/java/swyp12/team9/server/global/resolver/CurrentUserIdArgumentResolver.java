@@ -1,6 +1,7 @@
 package swyp12.team9.server.global.resolver;
 
 import org.springframework.core.MethodParameter;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -31,16 +32,38 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
                                   NativeWebRequest webRequest,
                                   WebDataBinderFactory binderFactory) {
 
+
+        // @CurrentUserId 어노테이션 가져오기
+        CurrentUserId annotation = parameter.getParameterAnnotation(CurrentUserId.class);
+        boolean required = annotation != null && annotation.required();
+
+        // SecurityContext에서 Authentication 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
+        // 인증 정보가 없거나 인증되지 않은 경우
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+
+            if (required) {
+                // required=true: 예외 발생
+                throw new IllegalStateException("인증이 필요합니다.");
+            } else {
+                // required=false: null 반환
+                return null;
+            }
         }
 
+        // Principal에서 CustomUserDetails 추출
         Object principal = authentication.getPrincipal();
 
         if (principal instanceof CustomUserDetails customUserDetails) {
             return customUserDetails.getUserId();
+        }
+
+        // CustomUserDetails가 아닌 경우
+        if (required) {
+            throw new IllegalStateException("사용자 정보를 찾을 수 없습니다.");
         }
 
         return null;
