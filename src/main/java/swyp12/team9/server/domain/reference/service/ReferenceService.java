@@ -61,7 +61,9 @@ public class ReferenceService {
     public PageResponse<ReferenceResponse> getUserReferencesCursor(
             Long userId, String cursor, int size) {
 
-        User user = getUserById(userId);
+        if (!userRepository.existsById(userId)) {
+            throw new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId);
+        }
 
         // size + 1개를 조회해서 hasNext 판단
         PageRequest pageRequest = PageRequest.of(0, size + 1);
@@ -102,16 +104,22 @@ public class ReferenceService {
      * 비공개 레퍼런스 목록 조회 (커서 페이징)
      */
     public PaginationUtils.Cursor.PageResponse<ReferenceResponse> getNotPublicReferencesCursor(
-            String cursor, int size) {
+            Long userId, String cursor, int size) {
+
+        if (!userRepository.existsById(userId)) {
+            throw new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId);
+        }
 
         PageRequest pageRequest = PageRequest.of(0, size + 1);
 
         List<Reference> references;
         if (cursor == null) {
-            references = referenceRepository.findByIsPublicFalseOrderByIdDesc(pageRequest);
+            references = referenceRepository.findByUserIdAndIsPublicFalseOrderByIdDesc(
+                    userId, pageRequest);
         } else {
             Long cursorId = Long.parseLong(cursor);
-            references = referenceRepository.findByIsPublicFalseAndIdLessThanOrderByIdDesc(cursorId, pageRequest);
+            references = referenceRepository.findByUserIdAndIsPublicFalseAndIdLessThanOrderByIdDesc(
+                    userId, cursorId, pageRequest);
         }
 
         return buildCursorResponse(references, size);
@@ -145,7 +153,6 @@ public class ReferenceService {
     }
 
 
-
     /**
      * 커서 기반 응답 생성 헬퍼 메서드
      */
@@ -176,6 +183,11 @@ public class ReferenceService {
 
     // 사용자 조회 메서드
     private User getUserById(Long userId) {
+
+        if (!userRepository.existsById(userId)) {
+            throw new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId);
+        }
+
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
     }
@@ -184,5 +196,39 @@ public class ReferenceService {
     private Reference getReferenceById(Long referenceId) {
         return referenceRepository.findById(referenceId)
                 .orElseThrow(() -> new ReferenceNotFoundException("레퍼런스를 찾을 수 없습니다. ID: " + referenceId));
+    }
+
+    // ========== 관리자 전용 메서드 ==========
+
+    /**
+     * [관리자] 모든 비공개 레퍼런스 목록 조회 (커서 페이징)
+     *
+     * @param cursor 페이지 커서 (null이면 첫 페이지)
+     * @param size   페이지 크기
+     * @return 모든 사용자의 비공개 레퍼런스 목록
+     */
+    public PaginationUtils.Cursor.PageResponse<ReferenceResponse> getAllNotPublicReferencesCursor(
+            String cursor, int size) {
+
+        PageRequest pageRequest = PageRequest.of(0, size + 1);
+
+        List<Reference> references;
+        if (cursor == null) {
+            // 첫 페이지: 모든 비공개 레퍼런스 조회
+            references = referenceRepository.findByIsPublicFalseOrderByIdDesc(pageRequest);
+            log.debug("관리자 비공개 레퍼런스 첫 페이지 조회 - size: {}", size);
+        } else {
+            // 다음 페이지: cursor 이후의 비공개 레퍼런스 조회
+            Long cursorId = Long.parseLong(cursor);
+            references = referenceRepository.findByIsPublicFalseAndIdLessThanOrderByIdDesc(cursorId, pageRequest);
+            log.debug("관리자 비공개 레퍼런스 다음 페이지 조회 - cursor: {}, size: {}", cursor, size);
+        }
+
+        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response = buildCursorResponse(references, size);
+
+        log.info("관리자 비공개 레퍼런스 조회 완료 - contents: {}, hasNext: {}",
+                response.getContents().size(), response.isHasNext());
+
+        return response;
     }
 }

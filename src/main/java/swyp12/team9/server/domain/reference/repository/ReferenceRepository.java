@@ -10,18 +10,17 @@ import java.util.List;
 @Repository
 public interface ReferenceRepository extends JpaRepository<Reference, Long> {
 
+    // ========== 기본 조회 ==========
     // 사용자 ID로 레퍼런스 목록 조회
     List<Reference> findByUserId(Long userId);
 
     // 공개 레퍼런스 목록 조회
     List<Reference> findByIsPublicTrue();
 
-    // 비공개 레퍼런스 목록 조회
-    List<Reference> findByIsPublicFalse();
-
     // 사용자 ID와 공개 여부로 조회
     List<Reference> findByUserIdAndIsPublic(Long userId, Boolean isPublic);
 
+    // ========== 커서 페이징: 내 레퍼런스 전체 ==========
     /**
      * 사용자 레퍼런스 커서 페이징 (첫 페이지)
      */
@@ -32,6 +31,7 @@ public interface ReferenceRepository extends JpaRepository<Reference, Long> {
      */
     List<Reference> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long cursor, Pageable pageable);
 
+    // ========== 커서 페이징: 공개 레퍼런스 ==========
     /**
      * 공개 레퍼런스 커서 페이징 (첫 페이지)
      */
@@ -42,14 +42,30 @@ public interface ReferenceRepository extends JpaRepository<Reference, Long> {
      */
     List<Reference> findByIsPublicTrueAndIdLessThanOrderByIdDesc(Long cursor, Pageable pageable);
 
+
+    // ========== 커서 페이징: 비공개 레퍼런스 ==========
     /**
-     * 비공개 레퍼런스 커서 페이징 (첫 페이지)
+     * 특정 사용자의 비공개 레퍼런스 커서 페이징 (첫 페이지)
+     */
+    List<Reference> findByUserIdAndIsPublicFalseOrderByIdDesc(Long userId, Pageable pageable);
+
+    /**
+     * 특정 사용자의 비공개 레퍼런스 커서 페이징 (다음 페이지)
+     */
+    List<Reference> findByUserIdAndIsPublicFalseAndIdLessThanOrderByIdDesc(
+            Long userId, Long cursor, Pageable pageable);
+
+
+    // ========== 커서 페이징: 비공개 레퍼런스 (관리자 전용) ==========
+    /**
+     * [관리자] 모든 비공개 레퍼런스 커서 페이징 (첫 페이지)
+     * 모든 사용자의 비공개 레퍼런스를 조회
      */
     List<Reference> findByIsPublicFalseOrderByIdDesc(Pageable pageable);
 
     /**
-     * 비공개 레퍼런스 커서 페이징 (다음 페이지)
+     * [관리자] 모든 비공개 레퍼런스 커서 페이징 (다음 페이지)
+     * cursor 이후의 모든 비공개 레퍼런스를 조회
      */
     List<Reference> findByIsPublicFalseAndIdLessThanOrderByIdDesc(Long cursor, Pageable pageable);
-
 }

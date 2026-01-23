@@ -164,7 +164,7 @@ public class PaginationUtils {
             }
 
             public static <T> PageResponse<T> empty() {
-                return new PageResponse<>(null, null, false);
+                return new PageResponse<>(List.of(), null, false);
 
             }
 

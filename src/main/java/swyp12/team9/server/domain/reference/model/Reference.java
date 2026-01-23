@@ -46,6 +46,7 @@ public class Reference extends BaseEntity {
     public static Reference create(User user, String title, String description, Boolean isPublic) {
 
         validateTitle(title);
+        validateDescription(description);
 
         return Reference.builder()
                 .user(user)

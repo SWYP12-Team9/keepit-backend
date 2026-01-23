@@ -1,15 +1,14 @@
 package swyp12.team9.server.api.reference;
 
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import swyp12.team9.server.api.reference.dto.CreateReferenceRequest;
 import swyp12.team9.server.api.reference.dto.ReferenceResponse;
 import swyp12.team9.server.api.reference.dto.UpdateReferenceRequest;
-import swyp12.team9.server.api.user.dto.response.UserResponse;
-import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.service.ReferenceService;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
@@ -17,8 +16,9 @@ import swyp12.team9.server.global.util.PaginationUtils;
 
 import java.util.List;
 
+@Slf4j
 @RestController
-@RequestMapping("/api/reference")
+@RequestMapping("/api/v1/references")
 @RequiredArgsConstructor
 public class ReferenceController implements ReferenceApi{
 
@@ -92,11 +92,28 @@ public class ReferenceController implements ReferenceApi{
     @Override
     public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getNotPublicReferences(
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @CurrentUserId Long userId) {
 
         PaginationUtils.Cursor.PageResponse<ReferenceResponse> response =
-                referenceService.getNotPublicReferencesCursor(cursor, size);
+                referenceService.getNotPublicReferencesCursor(userId, cursor, size);
         return ApiResponse.ok(response);
+    }
+
+    // ========== 관리자 전용 API ==========
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getAllNotPublicReferencesForAdmin(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size) {
+
+        log.info("관리자 비공개 레퍼런스 조회 요청 - cursor: {}, size: {}", cursor, size);
+
+        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response =
+                referenceService.getAllNotPublicReferencesCursor(cursor, size);
+
+        return ApiResponse.ok(response, "관리자 비공개 레퍼런스 조회 완료");
     }
 
 }
