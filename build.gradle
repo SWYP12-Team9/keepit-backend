@@ -29,7 +29,17 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
+	// 1. 아래 constraints 블록을 추가하여 버전을 강제로 맞춥니다.
+	constraints {
+		implementation('io.swagger.core.v3:swagger-annotations:2.2.25') {
+			because 'Spring Boot 3.5+ 환경에서 발생하는 NoSuchMethodError 해결'
+		}
+		implementation('io.swagger.core.v3:swagger-annotations-jakarta:2.2.25')
+		implementation('io.swagger.core.v3:swagger-models-jakarta:2.2.25')
+	}
+
+	// 2. springdoc-openapi 버전도 최신 안정화 버전으로 유지
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3' // 2.7.0에서 2.8.3으로 업그레이드 권장
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
