@@ -51,19 +51,27 @@ public class Reference extends BaseEntity {
                 .user(user)
                 .title(title)
                 .description(description)
-                .isPublic(isPublic != null ? isPublic : true)  // null이면 기본값 true
+                .isPublic(isPublic != null ? isPublic : true)
                 .build();
     }
 
     // Reference 정보 수정
     public void update(String title, String description, Boolean isPublic) {
 
-        validateTitle(title);
-        validateDescription(description);
+        // null이면 기존 값 유지
+        if (title != null) {
+            validateTitle(title);
+            this.title = title;
+        }
 
-        this.title = title;
-        this.description = description;
-        this.isPublic = isPublic != null ? isPublic : this.isPublic;
+        if (description != null) {
+            validateDescription(description);
+            this.description = description;
+        }
+
+        if (isPublic != null) {
+            this.isPublic = isPublic;
+        }
     }
 
     // 소유자 검증
