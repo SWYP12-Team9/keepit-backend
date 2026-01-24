@@ -41,6 +41,8 @@ public enum ErrorCode {
     REFERENCE_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "R004", "제목은 200자를 초과할 수 없습니다"),
     REFERENCE_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "R005", "설명은 500자를 초과할 수 없습니다"),
 
+    // Link
+    LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "L001", "링크를 찾을 수 없습니다"),
     ;
 
     private final HttpStatus httpStatus;

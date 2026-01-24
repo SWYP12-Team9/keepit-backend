@@ -58,6 +58,10 @@ dependencies {
 	implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
 	implementation 'org.springframework.ai:spring-ai-elasticsearch-store-spring-boot-starter'
   
+	// Web Scraping
+	implementation 'org.jsoup:jsoup:1.17.2'
+	implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+  
 	// QueryDSL
 	implementation "com.querydsl:querydsl-jpa:${querydslVersion}:jakarta"
 	annotationProcessor "com.querydsl:querydsl-apt:${querydslVersion}:jakarta"

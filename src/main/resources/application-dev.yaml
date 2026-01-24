@@ -84,6 +84,14 @@ spring:
   elasticsearch:
     uris: http://localhost:9200
 
+# Web Scraper Configuration
+scraper:
+  apify:
+    api-key: ${APIFY_API_KEY:} # 환경변수로 설정 (선택적)
+    instagram-actor-id: apify/instagram-scraper
+  timeout-seconds: 5
+  retry-attempts: 1
+
 logging:
   level:
     root: INFO
