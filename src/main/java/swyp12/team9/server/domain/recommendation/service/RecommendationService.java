@@ -134,7 +134,8 @@ public class RecommendationService {
       List<SimilarContentResponse> finalResults = results.stream()
           .filter(doc -> {
             try {
-              Long linkId = ((Number) doc.getMetadata().get("link_id")).longValue(); // 형변환 안전하게
+              Object idObj = doc.getMetadata().get("link_id");
+              Long linkId = (idObj instanceof Number) ? ((Number) idObj).longValue() : 0L;
               return !savedLinkIds.contains(linkId);
             } catch (Exception e) {
               log.error("필터링 중 에러: {}", e.getMessage());
@@ -143,7 +144,8 @@ public class RecommendationService {
           })
           .limit(size)
           .map(doc -> {
-            Long linkId = ((Number) doc.getMetadata().get("link_id")).longValue();
+            Object idObj = doc.getMetadata().get("link_id");
+            Long linkId = (idObj instanceof Number) ? ((Number) idObj).longValue() : 0L;
             String title = (String) doc.getMetadata().getOrDefault("title", "제목 없음");
             return SimilarContentResponse.builder()
                 .content(RecommendationResponse.builder()

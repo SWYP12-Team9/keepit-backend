@@ -14,7 +14,7 @@ import swyp12.team9.server.global.common.entity.BaseEntity;
 public class ReferenceUserLink extends BaseEntity {
 
     @Id
-    @Column(name = "reference_link_id", nullable = false)
+    @Column(name = "reference_user_link_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 

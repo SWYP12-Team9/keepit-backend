@@ -20,6 +20,8 @@ import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.domain.scraper.service.ScraperService;
 import swyp12.team9.server.domain.scraper.dto.ScrapedContent;
 
+import java.util.Optional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -95,12 +97,12 @@ public class LinkService {
       }
     }
 
-    // 4. UserLink 생성 (사용자-링크 관계)
-    if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
+    // 4. UserLink 조회 및 처리 (이미 존재하는지 확인)
+    Optional<UserLink> existingUserLinkOpt = userLinkRepository.findByUserIdAndLinkId(userId, link.getId());
+
+    if (existingUserLinkOpt.isPresent()) {
+      UserLink existingUserLink = existingUserLinkOpt.get();
       log.warn("이미 저장된 링크입니다 - userId: {}, linkId: {}", userId, link.getId());
-      // 이미 저장된 경우, 기존 UserLink 조회
-      UserLink existingUserLink = userLinkRepository.findByUserIdAndLinkId(userId, link.getId())
-          .orElseThrow(() -> new IllegalStateException("UserLink 조회 실패"));
 
       // 5. ReferenceUserLink 생성 (폴더-링크 관계)
       if (!referenceUserLinkRepository.existsByReferenceIdAndUserLinkId(referenceId, existingUserLink.getId())) {

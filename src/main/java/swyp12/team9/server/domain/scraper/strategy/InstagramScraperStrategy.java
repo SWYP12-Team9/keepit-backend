@@ -11,6 +11,8 @@ import swyp12.team9.server.domain.scraper.dto.ScrapedContent;
 import swyp12.team9.server.domain.scraper.exception.ScrapingException;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -50,12 +52,11 @@ public class InstagramScraperStrategy implements ScraperStrategy {
       log.debug("Instagram scrape start: {}", normalizedUrl);
 
       // Apify Instagram Actor - 특이하게도 URL을 'username' 필드에 넣음
-      String requestBody = """
-          {
-            "username": ["%s"],
-            "resultsLimit": 1
-          }
-          """.formatted(normalizedUrl);
+      // JSON Injection 방지를 위해 ObjectMapper 사용
+      Map<String, Object> payload = Map.of(
+          "username", List.of(normalizedUrl),
+          "resultsLimit", 1);
+      String requestBody = objectMapper.writeValueAsString(payload);
 
       // run-sync-get-dataset-items 엔드포인트 사용 (동기식 대기 및 결과 반환)
       Request request = new Request.Builder()
@@ -69,7 +70,11 @@ public class InstagramScraperStrategy implements ScraperStrategy {
           throw new ScrapingException("Apify 호출 실패: " + response.code());
         }
 
-        JsonNode items = objectMapper.readTree(response.body().string());
+        ResponseBody responseBody = response.body();
+        if (responseBody == null) {
+          throw new ScrapingException("Apify 응답 바디가 비어있습니다.");
+        }
+        JsonNode items = objectMapper.readTree(responseBody.string());
 
         if (!items.isArray() || items.isEmpty()) {
           throw new ScrapingException("Instagram 데이터 없음");
