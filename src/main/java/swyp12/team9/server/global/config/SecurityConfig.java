@@ -106,8 +106,7 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/api/images/**"
+                                "/swagger-resources/**"
                         ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
                         // 인증 관련
