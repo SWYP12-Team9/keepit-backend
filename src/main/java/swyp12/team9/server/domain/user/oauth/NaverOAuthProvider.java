@@ -1,5 +1,6 @@
 package swyp12.team9.server.domain.user.oauth;
 
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import swyp12.team9.server.domain.user.model.SocialProvider;
@@ -19,13 +20,26 @@ public class NaverOAuthProvider implements OAuthProvider {
 
     @Override
     public OAuthUserInfo extractUserInfo(OAuth2User oAuth2User) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> attributes = (Map<String, Object>) oAuth2User.getAttributes().get("response");
+        Object responseObj = oAuth2User.getAttributes().get("response");
+        if (responseObj == null) {
+            throw new OAuth2AuthenticationException("네이버 API 응답에서 'response' 필드를 찾을 수 없습니다.");
+        }
 
-        String id = attributes.get("id").toString();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> attributes = (Map<String, Object>) responseObj;
+
+        Object idObj = attributes.get("id");
+        Object emailObj = attributes.get("email");
+        Object nicknameObj = attributes.get("nickname");
+
+        if (idObj == null) {
+            throw new OAuth2AuthenticationException("네이버 사용자 ID를 가져올 수 없습니다.");
+        }
+
+        String id = idObj.toString();
         String username = getProviderType().name() + "_" + id;
-        String email = attributes.get("email").toString();
-        String nickname = attributes.get("nickname").toString();
+        String email = emailObj != null ? emailObj.toString() : null;
+        String nickname = nicknameObj != null ? nicknameObj.toString() : "네이버사용자";
 
         return OAuthUserInfo.builder()
                 .username(username)
