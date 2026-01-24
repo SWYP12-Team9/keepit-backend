@@ -205,6 +205,17 @@ class FileStorageServiceTest {
         }
 
         @Test
+        @DisplayName("실패: 존재 확인 중 S3Exception 발생 시 INTERNAL_SERVER_ERROR 반환")
+        void exists_Fail_S3Exception() {
+            given(s3Client.headObject(any(HeadObjectRequest.class)))
+                    .willThrow(S3Exception.builder().build());
+
+            assertThatThrownBy(() -> fileStorageService.fileExists(FileFixture.OBJECT_KEY))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        @Test
         @DisplayName("실패: 존재 확인 중 시스템 에러 발생 시 INTERNAL_SERVER_ERROR 반환")
         void exists_Fail_Generic() {
             given(s3Client.headObject(any(HeadObjectRequest.class)))
