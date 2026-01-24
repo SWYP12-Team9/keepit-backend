@@ -160,8 +160,11 @@ public class FileStorageService {
             return true;
         } catch (NoSuchKeyException e) {
             return false;
+        } catch (S3Exception e) {
+            log.error("S3 파일 존재 확인 중 예외 발생: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
-            log.error("파일 존재 여부 확인 중 예외 발생: {}", e.getMessage(), e);
+            log.error("파일 존재 여부 확인 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
