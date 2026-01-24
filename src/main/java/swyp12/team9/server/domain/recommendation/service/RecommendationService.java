@@ -16,7 +16,9 @@ import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLinkRepository;
+import swyp12.team9.server.domain.referenceuserlink.model.ReferenceUserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
+import swyp12.team9.server.domain.userlink.model.UserLink;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -84,45 +86,64 @@ public class RecommendationService {
         return recommendForNewUser(referenceId, size);
       }
 
-      // 2. 폴더 내 모든 링크 ID 조회
-      List<Long> linkIds = referenceUserLinkRepository.findLinkIdsByReferenceIdAndUserId(referenceId, userId);
+      // 2. 폴더 내 모든 링크 정보(UserLink 포함) 조회
+      List<ReferenceUserLink> referenceUserLinks = referenceUserLinkRepository
+          .findAllByReferenceIdAndUserId(referenceId, userId);
+
+      // 링크 ID 목록 추출 (나중에 제거용)
+      List<Long> linkIds = referenceUserLinks.stream()
+          .map(rul -> rul.getUserLink().getLink().getId())
+          .collect(Collectors.toList());
+
       log.info("폴더 내 링크 개수: {} - referenceId: {}, userId: {}", linkIds.size(), referenceId, userId);
 
-      // 3. 폴더 내 모든 링크의 내용을 합쳐서 평균 벡터 생성
-      // (간단한 방법: 모든 링크의 제목을 합쳐서 임베딩)
-      List<Link> links = linkRepository.findAllById(linkIds);
-      String combinedContent = links.stream()
-          .map(link -> (link.getTitle() != null ? link.getTitle() : "") + " " +
-              (link.getDescription() != null ? link.getDescription() : ""))
+      // 3. 폴더 내 모든 링크의 내용 + 사용자 입력(메모 등)을 합쳐서 검색어 생성
+      String combinedContent = referenceUserLinks.stream()
+          .map(rul -> {
+            UserLink ul = rul.getUserLink();
+            Link l = ul.getLink();
+
+            String linkContent = (l.getTitle() != null ? l.getTitle() : "") + " " +
+                (l.getDescription() != null ? l.getDescription() : "");
+
+            String userContent = (ul.getPurpose() != null ? ul.getPurpose() : "") + " " +
+                (ul.getWhy() != null ? ul.getWhy() : "") + " " +
+                (ul.getMemo() != null ? ul.getMemo() : "");
+
+            return linkContent + " " + userContent;
+          })
           .collect(Collectors.joining(" "));
 
-      if (combinedContent.trim().isEmpty()) {
-        log.warn("폴더 내 링크 내용이 비어있음 - referenceId: {}", referenceId);
-        return Collections.emptyList();
+      if (combinedContent.trim().length() < 2) {
+        log.warn("폴더 내 링크 내용이 부족함. 폴더 제목을 대신 사용합니다. - referenceId: {}", referenceId);
+        Reference reference = referenceRepository.findById(referenceId)
+            .orElseThrow(() -> new ReferenceNotFoundException("폴더를 찾을 수 없습니다."));
+        combinedContent = reference.getTitle();
       }
 
       // 5. 평균 벡터로 유사도 검색
       List<Document> results = vectorStore.similaritySearch(
           SearchRequest.builder()
               .query(combinedContent)
-              .topK(size + linkIds.size()) // 이미 저장한 링크 제외를 위해 더 많이 조회
+              .topK(size + linkIds.size() + 5) // 넉넉하게 조회
               .build());
 
       // 6. 사용자가 이미 저장한 링크 제외
       Set<Long> savedLinkIds = new HashSet<>(userLinkRepository.findLinkIdsByUserId(userId));
 
-      return results.stream()
+      List<SimilarContentResponse> finalResults = results.stream()
           .filter(doc -> {
             try {
-              Long linkId = (Long) doc.getMetadata().get("link_id");
+              Long linkId = ((Number) doc.getMetadata().get("link_id")).longValue(); // 형변환 안전하게
               return !savedLinkIds.contains(linkId);
             } catch (Exception e) {
+              log.error("필터링 중 에러: {}", e.getMessage());
               return false;
             }
           })
           .limit(size)
           .map(doc -> {
-            Long linkId = (Long) doc.getMetadata().get("link_id");
+            Long linkId = ((Number) doc.getMetadata().get("link_id")).longValue();
             String title = (String) doc.getMetadata().getOrDefault("title", "제목 없음");
             return SimilarContentResponse.builder()
                 .content(RecommendationResponse.builder()
@@ -134,6 +155,8 @@ public class RecommendationService {
                 .build();
           })
           .collect(Collectors.toList());
+
+      return finalResults;
 
     } catch (Exception e) {
       log.error("폴더 기반 추천 실패 - referenceId: {}, userId: {}, error: {}",

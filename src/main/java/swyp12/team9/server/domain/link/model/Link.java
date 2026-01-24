@@ -7,6 +7,7 @@ import swyp12.team9.server.global.common.entity.BaseEntity;
 @Entity
 @Table(name = "links")
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Link extends BaseEntity {

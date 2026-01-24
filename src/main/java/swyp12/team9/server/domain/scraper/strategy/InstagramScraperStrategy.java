@@ -21,15 +21,12 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class InstagramScraperStrategy implements ScraperStrategy {
 
-  private static final String INSTAGRAM_DOMAIN = "instagram.com";
-  private static final String APIFY_API_URL = "https://api.apify.com/v2/acts/%s/run-sync-get-dataset-items";
-  private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+  @Value("${scraper.apify.api-key}")
+  private String apiKey;
 
-  @Value("${scraper.apify.api-key:}")
-  private String apifyApiKey;
+  private static final String APIFY_RUN_URL = "https://api.apify.com/v2/acts/apify~instagram-post-scraper/run-sync-get-dataset-items?token=%s";
 
-  @Value("${scraper.apify.instagram-actor-id:apify/instagram-scraper}")
-  private String instagramActorId;
+  private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
   private final OkHttpClient httpClient = new OkHttpClient.Builder()
       .connectTimeout(30, TimeUnit.SECONDS)
@@ -39,75 +36,94 @@ public class InstagramScraperStrategy implements ScraperStrategy {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Override
-  public ScrapedContent scrape(String url) throws ScrapingException {
-    if (apifyApiKey == null || apifyApiKey.isBlank()) {
-      log.warn("Apify API 키가 설정되지 않음 - 인스타그램 스크래핑 스킵");
+  public ScrapedContent scrape(String url) {
+
+    if (apiKey == null || apiKey.isBlank()) {
       throw new ScrapingException("Apify API 키가 설정되지 않았습니다");
     }
 
+    // 1. URL 정규화 (utm 제거, / 추가)
+    String normalizedUrl = normalizeInstagramUrl(url);
+    log.info("Instagram URL Normalized: {} -> {}", url, normalizedUrl);
+
     try {
-      log.debug("인스타그램 스크래핑 시작 - url: {}", url);
+      log.debug("Instagram scrape start: {}", normalizedUrl);
 
-      // Apify API 요청 바디 구성
-      String requestBody = String.format("""
+      // Apify Instagram Actor - 특이하게도 URL을 'username' 필드에 넣음
+      String requestBody = """
           {
-            "directUrls": ["%s"],
-            "resultsType": "posts"
+            "username": ["%s"],
+            "resultsLimit": 1
           }
-          """, url);
+          """.formatted(normalizedUrl);
 
-      String apiUrl = String.format(APIFY_API_URL, instagramActorId) + "?token=" + apifyApiKey;
-
+      // run-sync-get-dataset-items 엔드포인트 사용 (동기식 대기 및 결과 반환)
       Request request = new Request.Builder()
-          .url(apiUrl)
+          .url(String.format(APIFY_RUN_URL, apiKey))
           .post(RequestBody.create(requestBody, JSON))
           .build();
 
       try (Response response = httpClient.newCall(request).execute()) {
+
         if (!response.isSuccessful()) {
-          throw new ScrapingException("Apify API 호출 실패: " + response.code());
+          throw new ScrapingException("Apify 호출 실패: " + response.code());
         }
 
-        String responseBody = response.body().string();
-        JsonNode items = objectMapper.readTree(responseBody);
+        JsonNode items = objectMapper.readTree(response.body().string());
 
-        if (items.isArray() && items.size() > 0) {
-          JsonNode item = items.get(0);
-
-          String caption = item.path("caption").asText(null);
-          String imageUrl = item.path("displayUrl").asText(null);
-
-          // 릴스인 경우 비디오 URL도 추출
-          String videoUrl = item.path("videoUrl").asText(null);
-          if (videoUrl != null && !videoUrl.isBlank()) {
-            imageUrl = videoUrl; // 비디오 썸네일 대신 비디오 URL 사용
-          }
-
-          log.info("인스타그램 스크래핑 완료 - url: {}, caption: {}", url,
-              caption != null ? caption.substring(0, Math.min(50, caption.length())) : "없음");
-
-          return ScrapedContent.of(
-              caption != null ? caption.substring(0, Math.min(100, caption.length())) : "Instagram Post",
-              caption,
-              imageUrl);
+        if (!items.isArray() || items.isEmpty()) {
+          throw new ScrapingException("Instagram 데이터 없음");
         }
 
-        throw new ScrapingException("Apify 응답에 데이터가 없습니다");
+        JsonNode item = items.get(0);
+
+        String caption = item.path("caption").asText(null);
+        String imageUrl = item.path("displayUrl").asText(null);
+
+        // 릴스면 videoUrl 우선
+        String videoUrl = item.path("videoUrl").asText(null);
+        if (videoUrl != null && !videoUrl.isBlank()) {
+          imageUrl = videoUrl;
+        }
+
+        return ScrapedContent.of(
+            caption != null ? caption.substring(0, Math.min(100, caption.length())) : "Instagram Post",
+            caption,
+            imageUrl);
       }
 
-    } catch (IOException e) {
-      log.error("인스타그램 스크래핑 실패 - url: {}, error: {}", url, e.getMessage());
-      throw new ScrapingException("인스타그램 스크래핑 실패: " + url, e);
+    } catch (Exception e) {
+      log.error("Instagram scraping failed: {}", normalizedUrl, e); // 정규화된 URL로 로그
+      throw new ScrapingException("Instagram 스크래핑 실패", e);
     }
+  }
+
+  private String normalizeInstagramUrl(String url) {
+    if (url == null)
+      return null;
+
+    // utm, igsh 등 쿼리 파라미터 제거
+    int idx = url.indexOf("?");
+    String cleaned = idx > 0 ? url.substring(0, idx) : url;
+
+    // 끝에 슬래시 보장 (Canonical URL)
+    if (!cleaned.endsWith("/")) {
+      cleaned += "/";
+    }
+    return cleaned;
   }
 
   @Override
   public boolean supports(String url) {
-    return url != null && url.contains(INSTAGRAM_DOMAIN);
+    if (url == null)
+      return false;
+    return url.contains("instagram.com/p/") ||
+        url.contains("instagram.com/reel/") ||
+        url.contains("instagram.com/tv/");
   }
 
   @Override
   public int priority() {
-    return 5; // 매우 높은 우선순위
+    return 10; // Default(999)보다 작으므로 우선순위 높음
   }
 }

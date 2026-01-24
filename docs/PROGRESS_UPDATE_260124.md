@@ -1,114 +1,87 @@
-# 개발 진행 업데이트 리포트 (2026-01-24)
+# Progress Update (2026-01-24)
 
-이 문서는 폴더 기반 추천 시스템 고도화 및 웹 스크래핑 시스템 도입에 관한 오늘의 업데이트 내용을 요약합니다.
+## 🎯 **Achievement: Web Scraping Pipeline Stabilization**
 
----
+스크래핑 모듈이 다양한 플랫폼(Instagram, Naver News, General Web)에 대해 안정적으로 동작하도록 구조를 개선하고 구현을 완료했습니다.
 
-## 1. 폴더 기반 추천 알고리즘 고도화
+### ✅ **1. Scraper Implementation Status**
 
-### 핵심 변경 사항
+| Strategy                       | Target                | Status     | Tech Stack    | Key Features                                                                                                                                                                                                                                |
+| :----------------------------- | :-------------------- | :--------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`InstagramScraperStrategy`** | Instagram Posts/Reels | **Active** | **Apify API** | - `apify/instagram-post-scraper` Actor 연동<br>- **URL 정규화**: `utm_source` 등 파라미터 자동 제거 후 전송<br>- **Payload 최적화**: `username` 필드를 사용한 독특한 스키마 준수<br>- **Priority: 10** (최우선 순위, Default로 빠지지 않음) |
+| **`NewsScraperStrategy`**      | Naver News            | **Active** | **Jsoup**     | - **Content Cleaning**: 기자 정보, 무단 전재 문구 등 불필요 텍스트 제거<br>- **Smart Selection**: PC/Mobile/Old 버전 선택자 모두 지원<br>- **Priority: 10**                                                                                 |
+| **`DefaultScraperStrategy`**   | General Web           | **Active** | **Jsoup**     | - Open Graph / Meta Tag 기본 지원<br>- **Priority: 999** (Fallback)                                                                                                                                                                         |
 
-- **평균 벡터 기반 추천**: 특정 폴더(Reference) 내의 모든 링크들의 임베딩 벡터를 가져와 산술 평균을 계산합니다.
-- **의도 파악**: 계산된 평균 벡터를 Elasticsearch에 쿼리하여 해당 폴더의 전반적인 주제와 유사한 다른 사용자의 링크를 추천합니다.
-- **초기 사용자 전략**: 폴더 내 링크가 없는 경우, 폴더의 '이름(Title)'을 임베딩하여 관련 링크를 추천하는 폴백 로직을 구현했습니다.
+#### 📂 **File Structure (`domain/scraper`)**
 
-### 데이터 구조 업데이트 (ERD 반영)
-
-- **UserLink**: 저장 목적을 구분하기 위한 `purpose` (VARCHAR 20, NOT NULL) 필드를 추가했습니다.
-- **ReferenceUserLink**: PK 컬럼명을 `reference_link_id`로 변경하여 표준 데이터 모델과 동기화했습니다.
-
----
-
-## 2. 웹 스크래핑 시스템 (Web Scraper) 도입
-
-추천 품질을 높이기 위해 링크 저장 시 자동으로 메타데이터를 추출하는 시스템을 구축했습니다.
-
-### 시스템 아키텍처 (Strategy Pattern)
-
-다양한 웹사이트의 구조 변화에 유연하게 대응할 수 있도록 **전략 패턴**을 적용했습니다.
-
-1. **ScraperFactory**: URL 패턴을 분석하여 최적의 스크래퍼를 선택합니다.
-2. **ScraperStrategy**: 각 스크래퍼의 표준 인터페이스입니다.
-3. **ScraperService**: 재시도 로직 및 에러 핸들링을 포함한 통합 서비스입니다.
-
-### 구현된 스크래퍼
-
-- **DefaultScraperStrategy**: 일반 웹페이지용. Open Graph 메타태그(`og:title`, `og:description`, `og:image`)를 우선적으로 사용합니다.
-- **NewsScraperStrategy**: 한국 뉴스(네이버뉴스 위주) 전용. 기사 제목뿐만 아니라 **본문 전체**를 추출하여 향후 AI 요약에 활용할 수 있도록 설계했습니다.
-- **InstagramScraperStrategy**: 인스타그램(게시물/릴스) 전용. **Apify API**를 통해 캡션과 미디어 정보를 안정적으로 가져옵니다.
-
----
-
-## 3. 서비스 통합 및 워크플로우
-
-링크 저장 API(`POST /api/v1/links`) 호출 시 다음과 같은 작업이 원자적으로 수행됩니다:
-
-1. **사용자/폴더 검증**: 요청된 정보의 유효성을 체크합니다.
-2. **자동 스크래핑**: URL에 맞는 전략을 선택해 제목, 설명, 이미지를 추출합니다. (실패 시 "제목 없음"으로 자동 폴백)
-3. **데이터 저장**: 추출된 정보를 포함하여 `Link` 및 `UserLink` 엔티티를 생성합니다.
-4. **Elasticsearch 색인**: 저장 즉시 벡터화하여 추천 엔진에 반영합니다.
-
----
-
-## 4. 향후 계획
-
-- **AI 요약 자동화**: 스크래핑된 뉴스 본문을 GPT/Claude API를 통해 한 줄 요약하여 제공할 예정입니다.
-- **비동기 성능 최적화**: 스크래핑 및 색인 과정을 비동기(`@Async`)로 전환하여 API 응답 속도를 극대화할 계획입니다.
-- **추가 플랫폼 지원**: 유튜브, 트위터(X) 등 주요 소셜 플랫폼 전문 스크래퍼를 확장할 예정입니다.
-
----
-
----
-
-## 5. 🔍 시스템 동작 확인 가이드
-
-시스템이 정상적으로 작동하는지 확인하기 위한 테스트 시나리오입니다.
-
-### 시나리오 1: 링크 저장 및 자동 스크래핑
-
-`POST /api/v1/links` 호출을 통해 각 스크래퍼가 올바른 전략을 선택하는지 확인합니다.
-
-| 테스트 대상       | URL 예시                          | 기대 결과                          |
-| :---------------- | :-------------------------------- | :--------------------------------- |
-| **일반 웹페이지** | `https://github.com`              | GitHub 메인 제목 및 OG 이미지 추출 |
-| **네이버 뉴스**   | `https://n.news.naver.com/...`    | 기사 제목 + **본문(content)** 추출 |
-| **인스타그램**    | `https://www.instagram.com/p/...` | 게시물 캡션 추출 (Apify 연동 시)   |
-
-#### 요청 예시 (JSON)
-
-```json
-{
-  "referenceId": 1,
-  "url": "https://n.news.naver.com/article/001/0015183818",
-  "purpose": "학습",
-  "why": "나중에 보려고",
-  "memo": "경제 기사 요약 필요"
-}
+```
+src/main/java/swyp12/team9/server/domain/scraper/
+├── dto/
+│   └── ScrapedContent.java       # 스크래핑 결과 객체 (Title, Content, ImageUrl)
+├── exception/
+│   └── ScrapingException.java    # 스크래핑 전용 예외
+├── factory/
+│   └── ScraperFactory.java       # URL에 맞는 전략을 찾아주는 Factory (Priority 기반)
+├── service/
+│   └── ScraperService.java       # 상위 서비스 (비동기, 재시도 로직 포함 필요 시 확장)
+└── strategy/                     # [핵심] 전략 패턴 구현체들
+    ├── ScraperStrategy.java      # 인터페이스 (scrape, supports, priority)
+    ├── DefaultScraperStrategy.java
+    ├── InstagramScraperStrategy.java
+    └── NewsScraperStrategy.java
 ```
 
 ---
 
-### 시나리오 2: 폴더 기반 추천 엔진 확인
+### 🛠 **2. Testing & Scripts**
 
-`GET /api/v1/recommendations/folder/{referenceId}` 호출을 통해 추천 품질을 확인합니다.
+스크래핑/링크 기능을 테스트하기 위한 쉘 스크립트가 준비되었습니다.
 
-> [!💡] **구분 포인트**
->
-> 1. **폴더가 비어있을 때**: 폴더명(예: "재테크")을 분석하여 관련 콘텐츠를 추천합니다. (Cold Start 방지)
-> 2. **폴더에 링크가 있을 때**: 저장된 링크들의 평균 벡터를 계산하여 사용자 취향에 근접한 콘텐츠를 추천합니다.
+#### **A. `scripts/test_insta.sh` (추천 ⭐)**
+
+> **"DB 초기화부터 인스타그램 스크래핑 검증까지 한 방에!"**
+
+- **기능**: Docker DB 초기화 -> 기초 데이터(Users/Folders) 주입 -> 로그인 -> 인스타그램 링크 추가 요청(Apify 호출) -> 결과 JSON 출력
+- **용도**: 서버 재시작 직후 인스타그램 연동이 잘 되는지 빠르게 확인할 때.
+- **실행**:
+  ```bash
+  chmod +x scripts/test_insta.sh
+  ./scripts/test_insta.sh
+  ```
+
+#### **B. `scripts/init_data.sh`**
+
+> **"전체 시나리오 데이터 셋업"**
+
+- **기능**: DB 초기화, 모든 봇 계정 생성, 다양한 샘플 데이터(Docker, React, Kafka, News 등) 대량 주입.
+- **용도**: 앱 전체 기능을 E2E로 테스트하거나 프론트엔드 연동 확인할 때.
+- **실행**:
+  ```bash
+  ./scripts/init_data.sh
+  ```
+  _(주의: 실행 전 서버가 켜져 있어야 하며, Apify 과금을 아끼려면 인스타 링크 부분은 주석 처리 가능)_
 
 ---
 
-### 시나리오 3: 로그를 통한 내부 로직 모니터링
+### 📝 **3. Troubleshooting Log (Resolved)**
 
-서버 콘솔(Log)에서 아래 흐름대로 로그가 찍히는지 확인하세요.
+1.  **Instagram 403 Forbidden / Login Redirect**
+    - **원인**: Jsoup이나 일반 HTTP 요청으로는 인스타그램의 보안 벽을 뚫을 수 없음.
+    - **해결**: **Apify**를 사용하여 실제 브라우저/모바일 환경을 모사한 스크래핑 대행 방식으로 전환.
 
-1. **전략 선택**: `[DEBUG] 스크래퍼 전략 선택 - strategy: NewsScraperStrategy`
-2. **성공 여부**: `[INFO] 스크래핑 성공 - url: ..., attempt: 1`
-3. **DB 저장**: `[INFO] 새 링크 생성 - linkId: ..., title: ...`
-4. **색인 완료**: `[INFO] 링크 색인 완료 - linkId: ...`
+2.  **Apify "Bad Request (400)" Error**
+    - **원인 1**: URL에 `utm_source` 등 지저분한 파라미터가 있어 Actor가 처리를 거부하거나 데이터 없음 반환.
+      - -> **해결**: `normalizeInstagramUrl` 메서드로 `?` 뒤 파라미터 제거 및 `/` 보장.
+    - **원인 2**: `directUrls` / `startUrls` 등 일반적인 필드가 아닌, 해당 Actor만의 독자적인 스키마 사용.
+      - -> **해결**: Documentation 확인 후 Payload를 `{"username": ["URL"]}` 형태로 수정하여 해결.
+
+3.  **Reference ID Null Error (400)**
+    - **원인**: 테스트 스크립트에서 폴더 ID 없이 링크 추가를 요청하여 검증 실패.
+    - **해결**: `test_insta.sh`에 DB 초기화 및 `referenceId: 2` 명시적 주입 로직 추가.
 
 ---
 
-> [!CAUTION]
-> **주의사항**: 인스타그램 스크래핑은 `application-dev.yaml`에 `APIFY_API_KEY`가 환경변수로 설정되어 있어야 정상 동작하며, 설정되지 않은 경우 `DefaultScraperStrategy`로 폴백됩니다.
+### 🚀 **Next Steps**
+
+- [ ] **유튜브 스크래핑 (`YoutubeScraperStrategy`)**: `oEmbed`를 사용하거나 YouTube Data API 연동 고려.
+- [ ] **비동기 처리 고도화**: 스크래핑 시간이 길어질 경우(특히 Apify) 유저 경험 개선을 위해 SSE/WebSocket 알림 검토.

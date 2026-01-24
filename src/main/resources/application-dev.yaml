@@ -74,7 +74,7 @@ spring:
 
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY} # 환경변수로 설정
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
           model: gpt-4o-mini
@@ -87,7 +87,7 @@ spring:
 # Web Scraper Configuration
 scraper:
   apify:
-    api-key: ${APIFY_API_KEY:} # 환경변수로 설정 (선택적)
+    api-key: ${APIFY_API_KEY}
     instagram-actor-id: apify/instagram-scraper
   timeout-seconds: 5
   retry-attempts: 1

@@ -18,8 +18,37 @@ public class DefaultScraperStrategy implements ScraperStrategy {
 
   @Override
   public ScrapedContent scrape(String url) throws ScrapingException {
-    log.debug("기본 스크래퍼 실행 (비워둠) - url: {}", url);
-    return ScrapedContent.of("제목 없음", "설명 없음", null);
+    try {
+      log.debug("기본 스크래퍼 실행 - url: {}", url);
+      Document doc = Jsoup.connect(url)
+          .timeout(TIMEOUT_MS)
+          .userAgent(
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+          .get();
+
+      // Open Graph 태그 우선 추출
+      String title = extractOpenGraphTag(doc, "og:title");
+      if (title == null || title.isBlank()) {
+        title = doc.title();
+      }
+
+      String description = extractOpenGraphTag(doc, "og:description");
+      if (description == null || description.isBlank()) {
+        description = doc.select("meta[name=description]").attr("content");
+      }
+
+      String imageUrl = extractOpenGraphTag(doc, "og:image");
+
+      log.info("기본 스크래핑 성공 - title: {}", title);
+      return ScrapedContent.of(
+          (title != null && !title.isBlank()) ? title : "제목 없음",
+          (description != null && !description.isBlank()) ? description : "설명 없음",
+          imageUrl);
+
+    } catch (Exception e) {
+      log.error("기본 스크래핑 실패 - url: {}, error: {}", url, e.getMessage());
+      return ScrapedContent.of("제목 없음", "스크래핑 실패: " + e.getMessage(), null);
+    }
   }
 
   @Override

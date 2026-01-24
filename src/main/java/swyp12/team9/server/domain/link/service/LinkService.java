@@ -77,15 +77,23 @@ public class LinkService {
               savedLink.getId(), url, savedLink.getTitle());
 
           // Elasticsearch에 색인
-          try {
-            recommendationService.indexLink(savedLink);
-            log.info("링크 색인 완료 - linkId: {}", savedLink.getId());
-          } catch (Exception e) {
-            log.error("링크 색인 실패 - linkId: {}, error: {}", savedLink.getId(), e.getMessage());
-          }
+          indexLinkToEs(savedLink);
 
           return savedLink;
         });
+
+    // 제목이 없는 경우 재스크래핑 시도 (테스트 및 품질 개선용)
+    if ("제목 없음".equals(link.getTitle())) {
+      log.info("기존 링크에 제목이 없어 재스크래핑 시도 - linkId: {}", link.getId());
+      ScrapedContent scraped = scraperService.scrapeUrl(url);
+      if (!"제목 없음".equals(scraped.title())) {
+        link.setTitle(scraped.title());
+        link.setDescription(scraped.description());
+        link.setPreviewImageUrl(scraped.imageUrl());
+        linkRepository.save(link);
+        indexLinkToEs(link);
+      }
+    }
 
     // 4. UserLink 생성 (사용자-링크 관계)
     if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
@@ -131,5 +139,14 @@ public class LinkService {
         referenceId, savedUserLink.getId());
 
     return link;
+  }
+
+  private void indexLinkToEs(Link link) {
+    try {
+      recommendationService.indexLink(link);
+      log.info("링크 색인 완료 - linkId: {}", link.getId());
+    } catch (Exception e) {
+      log.error("링크 색인 실패 - linkId: {}, error: {}", link.getId(), e.getMessage());
+    }
   }
 }
