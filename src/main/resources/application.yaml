@@ -21,6 +21,11 @@ spring:
         default_batch_fetch_size: 100
     open-in-view: false
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   sql:
     init:
       mode: never
@@ -43,3 +48,20 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+# NCP Object Storage 설정
+cloud:
+  ncp:
+    object-storage:
+      endpoint: ${NCP_OBJECT_STORAGE_ENDPOINT:https://kr.object.ncloudstorage.com}
+      region: ${NCP_REGION:kr-standard}
+      credentials:
+        access-key: ${NCP_ACCESS_KEY}
+        secret-key: ${NCP_SECRET_KEY}
+      bucket-name: ${NCP_BUCKET_NAME}
+
+# 이미지 업로드 설정
+image:
+  max-size: ${IMAGE_MAX_SIZE:10485760} # 10MB (byte 단위)
+  allowed-types: image/jpeg,image/jpg,image/png,image/gif,image/webp
+  directory: ${IMAGE_DIRECTORY:images} # 버킷 내 저장 경로

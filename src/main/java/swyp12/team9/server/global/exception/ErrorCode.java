@@ -31,8 +31,11 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "U003", "잘못된 비밀번호입니다"),
 
     // File
-    FILE_UPLOAD_FAILED(HttpStatus.BAD_REQUEST, "F001", "파일 업로드에 실패했습니다"),
+    FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "F001", "파일 업로드에 실패했습니다"),
     FILE_SIZE_EXCEED(HttpStatus.BAD_REQUEST, "F002", "파일 크기가 제한을 초과했습니다"),
+    FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "F003", "파일을 찾을 수 없습니다"),
+    FILE_DOWNLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "F004", "파일 다운로드에 실패했습니다"),
+    FILE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "F005", "파일 삭제에 실패했습니다"),
 
     // Reference
     REFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "레퍼런스를 찾을 수 없습니다"),
@@ -40,6 +43,16 @@ public enum ErrorCode {
     REFERENCE_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "R003", "제목은 필수입니다"),
     REFERENCE_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "R004", "제목은 200자를 초과할 수 없습니다"),
     REFERENCE_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "R005", "설명은 500자를 초과할 수 없습니다"),
+
+    // Image
+    IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I001", "이미지 업로드에 실패했습니다"),
+    IMAGE_DOWNLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I002", "이미지 다운로드에 실패했습니다"),
+    IMAGE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I003", "이미지 삭제에 실패했습니다"),
+    IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "I004", "이미지를 찾을 수 없습니다"),
+    INVALID_IMAGE_FORMAT(HttpStatus.BAD_REQUEST, "I005", "지원하지 않는 이미지 형식입니다"),
+    IMAGE_SIZE_EXCEED(HttpStatus.BAD_REQUEST, "I006", "이미지 크기가 제한을 초과했습니다"),
+    EMPTY_IMAGE_FILE(HttpStatus.BAD_REQUEST, "I007", "이미지 파일이 비어있습니다"),
+    INVALID_IMAGE_URL(HttpStatus.BAD_REQUEST, "I008", "잘못된 이미지 URL입니다"),
 
     ;
 
