@@ -57,7 +57,7 @@ public class SecurityConfig {
         this.jwtService = jwtService;
     }
 
-    // CORS 설정 (환경 변수 사용)
+    // CORS 설정
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
