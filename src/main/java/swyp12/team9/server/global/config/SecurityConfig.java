@@ -117,6 +117,9 @@ public class SecurityConfig {
                                 "/login"
                         ).permitAll()
 
+                        // OAuth2 소셜 로그인 관련 경로
+                        .requestMatchers("/oauth2/**", "/login/oauth2/code/**").permitAll()
+
                         // 공개 레퍼런스 조회 (익명 허용)
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/public").permitAll()
