@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,19 +13,21 @@ import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
+    @Value("${swagger.server-url}")
+    private String serverUrl;
     @Bean
     public OpenAPI openAPI() {
         String securitySchemeName = "AccessToken";
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("SWYP Team 9 API")
-                        .description("SWYP Team 9 Backend Server API Documentation")
+                        .title("Keepit API")
+                        .description("Keepit Backend Server API Documentation")
                         .version("v1.0.0"))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080")
-                                .description("Local Development Server")
+                                .url(serverUrl)
+                                .description("Server")
                 ))
                 .components(new Components()
                         .addSecuritySchemes(securitySchemeName,

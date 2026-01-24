@@ -2,6 +2,7 @@ package swyp12.team9.server.global.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,6 +30,7 @@ import swyp12.team9.server.global.filter.JwtFilter;
 import swyp12.team9.server.global.filter.LoginFilter;
 import swyp12.team9.server.global.handler.RefreshTokenLogoutHandler;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -41,6 +43,9 @@ public class SecurityConfig {
     private final AuthenticationSuccessHandler socialSuccessHandler;
     private final JwtService jwtService;
 
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOrigins;
+
     public SecurityConfig(
             AuthenticationConfiguration authenticationConfiguration,
             @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
@@ -52,12 +57,12 @@ public class SecurityConfig {
         this.jwtService = jwtService;
     }
 
-    // CORS 설정
+    // CORS 설정 (환경 변수 사용)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
@@ -101,7 +106,8 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-resources/**"
+                                "/swagger-resources/**",
+                                "/api/images/**"
                         ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
                         // 인증 관련
@@ -111,9 +117,6 @@ public class SecurityConfig {
                                 "/api/users/signup",
                                 "/login"
                         ).permitAll()
-
-                        // OAuth2 소셜 로그인 관련 경로
-                        .requestMatchers("/oauth2/**", "/login/oauth2/code/**").permitAll()
 
                         // 공개 레퍼런스 조회 (익명 허용)
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()

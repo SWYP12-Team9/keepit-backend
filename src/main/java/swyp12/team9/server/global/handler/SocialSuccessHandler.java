@@ -6,6 +6,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -22,10 +23,13 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final String frontendUrl;
 
-    public SocialSuccessHandler(JwtService jwtService, UserRepository userRepository) {
+    public SocialSuccessHandler(JwtService jwtService, UserRepository userRepository,
+                                @Value("${frontend.url}") String frontendUrl) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.frontendUrl = frontendUrl;
     }
 
     @Override
@@ -55,7 +59,7 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         refreshCookie.setMaxAge(10); // 10초 (프론트에서 발급 후 바로 헤더 전환 로직 진행 예정)
 
         response.addCookie(refreshCookie);
-        response.sendRedirect("http://localhost:5173/cookie");
+        response.sendRedirect(frontendUrl + "/cookie");
     }
 
 }
