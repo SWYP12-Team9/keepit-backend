@@ -57,7 +57,11 @@ dependencies {
 	// Spring AI
 	implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
 	implementation 'org.springframework.ai:spring-ai-elasticsearch-store-spring-boot-starter'
-  
+
+	// AWS SDK for S3 (NCP Object Storage)
+	implementation 'software.amazon.awssdk:s3:2.20.26'
+	implementation 'software.amazon.awssdk:auth:2.20.26'
+
 	// QueryDSL
 	implementation "com.querydsl:querydsl-jpa:${querydslVersion}:jakarta"
 	annotationProcessor "com.querydsl:querydsl-apt:${querydslVersion}:jakarta"
