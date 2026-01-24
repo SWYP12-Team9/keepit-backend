@@ -46,6 +46,14 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOrigins;
 
+    /**
+     * Constructs the SecurityConfig with the required authentication components.
+     *
+     * @param authenticationConfiguration Spring AuthenticationConfiguration used to obtain the AuthenticationManager
+     * @param loginSuccessHandler handler invoked after successful username/password login
+     * @param socialSuccessHandler handler invoked after successful OAuth2/social login
+     * @param jwtService service responsible for JWT operations (issue, validate, revoke)
+     */
     public SecurityConfig(
             AuthenticationConfiguration authenticationConfiguration,
             @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
@@ -57,7 +65,19 @@ public class SecurityConfig {
         this.jwtService = jwtService;
     }
 
-    // CORS 설정
+    /**
+     * Create a CorsConfigurationSource built from the class's comma-separated allowedOrigins and common CORS defaults.
+     *
+     * The returned source registers a configuration for all paths (/**) with:
+     * - allowed origins: values from `allowedOrigins` split on ',' 
+     * - allowed methods: GET, POST, PUT, DELETE, OPTIONS, PATCH
+     * - allowed headers: any
+     * - allow credentials: true
+     * - exposed headers: Authorization, Set-Cookie
+     * - max age: 3600 seconds
+     *
+     * @return a CorsConfigurationSource that applies the above CORS configuration to all request paths
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -88,7 +108,20 @@ public class SecurityConfig {
                 .build();
     }
 
-    // SecurityFilterChain
+    /**
+     * Configure and build the application's SecurityFilterChain with CORS, stateless sessions, authorization rules, OAuth2 login, logout handling, JSON error responses, and custom authentication filters.
+     *
+     * <p>Notable behaviours:
+     * - Applies CORS configuration from the corsConfigurationSource bean and disables CSRF.
+     * - Uses stateless session management.
+     * - Defines ordered authorization rules for public endpoints, authentication endpoints, OAuth2 paths, admin and user APIs.
+     * - Enables OAuth2 login with a social success handler.
+     * - Configures logout to remove refresh tokens and return a JSON success message.
+     * - Returns JSON-formatted responses for authentication and access-denied errors.
+     * - Registers JwtFilter and LoginFilter into the filter chain.
+     *
+     * @return the fully configured SecurityFilterChain
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
