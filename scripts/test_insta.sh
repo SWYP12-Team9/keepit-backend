@@ -1,9 +1,6 @@
 #!/bin/bash
 
-# 설정 (init_data.sh와 동일하게)
-API_URL="http://localhost:8080"
-EMAIL="test1@example.com" # 기존 테스트용 이메일 유지
-PASSWORD="password123!"
+
 
 echo "� 1. DB 초기화 및 기초 데이터 주입 (Docker MySQL)..."
 # init_data.sh의 SQL 주입 로직 복사
@@ -29,20 +26,13 @@ echo "✅ DB 초기화 완료."
 
 # 설정
 API_URL="http://localhost:8080"
-# init_data.sh에서 만든 dev_bot 계정 사용 (비번: 1234 -> 해시값 매칭 확인 필요하지만, init_data.sh 로직 따름)
 USERNAME="dev_bot"
-PASSWORD="password123!" # init_data.sh의 해시값이 어떤 비번인지 모르겠으나 일단 기존 스크립트 비밀번호 시도.
-# 잠깐, init_data.sh에서는 {"username":"dev_bot", "password":"1234"} 로 로그인하고 있음!
-# 따라서 여기서도 똑같이 해야 함.
+PASSWORD="1234"  # init_data.sh의 bcrypt 해시와 매칭되는 비밀번호
 
 echo "🔹 [2] 로그인 시도 (dev_bot)..."
-# init_data.sh는 /login 엔드포인트 사용 (Spring Security Form Login or API)
-# 하지만 test_insta.sh는 API 테스트이므로 JSON 요청을 보냄.
-# init_data.sh 44라인: curl -X POST http://localhost:8080/login -d '{"username":"dev_bot", "password":"1234"}'
-
 LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/login" \
   -H "Content-Type: application/json" \
-  -d '{"username":"dev_bot", "password":"1234"}')
+  -d "{\"username\":\"$USERNAME\", \"password\":\"$PASSWORD\"}")
 
 ACCESS_TOKEN=$(echo $LOGIN_RESPONSE | grep -o '"accessToken":"[^"]*' | cut -d'"' -f4)
 

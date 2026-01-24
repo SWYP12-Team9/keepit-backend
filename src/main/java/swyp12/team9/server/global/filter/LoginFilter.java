@@ -50,13 +50,19 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
             response.setCharacterEncoding("UTF-8");
 
             String errorMessage = "로그인 실패";
-            if (exception.getMessage().contains("Bad credentials")) {
+            String exceptionMessage = exception.getMessage();
+
+            if (exceptionMessage != null && exceptionMessage.contains("Bad credentials")) {
                 errorMessage = "아이디 또는 비밀번호가 올바르지 않습니다.";
-            } else {
-                errorMessage = exception.getMessage();
+            } else if (exceptionMessage != null) {
+                errorMessage = exceptionMessage;
             }
 
-            response.getWriter().write(String.format("{\"status\": 401, \"message\": \"%s\"}", errorMessage));
+            Map<String, Object> responseBody = new java.util.HashMap<>();
+            responseBody.put("status", 401);
+            responseBody.put("message", errorMessage);
+
+            new ObjectMapper().writeValue(response.getWriter(), responseBody);
         });
     }
 

@@ -32,7 +32,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 path.equals("/api/users/exist") ||
                 path.equals("/login") ||
                 path.startsWith("/jwt") ||
-                path.startsWith("/jwt") ||
+                path.startsWith("/oauth2") ||
                 path.startsWith("/swagger") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/actuator")) {

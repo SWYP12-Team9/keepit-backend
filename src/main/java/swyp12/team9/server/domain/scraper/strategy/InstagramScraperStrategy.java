@@ -44,6 +44,10 @@ public class InstagramScraperStrategy implements ScraperStrategy {
       throw new ScrapingException("Apify API 키가 설정되지 않았습니다");
     }
 
+    if (url == null || url.isBlank()) {
+      throw new ScrapingException("Instagram URL이 비어있습니다");
+    }
+
     // 1. URL 정규화 (utm 제거, / 추가)
     String normalizedUrl = normalizeInstagramUrl(url);
     log.info("Instagram URL Normalized: {} -> {}", url, normalizedUrl);

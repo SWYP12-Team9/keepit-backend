@@ -191,7 +191,8 @@ public class RecommendationService {
 
       return results.stream()
           .map(doc -> {
-            Long linkId = (Long) doc.getMetadata().get("link_id");
+            Object idObj = doc.getMetadata().get("link_id");
+            Long linkId = (idObj instanceof Number) ? ((Number) idObj).longValue() : 0L;
             String title = (String) doc.getMetadata().getOrDefault("title", "제목 없음");
             return SimilarContentResponse.builder()
                 .content(RecommendationResponse.builder()

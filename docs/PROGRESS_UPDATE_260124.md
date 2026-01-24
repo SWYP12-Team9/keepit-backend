@@ -14,7 +14,7 @@
 
 #### 📂 **File Structure (`domain/scraper`)**
 
-```
+```text
 src/main/java/swyp12/team9/server/domain/scraper/
 ├── dto/
 │   └── ScrapedContent.java       # 스크래핑 결과 객체 (Title, Content, ImageUrl)
