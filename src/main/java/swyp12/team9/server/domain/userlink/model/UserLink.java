@@ -32,6 +32,9 @@ public class UserLink extends BaseEntity {
     @Column(name = "status", nullable = false)
     private LinkStatus status;
 
+    @Column(name = "purpose", nullable = false, length = 20)
+    private String purpose;
+
     @Column(name = "why", length = 500)
     private String why;
 
@@ -51,17 +54,19 @@ public class UserLink extends BaseEntity {
     private LocalDateTime lastOpenedAt;
 
     @Builder
-    public UserLink(User user, Link link, String why, Boolean isPublic, String memo) {
+    public UserLink(User user, Link link, String purpose, String why, Boolean isPublic, String memo) {
         this.user = user;
         this.link = link;
         this.status = LinkStatus.UNREAD;
+        this.purpose = purpose;
         this.why = why;
         this.isPublic = isPublic;
         this.memo = memo;
         this.viewCount = 0L;
     }
 
-    public void updateUserLink(String why, Boolean isPublic, String memo) {
+    public void updateUserLink(String purpose, String why, Boolean isPublic, String memo) {
+        this.purpose = purpose;
         this.why = why;
         this.isPublic = isPublic;
         this.memo = memo;
