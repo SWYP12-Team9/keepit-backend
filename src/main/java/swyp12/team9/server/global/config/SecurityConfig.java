@@ -57,7 +57,7 @@ public class SecurityConfig {
         this.jwtService = jwtService;
     }
 
-    // CORS 설정 (환경 변수 사용)
+    // CORS 설정
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -106,8 +106,7 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/api/images/**"
+                                "/swagger-resources/**"
                         ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
                         // 인증 관련
@@ -117,6 +116,9 @@ public class SecurityConfig {
                                 "/api/users/signup",
                                 "/login"
                         ).permitAll()
+
+                        // OAuth2 소셜 로그인 관련 경로
+                        .requestMatchers("/oauth2/**", "/login/oauth2/code/**").permitAll()
 
                         // 공개 레퍼런스 조회 (익명 허용)
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
