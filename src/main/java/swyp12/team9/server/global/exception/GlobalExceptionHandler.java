@@ -99,6 +99,21 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(ErrorCode.OAUTH_AUTHENTICATION_FAILED);
     }
 
+
+    /**
+     * @CurrentUserId 인증 실패
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    protected ApiResponse<Void> handleIllegalStateException(IllegalStateException e) {
+        log.error("[IllegalStateException] {}", e.getMessage());
+
+        if (e.getMessage().contains("인증이 필요합니다")) {
+            return ApiResponse.error(ErrorCode.UNAUTHORIZED);
+        }
+
+        return ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
     /**
      * 최종 안전망 - 예상하지 못한 모든 예외
      * - RuntimeException 핸들러 제거하고 Exception만 유지

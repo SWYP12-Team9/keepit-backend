@@ -8,7 +8,6 @@ import swyp12.team9.server.global.common.entity.BaseEntity;
 @Entity
 @Table(name = "users")
 @Getter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
@@ -45,18 +44,33 @@ public class User extends BaseEntity {
 //    @Column(nullable = false, length = 20)
 //    private UserStatus status;
 
-    @Column(name = "nickname")
+    @Column(name = "nickname", length = 50)
     private String nickname;
+
+    @Column(name = "introduction", length = 300)
+    private String introduction;
+
+    @Column(name = "profile_image_url", length = 1024)
+    private String profileImageUrl;
 
     @Column(name = "email", unique = true, length = 100)
     private String email;
 
     @Builder
-    public User(String email, String password, String name) {
-        this.email = email;
+    public User(String username, String password, String name, String nickname,
+                String introduction, String profileImageUrl, String email,
+                Boolean isLock, Boolean isSocial, SocialProvider socialProvider, UserRole roleType) {
+        this.username = username;
         this.password = password;
         this.name = name;
-       // this.status = UserStatus.ACTIVE;
+        this.nickname = nickname;
+        this.introduction = introduction;
+        this.profileImageUrl = profileImageUrl;
+        this.email = email;
+        this.isLock = isLock;
+        this.isSocial = isSocial;
+        this.socialProvider = socialProvider;
+        this.roleType = roleType;
     }
 
     // 회원 정보 수정

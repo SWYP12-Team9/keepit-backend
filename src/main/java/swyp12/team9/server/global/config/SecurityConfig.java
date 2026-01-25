@@ -9,6 +9,7 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -32,6 +33,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // @PreAuthorize 활성화!
 public class SecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
@@ -72,7 +74,8 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
-    // 권한 계층(ADMIN, USER)
+    // 권한 계층 설정 (ADMIN, USER)
+    // ADMIN 역할을 가진 사용자는 자동으로 USER 권한도 가짐 (ADMIN은 USER 전용 API도 접근 가능)
     @Bean
     public RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.withRolePrefix("ROLE_")
@@ -92,6 +95,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 필터 설정 (STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // 공개 엔드포인트
                         .requestMatchers(
                                 "/api/health",
                                 "/actuator/**",
@@ -100,14 +104,36 @@ public class SecurityConfig {
                                 "/swagger-resources/**"
                         ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
-                        // 시큐리티 인가 설정
-                        // 회원 관련
+                        // 인증 관련
                         .requestMatchers("/jwt/exchange", "/jwt/refresh", "/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users/exist", "/api/users/signup", "/login").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/users/exist",
+                                "/api/users/signup",
+                                "/login"
+                        ).permitAll()
+
+                        // OAuth2 소셜 로그인 관련 경로
+                        .requestMatchers("/oauth2/**", "/login/oauth2/code/**").permitAll()
+
+                        // 공개 레퍼런스 조회 (익명 허용)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/references/public").permitAll()
+
+                        // 관리자 전용 API (가장 먼저 체크)
+                        .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
+
+                        // API v1 전체 (인증 필요)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.GET, "/api/v1/**").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole(UserRole.USER.name())
+
+                        // ========== User API ==========
                         .requestMatchers(HttpMethod.GET, "/api/users/*").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.PUT, "/api/users/*").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.DELETE, "/api/users/*").hasRole(UserRole.USER.name())
 
+                        // ========== 나머지 모든 요청 ==========
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)        // 기본 Form 기반 인증 필터들 disable
@@ -130,14 +156,24 @@ public class SecurityConfig {
                             response.getWriter().write("{\"message\": \"로그아웃 성공\"}");
                         }));
 
-        // 예외 처리
+        // 예외 처리 (JSON 응답)
         http
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED); // 401 응답
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write(
+                                    "{\"status\": 401, \"message\": \"인증이 필요합니다.\"}"
+                            );
                         })
-                        .accessDeniedHandler((request, response, authException) -> {
-                            response.sendError(HttpServletResponse.SC_FORBIDDEN); // 403 응답
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write(
+                                    "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"
+                            );
                         })
                 );
 
@@ -145,7 +181,10 @@ public class SecurityConfig {
         http
                 .addFilterBefore(new JwtFilter(), LogoutFilter.class);
         http
-                .addFilterBefore(new LoginFilter(authenticationManager(authenticationConfiguration), loginSuccessHandler), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        new LoginFilter(authenticationManager(authenticationConfiguration), loginSuccessHandler),
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
@@ -156,3 +195,11 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+
+
+// ✅ 올바른 순서
+//1. 공개 엔드포인트 (permitAll)
+//2. 인증 관련 엔드포인트 (permitAll)
+//3. 관리자 전용 (가장 구체적) - /api/reference/admin/**
+// 4. 일반 사용자 (덜 구체적) - /api/reference/**
+// 5. 나머지 (anyRequest)

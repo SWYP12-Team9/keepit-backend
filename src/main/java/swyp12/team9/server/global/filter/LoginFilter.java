@@ -15,7 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StreamUtils;
 
@@ -30,8 +30,7 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
 
     public static final String SPRING_SECURITY_FORM_PASSWORD_KEY = "password";
 
-    private static final RequestMatcher DEFAULT_ANT_PATH_REQUEST_MATCHER = PathPatternRequestMatcher.withDefaults()
-            .matcher(HttpMethod.POST, "/login"); // 로그인
+    private static final RequestMatcher DEFAULT_ANT_PATH_REQUEST_MATCHER = new AntPathRequestMatcher("/login", "POST"); // 로그인
 
     private String usernameParameter = SPRING_SECURITY_FORM_USERNAME_KEY;
 
@@ -39,9 +38,32 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
 
     private final AuthenticationSuccessHandler authenticationSuccessHandler;
 
-    public LoginFilter(AuthenticationManager authenticationManager, AuthenticationSuccessHandler authenticationSuccessHandler) {
+    public LoginFilter(AuthenticationManager authenticationManager,
+            AuthenticationSuccessHandler authenticationSuccessHandler) {
         super(DEFAULT_ANT_PATH_REQUEST_MATCHER, authenticationManager);
         this.authenticationSuccessHandler = authenticationSuccessHandler;
+
+        // 로그인 실패 핸들러 직접 설정
+        setAuthenticationFailureHandler((request, response, exception) -> {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            String errorMessage = "로그인 실패";
+            String exceptionMessage = exception.getMessage();
+
+            if (exceptionMessage != null && exceptionMessage.contains("Bad credentials")) {
+                errorMessage = "아이디 또는 비밀번호가 올바르지 않습니다.";
+            } else if (exceptionMessage != null) {
+                errorMessage = exceptionMessage;
+            }
+
+            Map<String, Object> responseBody = new java.util.HashMap<>();
+            responseBody.put("status", 401);
+            responseBody.put("message", errorMessage);
+
+            new ObjectMapper().writeValue(response.getWriter(), responseBody);
+        });
     }
 
     @Override
@@ -81,7 +103,7 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
-                                            Authentication authResult) throws IOException, ServletException {
+            Authentication authResult) throws IOException, ServletException {
         authenticationSuccessHandler.onAuthenticationSuccess(request, response, authResult);
     }
 }
