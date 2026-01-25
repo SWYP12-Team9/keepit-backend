@@ -30,7 +30,7 @@ import swyp12.team9.server.global.annotation.CurrentUserId;
 @Tag(name = "User", description = "사용자 관리 API")
 @Slf4j
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -69,7 +69,7 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = UserResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)")
     })
-    @GetMapping(value = "/user")
+    @GetMapping(value = "/info")
     public UserResponse userMe(@CurrentUserId Long userId) {
         return userService.readUser(userId);
     }
@@ -98,7 +98,7 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = Boolean.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)")
     })
-    @DeleteMapping(value = "/delete")
+    @DeleteMapping
     public ResponseEntity<Boolean> deleteUser(@CurrentUserId Long userId) {
         userService.deleteUser(userId);
         return ResponseEntity.status(HttpStatus.OK).body(true);

@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.api.jwt.dto.JwtResponse;
 import swyp12.team9.server.api.jwt.dto.RefreshRequest;
@@ -19,6 +20,7 @@ import swyp12.team9.server.domain.jwt.service.JwtService;
 
 @Tag(name = "JWT", description = "JWT 토큰 관리 API")
 @RestController
+@RequestMapping("/api/v1")
 public class JwtController {
 
     private final JwtService jwtService;
