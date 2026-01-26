@@ -135,6 +135,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole(UserRole.USER.name())
 
                         // ========== User API ==========
