@@ -1,11 +1,11 @@
-name: Java 25 CD with Docker
+name: CD - Build and Deploy
 on:
   push:
     branches:
       - main
       - develop
 jobs:
-  build-and-deploy:
+  cd:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
