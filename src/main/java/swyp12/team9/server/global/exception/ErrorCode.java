@@ -54,6 +54,13 @@ public enum ErrorCode {
     EMPTY_IMAGE_FILE(HttpStatus.BAD_REQUEST, "I007", "이미지 파일이 비어있습니다"),
     INVALID_IMAGE_URL(HttpStatus.BAD_REQUEST, "I008", "잘못된 이미지 URL입니다"),
 
+    // UserLink
+    USER_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "UL001", "사용자 링크를 찾을 수 없습니다"),
+    USER_LINK_ACCESS_DENIED(HttpStatus.FORBIDDEN, "UL002", "사용자 링크에 접근할 수 없습니다"),
+    USER_LINK_URL_REQUIRED(HttpStatus.BAD_REQUEST, "UL003", "URL은 필수입니다"),
+    USER_LINK_INVALID_URL(HttpStatus.BAD_REQUEST, "UL004", "유효하지 않은 URL 형식입니다"),
+    USER_LINK_WHY_TOO_LONG(HttpStatus.BAD_REQUEST, "UL005", "이유는 500자를 초과할 수 없습니다"),
+
     ;
 
     private final HttpStatus httpStatus;
