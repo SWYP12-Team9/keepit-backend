@@ -17,8 +17,6 @@ import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
-import swyp12.team9.server.domain.scraper.service.ScraperService;
-import swyp12.team9.server.domain.scraper.dto.ScrapedContent;
 
 import java.util.Optional;
 
@@ -34,21 +32,14 @@ public class LinkService {
   private final UserRepository userRepository;
   private final ReferenceRepository referenceRepository;
   private final RecommendationService recommendationService;
-  private final ScraperService scraperService;
 
   /**
    * 폴더에 링크 저장
-   * 
-   * @param userId      사용자 ID
-   * @param referenceId 폴더(Reference) ID
-   * @param url         링크 URL
-   * @param purpose     저장 목적
-   * @param why         저장 이유
-   * @param memo        메모
-   * @return 저장된 Link 엔티티
+   * (외부 스크래핑 데이터인 title, description, imageUrl을 선택적으로 받음)
    */
   @Transactional
-  public Link saveLink(Long userId, Long referenceId, String url, String purpose, String why, String memo) {
+  public Link saveLink(Long userId, Long referenceId, String url, String purpose, String why, String memo,
+      String title, String description, String imageUrl) {
 
     // 1. 사용자 조회
     User user = userRepository.findById(userId)
@@ -61,18 +52,15 @@ public class LinkService {
     // 3. Link 조회 또는 생성 (URL 중복 방지)
     Link link = linkRepository.findByUrl(url)
         .orElseGet(() -> {
-          // 웹 스크래핑으로 메타데이터 추출
-          ScrapedContent scraped = scraperService.scrapeUrl(url);
+          // 메타데이터가 없으면 기본값 사용
+          String safeTitle = (title != null && !title.isBlank()) ? title : "제목 없음";
+          String safeDescription = (description != null && !description.isBlank()) ? description : "설명 없음";
 
           Link newLink = Link.builder()
               .url(url)
-              .title(scraped.title() != null && !scraped.title().isBlank()
-                  ? scraped.title()
-                  : "제목 없음")
-              .description(scraped.description() != null && !scraped.description().isBlank()
-                  ? scraped.description()
-                  : "설명 없음")
-              .previewImageUrl(scraped.imageUrl())
+              .title(safeTitle)
+              .description(safeDescription)
+              .previewImageUrl(imageUrl)
               .build();
           Link savedLink = linkRepository.save(newLink);
           log.info("새 링크 생성 - linkId: {}, url: {}, title: {}",
@@ -84,17 +72,14 @@ public class LinkService {
           return savedLink;
         });
 
-    // 제목이 없는 경우 재스크래핑 시도 (테스트 및 품질 개선용)
-    if ("제목 없음".equals(link.getTitle())) {
-      log.info("기존 링크에 제목이 없어 재스크래핑 시도 - linkId: {}", link.getId());
-      ScrapedContent scraped = scraperService.scrapeUrl(url);
-      if (!"제목 없음".equals(scraped.title())) {
-        link.setTitle(scraped.title());
-        link.setDescription(scraped.description());
-        link.setPreviewImageUrl(scraped.imageUrl());
-        linkRepository.save(link);
-        indexLinkToEs(link);
-      }
+    // 기존 링크의 제목이 없는 경우, 새로 입력된 데이터로 업데이트 시도
+    if ("제목 없음".equals(link.getTitle()) && title != null && !title.isBlank()) {
+      log.info("기존 링크에 메타데이터 업데이트 - linkId: {}", link.getId());
+      link.setTitle(title);
+      link.setDescription(description);
+      link.setPreviewImageUrl(imageUrl);
+      linkRepository.save(link);
+      indexLinkToEs(link);
     }
 
     // 4. UserLink 조회 및 처리 (이미 존재하는지 확인)

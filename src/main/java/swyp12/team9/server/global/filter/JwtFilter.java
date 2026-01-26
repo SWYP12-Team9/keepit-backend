@@ -23,19 +23,20 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String path = request.getRequestURI();
 
         // JWT 검사 제외 경로
-        if (path.equals("/api/users/signup") ||
-                path.equals("/api/users/exist") ||
-                path.equals("/login") ||
-                path.startsWith("/jwt") ||
-                path.startsWith("/oauth2") ||
-                path.startsWith("/swagger") ||
-                path.startsWith("/v3/api-docs") ||
-                path.startsWith("/actuator")) {
+        if (
+                path.equals("/api/users/signup") ||
+                        path.equals("/api/users/exist") ||
+                        path.startsWith("/jwt") ||
+                        path.startsWith("/swagger") ||
+                        path.startsWith("/v3/api-docs") ||
+                        path.startsWith("/actuator")
+        ) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -70,7 +71,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String username = JwtUtil.getUsername(accessToken);
         String roleType = JwtUtil.getRole(accessToken);
 
-        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleType));
+        List<GrantedAuthority> authorities =
+                Collections.singletonList(new SimpleGrantedAuthority(roleType));
 
         // CustomUserDetails 생성 (userId 포함)
         CustomUserDetails userDetails = CustomUserDetails.builder()
@@ -80,7 +82,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 .authorities(authorities)
                 .build();
 
-        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+        Authentication auth =
+                new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
 
         SecurityContextHolder.getContext().setAuthentication(auth);
 

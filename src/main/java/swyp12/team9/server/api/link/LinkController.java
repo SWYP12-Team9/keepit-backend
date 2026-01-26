@@ -28,7 +28,10 @@ public class LinkController implements LinkApi {
         request.url(),
         request.purpose(),
         request.why(),
-        request.memo());
+        request.memo(),
+        request.title(),
+        request.description(),
+        request.imageUrl());
 
     LinkResponse response = LinkResponse.from(link);
     return ApiResponse.created(response, "링크가 저장되었습니다.");

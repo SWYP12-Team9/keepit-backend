@@ -57,3 +57,7 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+
+### Local Scripts ###
+scripts/
+

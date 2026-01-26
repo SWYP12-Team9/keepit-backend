@@ -118,6 +118,9 @@ public class SecurityConfig {
                         // 공개 레퍼런스 조회 (익명 허용)
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/public").permitAll()
+                        
+                        // 추천 API (임시 공개)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/recommendations/**").permitAll()
 
                         // 관리자 전용 API (가장 먼저 체크)
                         .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
