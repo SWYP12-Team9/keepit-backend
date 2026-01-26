@@ -5,7 +5,7 @@ on:
       - main
       - develop
 jobs:
-  build-and-deploy:
+  cd:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
