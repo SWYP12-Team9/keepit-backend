@@ -12,7 +12,7 @@ import swyp12.team9.server.domain.recommendation.service.RecommendationService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/recommend")
+@RequestMapping("/api/v1/recommendations")
 @RequiredArgsConstructor
 public class RecommendationController {
 

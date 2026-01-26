@@ -110,19 +110,23 @@ public class SecurityConfig {
                         ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
                         // 인증 관련
-                        .requestMatchers("/jwt/exchange", "/jwt/refresh", "/logout").permitAll()
+                        .requestMatchers("/api/v1/jwt/exchange", "/api/v1/jwt/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST,
-                                "/api/users/exist",
-                                "/api/users/signup",
-                                "/login"
+                                "/api/v1/users/exist",
+                                "/api/v1/users/signup",
+                                "/api/v1/auth/login"
                         ).permitAll()
 
                         // OAuth2 소셜 로그인 관련 경로
-                        .requestMatchers("/oauth2/**", "/login/oauth2/code/**").permitAll()
+                        .requestMatchers("/api/v1/oauth2/**", "/login/oauth2/code/**").permitAll()
 
-                        // 공개 레퍼런스 조회 (익명 허용)
+                        // 레퍼런스 조회 (익명 허용 - Service에서 type별 권한 체크)
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/references/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/references").permitAll()
+
+                        // 사용자 링크 조회 (익명 허용 - Service에서 type별 권한 체크)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links/{userLinkId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links").permitAll()
 
                         // 관리자 전용 API (가장 먼저 체크)
                         .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
@@ -131,12 +135,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/**").hasRole(UserRole.USER.name())
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole(UserRole.USER.name())
 
                         // ========== User API ==========
-                        .requestMatchers(HttpMethod.GET, "/api/users/*").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.PUT, "/api/users/*").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/*").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/*").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/*").hasRole(UserRole.USER.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/*").hasRole(UserRole.USER.name())
 
                         // ========== 나머지 모든 요청 ==========
                         .anyRequest().authenticated()
@@ -152,7 +157,7 @@ public class SecurityConfig {
         // 기본 로그아웃 필터 + 커스텀 Refresh 토큰 삭제 핸들러 추가
         http
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
+                        .logoutUrl("/api/v1/auth/logout")
                         .addLogoutHandler(new RefreshTokenLogoutHandler(jwtService))
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
