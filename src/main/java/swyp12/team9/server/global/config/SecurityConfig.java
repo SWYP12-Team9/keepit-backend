@@ -2,6 +2,7 @@ package swyp12.team9.server.global.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,6 +30,7 @@ import swyp12.team9.server.global.filter.JwtFilter;
 import swyp12.team9.server.global.filter.LoginFilter;
 import swyp12.team9.server.global.handler.RefreshTokenLogoutHandler;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -40,6 +42,9 @@ public class SecurityConfig {
     private final AuthenticationSuccessHandler loginSuccessHandler;
     private final AuthenticationSuccessHandler socialSuccessHandler;
     private final JwtService jwtService;
+
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOrigins;
 
     public SecurityConfig(
             AuthenticationConfiguration authenticationConfiguration,
@@ -56,8 +61,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(List.of("Authorization", "Set-Cookie"));

@@ -1,11 +1,35 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
 spring:
+  application:
+    name: server
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME:swyp_db}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:password}
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${DDL_AUTO:update}
     properties:
       hibernate:
         format_sql: true
         show_sql: true
+        default_batch_fetch_size: 100
+    open-in-view: false
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  sql:
+    init:
+      mode: never
 
   devtools:
     livereload:
@@ -20,9 +44,9 @@ spring:
           # OAuth2 : NAVER registration
           naver:
             client-name: naver
-            client-id: gi8mBKLe1AMgsPonHkop
-            client-secret: JUJrwwUG9p
-            redirect-uri: http://localhost:8080/login/oauth2/code/naver
+            client-id: ${NAVER_CLIENT_ID}
+            client-secret: ${NAVER_CLIENT_SECRET}
+            redirect-uri: ${SERVER_URL}/login/oauth2/code/naver
             authorization-grant-type: authorization_code
             scope:
               - name
@@ -32,9 +56,9 @@ spring:
           # OAuth2 : Google registration
           google:
             client-name: google
-            client-id: 1012749788418-e7krmtd429p7r48i50oe6ort6ovvnbsu.apps.googleusercontent.com
-            client-secret: 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
-            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: ${SERVER_URL}/login/oauth2/code/google
             authorization-grant-type: authorization_code
             scope:
               - profile
@@ -43,9 +67,9 @@ spring:
           # OAuth2 : Kakao registration
           kakao:
             client-name: kakao
-            client-id: ${KAKAO_CLIENT_ID:e4e1182d8d6a10bcafec3c88ef023999}
-            client-secret: ${KAKAO_CLIENT_SECRET:}
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: ${SERVER_URL}/login/oauth2/code/kakao
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             scope:
@@ -82,7 +106,7 @@ spring:
         options:
           model: text-embedding-3-small
   elasticsearch:
-    uris: http://localhost:9200
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
 
 # Web Scraper Configuration
 scraper:
@@ -99,3 +123,40 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.web: DEBUG
+
+# Frontend URL 설정
+frontend:
+  url: ${FRONTEND_URL:http://localhost:5173}
+
+swagger:
+  server-url: ${SERVER_URL:http://localhost:8080}
+
+# CORS 설정
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# NCP Object Storage 설정
+cloud:
+  ncp:
+    object-storage:
+      endpoint: ${NCP_OBJECT_STORAGE_ENDPOINT:https://kr.object.ncloudstorage.com}
+      region: ${NCP_REGION:kr-standard}
+      credentials:
+        access-key: ${NCP_ACCESS_KEY}
+        secret-key: ${NCP_SECRET_KEY}
+      bucket-name: ${NCP_BUCKET_NAME}
+
+# 이미지 업로드 설정
+image:
+  max-size: ${IMAGE_MAX_SIZE:10485760} # 10MB (byte 단위)
+  allowed-types: image/jpeg,image/jpg,image/png,image/gif,image/webp
+  directory: ${IMAGE_DIRECTORY:images} # 버킷 내 저장 경로
