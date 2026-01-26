@@ -53,7 +53,7 @@ public class UserLinkService2 {
 
         // 이미 같은 링크를 저장했는지 확인
         if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
-            throw new UserLinkDuplicateException("이미 저장된 링크입니다");
+            throw new UserLinkDuplicateException();
         }
 
         // UserLink 생성
