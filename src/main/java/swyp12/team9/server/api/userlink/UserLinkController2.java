@@ -8,7 +8,7 @@ import swyp12.team9.server.api.userlink.dto.CreateUserLinkRequest;
 import swyp12.team9.server.api.userlink.dto.UpdateUserLinkRequest;
 import swyp12.team9.server.api.userlink.dto.UserLinkResponse;
 import swyp12.team9.server.api.userlink.dto.UserLinkType;
-import swyp12.team9.server.domain.userlink.service.UserLinkService;
+import swyp12.team9.server.domain.userlink.service.UserLinkService2;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 import swyp12.team9.server.global.util.PaginationUtils;
@@ -17,9 +17,9 @@ import swyp12.team9.server.global.util.PaginationUtils;
 @RestController
 @RequestMapping("/api/v1/user-links")
 @RequiredArgsConstructor
-public class UserLinkController implements UserLinkApi {
+public class UserLinkController2 implements UserLinkApi2 {
 
-    private final UserLinkService userLinkService;
+    private final UserLinkService2 userLinkService;
 
     // 사용자 링크 생성
     @Override
@@ -72,7 +72,7 @@ public class UserLinkController implements UserLinkApi {
         return ApiResponse.ok(response, "링크를 읽음 처리했습니다.");
     }
 
-    // ========== 사용자 링크 목록 조회 (통합 API) ==========
+    // 사용자 링크 목록 조회 (통합 API - 전체, 공개, 비공기)
     @Override
     public ApiResponse<PaginationUtils.Cursor.PageResponse<UserLinkResponse>> getUserLinks(
             @RequestParam(defaultValue = "ALL") UserLinkType type,
@@ -81,7 +81,7 @@ public class UserLinkController implements UserLinkApi {
             @CurrentUserId(required = false) Long userId) {
 
         PaginationUtils.Cursor.PageResponse<UserLinkResponse> response =
-                userLinkService.getUserLinksCursor(userId, type, cursor, size);
+                userLinkService.getUserLinks(userId, type, cursor, size);
         return ApiResponse.ok(response);
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.user.model.User;
+import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedException;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 
 import java.time.LocalDateTime;
@@ -83,5 +84,14 @@ public class UserLink extends BaseEntity {
 
     public void updatePublicStatus(Boolean isPublic) {
         this.isPublic = isPublic;
+    }
+
+    /**
+     * 소유자 검증
+     */
+    public void validateOwner(Long userId) {
+        if (!this.user.getId().equals(userId)) {
+            throw new UserLinkAccessDeniedException("해당 링크에 대한 권한이 없습니다.");
+        }
     }
 }
