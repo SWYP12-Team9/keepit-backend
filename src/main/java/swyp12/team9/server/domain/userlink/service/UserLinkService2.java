@@ -15,6 +15,7 @@ import swyp12.team9.server.domain.user.exception.UserNotFoundException;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedException;
+import swyp12.team9.server.domain.userlink.exception.UserLinkDuplicateException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkNotFoundException;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository2;
@@ -52,7 +53,7 @@ public class UserLinkService2 {
 
         // 이미 같은 링크를 저장했는지 확인
         if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
-            throw new IllegalArgumentException("이미 저장된 링크입니다.");
+            throw new UserLinkDuplicateException("이미 저장된 링크입니다");
         }
 
         // UserLink 생성
