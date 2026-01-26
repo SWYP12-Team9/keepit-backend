@@ -41,6 +41,7 @@ public class KakaoOAuthProvider implements OAuthProvider {
 
         return OAuthUserInfo.builder()
                 .username(username)
+                .providerUserId(id)
                 .email(null)  // 카카오는 이메일 제공 불가
                 .nickname(nickname)
                 .providerType(getProviderType())

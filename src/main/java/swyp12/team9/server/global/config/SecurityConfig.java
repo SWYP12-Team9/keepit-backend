@@ -118,7 +118,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // OAuth2 소셜 로그인 관련 경로
-                        .requestMatchers("/api/v1/oauth2/**", "/login/oauth2/code/**").permitAll()
+                        .requestMatchers("/api/v1/oauth2/**", "/api/v1/login/oauth2/code/**").permitAll()
 
                         // 레퍼런스 조회 (익명 허용 - Service에서 type별 권한 체크)
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
@@ -150,9 +150,19 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable);       // 기본 Basic 인증 필터 disable
 
         // OAuth2 인증용 -> 소셜 로그인 기능
+//        http
+//                .oauth2Login(oauth2 -> oauth2
+//                        .successHandler(socialSuccessHandler));
         http
                 .oauth2Login(oauth2 -> oauth2
-                        .successHandler(socialSuccessHandler));
+                        .authorizationEndpoint(authorization -> authorization
+                                .baseUri("/api/v1/oauth2/authorization")  // /api/v1 추가
+                        )
+                        .redirectionEndpoint(redirection -> redirection
+                                .baseUri("/api/v1/login/oauth2/code/*")  // /api/v1 추가
+                        )
+                        .successHandler(socialSuccessHandler)
+                );
 
         // 기본 로그아웃 필터 + 커스텀 Refresh 토큰 삭제 핸들러 추가
         http

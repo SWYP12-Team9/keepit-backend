@@ -19,6 +19,9 @@ public class OAuthUserInfo {
     @Schema(description = "소셜 로그인 고유 식별자", example = "KAKAO_123456789")
     private final String username;
 
+    @Schema(description = "소셜 제공자의 사용자 고유 ID", example = "123456789")
+    private final String providerUserId;
+
     @Schema(description = "사용자 이메일", example = "user@example.com")
     private final String email;
 

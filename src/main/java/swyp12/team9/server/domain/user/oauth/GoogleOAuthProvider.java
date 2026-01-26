@@ -28,6 +28,7 @@ public class GoogleOAuthProvider implements OAuthProvider {
 
         return OAuthUserInfo.builder()
                 .username(username)
+                .providerUserId(sub)
                 .email(email)
                 .nickname(nickname)
                 .providerType(getProviderType())
