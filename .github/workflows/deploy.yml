@@ -1,5 +1,9 @@
 name: Java 25 CD with Docker
 on:
+  pull_request:
+    branches:
+      - main
+      - develop
   push:
     branches:
       - main
