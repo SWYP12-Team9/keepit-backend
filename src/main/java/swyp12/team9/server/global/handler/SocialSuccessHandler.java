@@ -11,8 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import swyp12.team9.server.domain.jwt.service.JwtService;
-import swyp12.team9.server.domain.user.model.User;
-import swyp12.team9.server.domain.user.repository.UserRepository;
+import swyp12.team9.server.global.security.CustomOAuth2User;
 import swyp12.team9.server.global.util.JwtUtil;
 
 import java.io.IOException;
@@ -22,27 +21,23 @@ import java.io.IOException;
 public class SocialSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
-    private final UserRepository userRepository;
     private final String frontendUrl;
 
-    public SocialSuccessHandler(JwtService jwtService, UserRepository userRepository,
+    public SocialSuccessHandler(JwtService jwtService,
                                 @Value("${frontend.url}") String frontendUrl) {
         this.jwtService = jwtService;
-        this.userRepository = userRepository;
         this.frontendUrl = frontendUrl;
     }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
 
-        // username, role
-        String username = authentication.getName();
-        String role = authentication.getAuthorities().iterator().next().getAuthority();
+        // CustomOAuth2User에서 직접 정보 추출 (DB 조회 불필요)
+        CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
 
-        // userId 조회
-        User user = userRepository.findByUsernameAndIsSocial(username, true)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
-        Long userId = user.getId();
+        Long userId = oAuth2User.getUserId();
+        String username = oAuth2User.getUsername();
+        String role = authentication.getAuthorities().iterator().next().getAuthority();
 
         // JWT(Refresh) 발급 - userId 포함
         // role은 이미 "ROLE_USER" 형태이므로 prefix 추가하지 않음
