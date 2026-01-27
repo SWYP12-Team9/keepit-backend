@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
+public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserLinkRepositoryCustom {
 
   /**
    * 사용자-링크 관계 조회

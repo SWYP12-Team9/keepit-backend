@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.security.access.AccessDeniedException;
 import swyp12.team9.server.domain.reference.exception.ReferenceAccessDeniedException;
 import swyp12.team9.server.domain.reference.exception.ReferenceValidationException;
+import swyp12.team9.server.domain.reference.model.enums.ReferenceCategory;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 import swyp12.team9.server.global.exception.ErrorCode;
@@ -12,6 +13,7 @@ import swyp12.team9.server.global.exception.ErrorCode;
 @Entity
 @Table(name = "reference")
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Reference extends BaseEntity {
@@ -25,6 +27,10 @@ public class Reference extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category")
+    private ReferenceCategory category;
+
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
@@ -35,8 +41,9 @@ public class Reference extends BaseEntity {
     private Boolean isPublic;
 
     @Builder
-    public Reference(User user, String title, String description, Boolean isPublic) {
+    public Reference(User user, ReferenceCategory category, String title, String description, Boolean isPublic) {
         this.user = user;
+        this.category = category;
         this.title = title;
         this.description = description;
         this.isPublic = isPublic;
@@ -89,7 +96,7 @@ public class Reference extends BaseEntity {
             throw new ReferenceValidationException(ErrorCode.REFERENCE_TITLE_REQUIRED);
         }
         if (title.length() > 200) {
-        throw new ReferenceValidationException(ErrorCode.REFERENCE_TITLE_TOO_LONG);
+            throw new ReferenceValidationException(ErrorCode.REFERENCE_TITLE_TOO_LONG);
         }
     }
 

@@ -22,6 +22,8 @@ import swyp12.team9.server.domain.user.repository.UserRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import swyp12.team9.server.domain.reference.service.ReferenceService;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ReferenceService referenceService;
 
     // 자체 로그인 - 회원 가입 존재 여부
     @Transactional(readOnly = true)
@@ -57,9 +60,12 @@ public class UserService implements UserDetailsService {
         User user = request.toEntity(encodedPassword);
         User savedUser = userRepository.save(user);
 
+        // 기본 폴더 (A, B, C, D, E) 초기화
+        referenceService.initializeDefaultFolders(savedUser);
+
         log.info("회원가입 완료 : {}, {}", savedUser.getUsername(), savedUser.getEmail());
         return UserResponse.from(savedUser);
-        //return user.getId();
+        // return user.getId();
     }
 
     // 자체 로그인
@@ -148,16 +154,17 @@ public class UserService implements UserDetailsService {
      * 사용자 정보 수정
      * 예외 처리 예시: 존재하지 않는 사용자 수정 시도
      */
-//    @Transactional
-//    public UserResponse updateUser(Long userId, UserUpdateRequest request) {
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
-//
-//        user.updateName(request.name());
-//
-//        log.info("사용자 정보 수정 완료: {}", user.getEmail());
-//        return UserResponse.from(user);
-//    }
+    // @Transactional
+    // public UserResponse updateUser(Long userId, UserUpdateRequest request) {
+    // User user = userRepository.findById(userId)
+    // .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " +
+    // userId));
+    //
+    // user.updateName(request.name());
+    //
+    // log.info("사용자 정보 수정 완료: {}", user.getEmail());
+    // return UserResponse.from(user);
+    // }
 
     /**
      * 비밀번호 변경
@@ -183,14 +190,15 @@ public class UserService implements UserDetailsService {
      * 사용자 비활성화
      * 예외 처리 예시: 존재하지 않는 사용자 비활성화 시도
      */
-//    @Transactional
-//    public void deactivateUser(Long userId) {
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
-//
-//        user.deactivate();
-//
-//        log.info("사용자 비활성화 완료: {}", user.getEmail());
-//    }
+    // @Transactional
+    // public void deactivateUser(Long userId) {
+    // User user = userRepository.findById(userId)
+    // .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " +
+    // userId));
+    //
+    // user.deactivate();
+    //
+    // log.info("사용자 비활성화 완료: {}", user.getEmail());
+    // }
 
 }

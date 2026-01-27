@@ -20,6 +20,7 @@ import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.global.util.PaginationUtils;
 import swyp12.team9.server.global.util.PaginationUtils.Cursor.PageResponse;
 
+import swyp12.team9.server.domain.reference.model.enums.ReferenceCategory;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,6 +43,26 @@ public class ReferenceService {
 
         log.info("레퍼런스 생성 완료 - userId: {}, referenceId: {}", userId, savedReference.getId());
         return ReferenceResponse.from(savedReference);
+    }
+
+    /**
+     * 사용자의 기본 폴더 (A, B, C, D, E) 초기화
+     */
+    @Transactional
+    public void initializeDefaultFolders(User user) {
+        for (ReferenceCategory category : ReferenceCategory.values()) {
+            if (!referenceRepository.existsByUserIdAndTitle(user.getId(), category.getTitle())) {
+                Reference reference = Reference.builder()
+                        .user(user)
+                        .title(category.getTitle())
+                        .category(category)
+                        .description(category.getTitle() + " 관련 보관함")
+                        .isPublic(true)
+                        .build();
+                referenceRepository.save(reference);
+            }
+        }
+        log.info("사용자 기본 폴더 초기화 완료 - userId: {}", user.getId());
     }
 
     // 레퍼런스 단건 조회
@@ -162,7 +183,6 @@ public class ReferenceService {
 
         log.info("레퍼런스 삭제 완료 - userId: {}, referenceId: {}", userId, referenceId);
     }
-
 
     /**
      * 커서 기반 응답 생성 헬퍼 메서드

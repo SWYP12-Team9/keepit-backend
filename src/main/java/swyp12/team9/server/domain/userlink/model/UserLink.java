@@ -89,4 +89,8 @@ public class UserLink extends BaseEntity {
     public void updatePublicStatus(Boolean isPublic) {
         this.isPublic = isPublic;
     }
+
+    public void changeStatus(LinkStatus status) {
+        this.status = status;
+    }
 }
