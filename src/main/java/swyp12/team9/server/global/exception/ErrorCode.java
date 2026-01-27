@@ -54,13 +54,16 @@ public enum ErrorCode {
     EMPTY_IMAGE_FILE(HttpStatus.BAD_REQUEST, "IMG007", "이미지 파일이 비어있습니다"),
     INVALID_IMAGE_URL(HttpStatus.BAD_REQUEST, "IMG008", "잘못된 이미지 URL입니다"),
 
-    // UserLink
-    USER_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "ULK001", "사용자 링크를 찾을 수 없습니다"),
-    USER_LINK_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ULK002", "사용자 링크에 접근할 수 없습니다"),
-    USER_LINK_URL_REQUIRED(HttpStatus.BAD_REQUEST, "ULK003", "URL은 필수입니다"),
-    USER_LINK_INVALID_URL(HttpStatus.BAD_REQUEST, "ULK004", "유효하지 않은 URL 형식입니다"),
-    USER_LINK_WHY_TOO_LONG(HttpStatus.BAD_REQUEST, "ULK005", "이유는 500자를 초과할 수 없습니다"),
-    USER_LINK_DUPLICATE(HttpStatus.CONFLICT, "ULK006", "이미 저장된 링크입니다"),
+    // Link
+    LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "LNK001", "링크를 찾을 수 없습니다"),
+    LINK_ACCESS_DENIED(HttpStatus.FORBIDDEN, "LNK002", "링크에 접근할 수 없습니다"),
+    LINK_URL_REQUIRED(HttpStatus.BAD_REQUEST, "LNK003", "URL은 필수입니다"),
+    LINK_INVALID_URL(HttpStatus.BAD_REQUEST, "LNK004", "유효하지 않은 URL 형식입니다"),
+    LINK_WHY_REQUIRED(HttpStatus.BAD_REQUEST, "LNK005", "WHY는 필수입니다"),
+    LINK_DUPLICATE(HttpStatus.CONFLICT, "LNK006", "이미 저장된 링크입니다"),
+
+    // Category
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CAT001", "카테고리를 찾을 수 없습니다"),
 
     ;
 
