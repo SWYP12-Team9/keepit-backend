@@ -178,11 +178,10 @@ public class LinkService {
   public UserLink updateLink(Long userId, Long userLinkId, UpdateLinkRequest request) {
     UserLink userLink = getLink(userId, userLinkId);
 
-    String newPurpose = request.purpose() != null ? request.purpose() : userLink.getPurpose();
     Boolean newIsPublic = request.isPublic() != null ? request.isPublic() : userLink.getIsPublic();
     String newMemo = request.memo() != null ? request.memo() : userLink.getMemo();
 
-    userLink.updateUserLink(newPurpose, userLink.getWhy(), newIsPublic, newMemo);
+    userLink.updateUserLink(userLink.getWhy(), newIsPublic, newMemo);
 
     if (request.status() != null) {
       userLink.changeStatus(request.status());

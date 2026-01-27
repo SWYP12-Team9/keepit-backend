@@ -118,9 +118,7 @@ public class UserLinkService2 {
         userLink.updateUserLink(
                 request.why() != null ? request.why() : userLink.getWhy(),
                 request.isPublic() != null ? request.isPublic() : userLink.getIsPublic(),
-                request.memo() != null ? request.memo() : userLink.getMemo()
-        );
-
+                request.memo() != null ? request.memo() : userLink.getMemo());
         log.info("사용자 링크 수정 완료 - userId: {}, userLinkId: {}", userId, userLinkId);
         return UserLinkResponse.from(userLink);
     }

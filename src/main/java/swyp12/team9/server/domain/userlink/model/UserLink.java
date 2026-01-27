@@ -66,8 +66,7 @@ public class UserLink extends BaseEntity {
         this.viewCount = 0L;
     }
 
-    public void updateUserLink(String purpose, String why, Boolean isPublic, String memo) {
-        this.purpose = purpose;
+    public void updateUserLink(String why, Boolean isPublic, String memo) {
         this.why = why;
         this.isPublic = isPublic;
         this.memo = memo;

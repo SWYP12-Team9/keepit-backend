@@ -71,23 +71,23 @@ public class ReferenceController implements ReferenceApi {
             @RequestParam(defaultValue = "20") int size,
             @CurrentUserId(required = false) Long userId) {
 
-        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response =
-                referenceService.getReferences(userId, type, cursor, size);
+        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response = referenceService.getReferences(userId, type,
+                cursor, size);
         return ApiResponse.ok(response);
     }
 
     // ========== 관리자 전용 API ==========
-//    @Override
-//    @PreAuthorize("hasRole('ADMIN')")
-//    public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getAllNotPublicReferencesForAdmin(
-//            @RequestParam(required = false) String cursor,
-//            @RequestParam(defaultValue = "20") int size) {
-//
-//        log.info("관리자 비공개 레퍼런스 조회 요청 - cursor: {}, size: {}", cursor, size);
-//
-//        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response =
-//                referenceService.getAllNotPublicReferences(cursor, size);
-//
-//        return ApiResponse.ok(response, "관리자 비공개 레퍼런스 조회 완료");
-//    }
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getAllNotPublicReferencesForAdmin(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size) {
+
+        log.info("관리자 비공개 레퍼런스 조회 요청 - cursor: {}, size: {}", cursor, size);
+
+        PaginationUtils.Cursor.PageResponse<ReferenceResponse> response = referenceService
+                .getAllNotPublicReferences(cursor, size);
+
+        return ApiResponse.ok(response, "관리자 비공개 레퍼런스 조회 완료");
+    }
 }
