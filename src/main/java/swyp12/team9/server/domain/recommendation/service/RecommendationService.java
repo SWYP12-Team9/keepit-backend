@@ -1,69 +1,99 @@
 package swyp12.team9.server.domain.recommendation.service;
 
-import lombok.RequiredArgsConstructor;
-import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
-import swyp12.team9.server.api.recommendation.dto.SimilarContentResponse;
-
-import org.springframework.ai.document.Document;
-import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.stereotype.Service;
-
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
 
+/**
+ * 파이썬 서버와 연동하여 추천 콘텐츠를 가져오는 서비스
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendationService {
 
-  private final VectorStore vectorStore;
-  private final EmbeddingModel embeddingModel;
+    private final RestTemplate restTemplate;
 
-  public void seedData() {
-    try {
-      List<Document> documents = List.of(
-          new Document("1", "자바 스트림 API 성능 최적화 기법", Map.of("title", "자바 스트림 API 성능 최적화", "category", "Java")),
-          new Document("2", "스프링 시큐리티 JWT 설정 및 보안 가이드", Map.of("title", "스프링 시큐리티 JWT 설정하기", "category", "Security")),
-          new Document("3", "자바 기반의 웹 보안 취약점 점검", Map.of("title", "자바 기반의 보안 가이드", "category", "Java/Security")),
-          new Document("4", "React Context API와 성능 최적화",
-              Map.of("title", "React Context API 활용법", "category", "Frontend")),
-          new Document("5", "자바 객체지향 설계 원칙 (SOLID)", Map.of("title", "자바의 정석 기초 스터디", "category", "Java")));
-      vectorStore.add(documents);
-    } catch (Exception e) {
-      throw new RuntimeException("Seed failed: " + e.getMessage(), e);
+    @Value("${python.server.url:http://localhost:8000}")
+    private String pythonServerUrl;
+
+    /**
+     * 사용자가 읽은 링크 ID 목록을 기반으로 추천 콘텐츠를 가져옵니다.
+     *
+     * @param readLinkIds 사용자가 읽은 링크 ID 목록
+     * @param size        가져올 추천 콘텐츠 수
+     * @return 추천 콘텐츠 목록
+     */
+    public List<RecommendationResponse> getRecommendations(List<Long> readLinkIds, int size) {
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(pythonServerUrl)
+                    .path("/api/recommend")
+                    .queryParam("read_ids",
+                            readLinkIds != null ? String.join(",", readLinkIds.stream().map(String::valueOf).toList())
+                                    : "")
+                    .queryParam("size", size)
+                    .toUriString();
+
+            log.debug("파이썬 서버 추천 API 호출: {}", url);
+
+            ResponseEntity<List<RecommendationResponse>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<RecommendationResponse>>() {
+                    }
+            );
+
+            log.info("추천 콘텐츠 {} 개 조회 완료", response.getBody() != null ? response.getBody().size() : 0);
+            return response.getBody() != null ? response.getBody() : Collections.emptyList();
+
+        } catch (Exception e) {
+            log.error("파이썬 서버 추천 API 호출 실패: {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
-  }
 
-  public float[] calculateUserInterest(List<Long> readDocs) {
-    return embeddingModel.embed("자바 개발 및 스프링 보안 전문가");
-  }
+    /**
+     * 카테고리별 추천 콘텐츠를 가져옵니다.
+     *
+     * @param category 카테고리명
+     * @param size     가져올 추천 콘텐츠 수
+     * @return 추천 콘텐츠 목록
+     */
+    public List<RecommendationResponse> getRecommendationsByCategory(String category, int size) {
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(pythonServerUrl)
+                    .path("/api/recommend/category")
+                    .queryParam("category", category)
+                    .queryParam("size", size)
+                    .toUriString();
 
-  public List<SimilarContentResponse> recommend(float[] userInterest) {
-    try {
-      List<Document> result = vectorStore.similaritySearch(
-          SearchRequest.builder()
-              .query("자바 개발 전문가")
-              .topK(5)
-              .build());
+            log.debug("파이썬 서버 카테고리별 추천 API 호출: {}", url);
 
-      return result.stream()
-          .map(doc -> {
-            String title = doc.getMetadata() != null ? (String) doc.getMetadata().getOrDefault("title", "Untitled")
-                : "No Metadata";
-            long id = 0;
-            try {
-              id = Long.parseLong(doc.getId());
-            } catch (NumberFormatException ignored) {
-            }
+            ResponseEntity<List<RecommendationResponse>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<RecommendationResponse>>() {
+                    }
+            );
 
-            return new SimilarContentResponse(new RecommendationResponse(id, title, null), 1.0);
-          })
-          .collect(Collectors.toList());
-    } catch (Exception e) {
-      throw new RuntimeException("Recommend failed: " + e.getMessage(), e);
+            log.info("카테고리 [{}] 추천 콘텐츠 {} 개 조회 완료", category,
+                    response.getBody() != null ? response.getBody().size() : 0);
+            return response.getBody() != null ? response.getBody() : Collections.emptyList();
+
+        } catch (Exception e) {
+            log.error("파이썬 서버 카테고리별 추천 API 호출 실패: {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
-  }
 }

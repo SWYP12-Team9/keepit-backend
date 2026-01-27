@@ -152,3 +152,8 @@ image:
   max-size: ${IMAGE_MAX_SIZE:10485760} # 10MB (byte 단위)
   allowed-types: image/jpeg,image/jpg,image/png,image/gif,image/webp
   directory: ${IMAGE_DIRECTORY:images} # 버킷 내 저장 경로
+
+# 파이썬 서버 설정 (추천/크롤링)
+python:
+  server:
+    url: ${PYTHON_SERVER_URL:http://localhost:8000}
