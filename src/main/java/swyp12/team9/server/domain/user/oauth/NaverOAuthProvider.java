@@ -43,6 +43,7 @@ public class NaverOAuthProvider implements OAuthProvider {
 
         return OAuthUserInfo.builder()
                 .username(username)
+                .providerUserId(id)
                 .email(email)
                 .nickname(nickname)
                 .providerType(getProviderType())

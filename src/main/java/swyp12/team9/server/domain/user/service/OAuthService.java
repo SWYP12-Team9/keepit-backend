@@ -9,14 +9,15 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.global.security.CustomOAuth2User;
 import swyp12.team9.server.domain.user.model.SocialProvider;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.model.UserRole;
+import swyp12.team9.server.domain.user.model.UserSocialLink;
 import swyp12.team9.server.domain.user.oauth.OAuthProvider;
 import swyp12.team9.server.domain.user.oauth.OAuthUserInfo;
 import swyp12.team9.server.domain.user.repository.UserRepository;
+import swyp12.team9.server.domain.user.repository.UserSocialLinkRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 /**
  * 소셜 로그인 관련 서비스 (네이버, 구글, 카카오)
+ * - 동일 이메일로 여러 소셜 계정 연동 지원
  */
 @Slf4j
 @Service
@@ -33,10 +35,14 @@ import java.util.stream.Collectors;
 public class OAuthService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
+    private final UserSocialLinkRepository userSocialLinkRepository;
     private final Map<SocialProvider, OAuthProvider> providerMap;
 
-    public OAuthService(UserRepository userRepository, List<OAuthProvider> providers) {
+    public OAuthService(UserRepository userRepository,
+                        UserSocialLinkRepository userSocialLinkRepository,
+                        List<OAuthProvider> providers) {
         this.userRepository = userRepository;
+        this.userSocialLinkRepository = userSocialLinkRepository;
         this.providerMap = providers.stream()
                 .collect(Collectors.toMap(OAuthProvider::getProviderType, Function.identity()));
     }
@@ -78,50 +84,68 @@ public class OAuthService extends DefaultOAuth2UserService {
         );
     }
 
-    // 메서드
+    /**
+     * 사용자 찾기 또는 생성 (계정 연동 지원)
+     *
+     * 1. UserSocialLink에서 (provider, providerUserId)로 검색
+     *    - 있으면: 해당 User 반환
+     * 2. 없으면 이메일로 User 검색
+     *    - User 있음: 소셜 연동 생성 (UserSocialLink) 후 User 반환
+     *    - User 없음: 새 User + UserSocialLink 생성
+     */
     private User findOrCreateUser(OAuthUserInfo userInfo) {
+        SocialProvider provider = userInfo.getProviderType();
+        String providerUserId = userInfo.getProviderUserId();
 
-        // 1. username으로 소셜 계정 찾기
-        Optional<User> existingUser = userRepository.findByUsernameAndIsSocial(userInfo.getUsername(), true);
+        // 1. 기존 소셜 연동으로 등록된 계정 찾기
+        Optional<User> existingUserBySocialLink = userSocialLinkRepository
+                .findUserByProviderAndProviderUserId(provider, providerUserId);
 
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            updateUserInfo(user, userInfo);
-            return userRepository.save(user);
+        if (existingUserBySocialLink.isPresent()) {
+            log.info("기존 소셜 연동 계정으로 로그인 - provider: {}, userId: {}",
+                    provider, existingUserBySocialLink.get().getId());
+            return existingUserBySocialLink.get();
         }
 
-        // 2. 이메일이 있는 경우에만 중복 체크
+        // 2. 이메일로 기존 User 검색 (연동 시도)
         if (userInfo.getEmail() != null && !userInfo.getEmail().isBlank()) {
-            Optional<User> userWithSameEmail = userRepository.findByEmail(userInfo.getEmail());
+            Optional<User> existingUserByEmail = userRepository.findByEmail(userInfo.getEmail());
 
-            if (userWithSameEmail.isPresent()) {
-                User existingUserByEmail = userWithSameEmail.get();
+            if (existingUserByEmail.isPresent()) {
+                User user = existingUserByEmail.get();
 
-                // 자체 회원가입 계정이 있는 경우
-                if (!existingUserByEmail.getIsSocial()) {
-                    throw new OAuth2AuthenticationException(
-                            "이미 가입된 이메일입니다. 자체 로그인을 사용해주세요."
-                    );
-                }
+                // 소셜 연동 생성
+                createSocialLink(user, userInfo);
 
-                // 다른 소셜 로그인으로 이미 가입된 경우
-                throw new OAuth2AuthenticationException(
-                        "이미 " + existingUserByEmail.getSocialProvider() +
-                                " 계정으로 가입된 이메일입니다."
-                );
+                log.info("기존 계정에 소셜 연동 추가 - userId: {}, provider: {}", user.getId(), provider);
+                return user;
             }
         }
 
+        // 3. 기존 username으로 등록된 소셜 계정 찾기 (하위 호환성)
+        Optional<User> existingUserByUsername = userRepository
+                .findByUsernameAndIsSocial(userInfo.getUsername(), true);
+
+        if (existingUserByUsername.isPresent()) {
+            User user = existingUserByUsername.get();
+
+            // UserSocialLink가 없으면 생성 (마이그레이션)
+            if (!userSocialLinkRepository.existsByUserIdAndProvider(user.getId(), provider)) {
+                createSocialLink(user, userInfo);
+                log.info("기존 소셜 계정에 UserSocialLink 마이그레이션 - userId: {}, provider: {}",
+                        user.getId(), provider);
+            }
+
+            return user;
+        }
+
+        // 4. 새 User 생성
         return createNewUser(userInfo);
     }
 
-    private void updateUserInfo(User user, OAuthUserInfo userInfo) {
-        UserRequest request = new UserRequest();
-        request.setNickname(userInfo.getNickname());
-        request.setEmail(userInfo.getEmail());
-        user.updateUser(request);
-    }
-
+    /**
+     * 새 사용자 생성 + 소셜 연동 생성
+     */
     private User createNewUser(OAuthUserInfo userInfo) {
         User newUser = User.builder()
                 .username(userInfo.getUsername())
@@ -135,6 +159,27 @@ public class OAuthService extends DefaultOAuth2UserService {
                 .name(userInfo.getNickname())
                 .build();
 
-        return userRepository.save(newUser);
+        User savedUser = userRepository.save(newUser);
+
+        // 소셜 연동 생성
+        createSocialLink(savedUser, userInfo);
+
+        log.info("새 사용자 생성 - userId: {}, provider: {}, email: {}",
+                savedUser.getId(), userInfo.getProviderType(), userInfo.getEmail());
+
+        return savedUser;
+    }
+
+    /**
+     * 소셜 연동 생성
+     */
+    private void createSocialLink(User user, OAuthUserInfo userInfo) {
+        UserSocialLink socialLink = UserSocialLink.builder()
+                .user(user)
+                .provider(userInfo.getProviderType())
+                .providerUserId(userInfo.getProviderUserId())
+                .build();
+
+        userSocialLinkRepository.save(socialLink);
     }
 }

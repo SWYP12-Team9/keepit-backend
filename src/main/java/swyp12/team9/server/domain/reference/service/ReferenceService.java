@@ -1,6 +1,5 @@
 package swyp12.team9.server.domain.reference.service;
 
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -8,8 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.api.reference.dto.CreateReferenceRequest;
 import swyp12.team9.server.api.reference.dto.ReferenceResponse;
+import swyp12.team9.server.api.reference.dto.ReferenceType;
 import swyp12.team9.server.api.reference.dto.UpdateReferenceRequest;
-import swyp12.team9.server.api.user.dto.response.UserResponse;
 import swyp12.team9.server.domain.reference.exception.ReferenceAccessDeniedException;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.model.Reference;
@@ -88,24 +87,43 @@ public class ReferenceService {
     }
 
     /**
-     * 사용자의 레퍼런스 목록 조회 (커서 페이징)
+     * 레퍼런스 목록 조회 (통합 API - 커서 페이징)
+     *
+     * @param userId 현재 사용자 ID (null 가능)
+     * @param type   조회 타입 (ALL: 전체, PUBLIC: 공개, PRIVATE: 비공개)
+     * @param cursor 페이지 커서
+     * @param size   페이지 크기
      */
-    public PageResponse<ReferenceResponse> getUserReferencesCursor(
+    public PageResponse<ReferenceResponse> getReferences(
+            Long userId, ReferenceType type, String cursor, int size) {
+
+        return switch (type) {
+            case ALL -> getUserReferencesCursor(userId, cursor, size);
+            case PUBLIC -> getPublicReferencesCursor(cursor, size);
+            case PRIVATE -> getNotPublicReferencesCursor(userId, cursor, size);
+        };
+    }
+
+    /**
+     * 사용자의 레퍼런스 목록 조회 (커서 페이징) - 전체
+     */
+    private PageResponse<ReferenceResponse> getUserReferencesCursor(
             Long userId, String cursor, int size) {
+
+        if (userId == null) {
+            throw new ReferenceAccessDeniedException("전체 레퍼런스 조회는 로그인이 필요합니다.");
+        }
 
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId);
         }
 
-        // size + 1개를 조회해서 hasNext 판단
         PageRequest pageRequest = PageRequest.of(0, size + 1);
 
         List<Reference> references;
         if (cursor == null) {
-            // 첫 페이지
             references = referenceRepository.findByUserIdOrderByIdDesc(userId, pageRequest);
         } else {
-            // 다음 페이지
             Long cursorId = Long.parseLong(cursor);
             references = referenceRepository.findByUserIdAndIdLessThanOrderByIdDesc(userId, cursorId, pageRequest);
         }
@@ -116,8 +134,7 @@ public class ReferenceService {
     /**
      * 공개 레퍼런스 목록 조회 (커서 페이징)
      */
-    public PaginationUtils.Cursor.PageResponse<ReferenceResponse> getPublicReferencesCursor(
-            String cursor, int size) {
+    private PageResponse<ReferenceResponse> getPublicReferencesCursor(String cursor, int size) {
 
         PageRequest pageRequest = PageRequest.of(0, size + 1);
 
@@ -135,8 +152,12 @@ public class ReferenceService {
     /**
      * 비공개 레퍼런스 목록 조회 (커서 페이징)
      */
-    public PaginationUtils.Cursor.PageResponse<ReferenceResponse> getNotPublicReferencesCursor(
+    private PageResponse<ReferenceResponse> getNotPublicReferencesCursor(
             Long userId, String cursor, int size) {
+
+        if (userId == null) {
+            throw new ReferenceAccessDeniedException("비공개 레퍼런스 조회는 로그인이 필요합니다.");
+        }
 
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId);
@@ -238,7 +259,7 @@ public class ReferenceService {
      * @param size   페이지 크기
      * @return 모든 사용자의 비공개 레퍼런스 목록
      */
-    public PaginationUtils.Cursor.PageResponse<ReferenceResponse> getAllNotPublicReferencesCursor(
+    public PaginationUtils.Cursor.PageResponse<ReferenceResponse> getAllNotPublicReferences(
             String cursor, int size) {
 
         PageRequest pageRequest = PageRequest.of(0, size + 1);
