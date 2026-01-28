@@ -27,8 +27,12 @@ public enum ErrorCode {
 
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USR001", "사용자를 찾을 수 없습니다"),
-    EMAIL_DUPLICATION(HttpStatus.BAD_REQUEST, "USR002", "이미 사용 중인 이메일입니다"),
+    EMAIL_DUPLICATION(HttpStatus.CONFLICT, "USR002", "이미 사용 중인 이메일입니다"),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "USR003", "잘못된 비밀번호입니다"),
+    NICKNAME_DUPLICATE(HttpStatus.CONFLICT, "USR004", "이미 사용 중인 닉네임입니다"),
+    PROFILE_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "USR005", "이미 프로필이 완성된 사용자입니다"),
+    PROFILE_NOT_COMPLETED(HttpStatus.FORBIDDEN, "USR006", "프로필 완성이 필요합니다"),
+    USERNAME_DUPLICATE(HttpStatus.CONFLICT, "USR007", "이미 사용 중인 아이디입니다"),
 
     // File
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "FIL001", "파일 업로드에 실패했습니다"),

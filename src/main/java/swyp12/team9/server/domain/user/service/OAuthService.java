@@ -1,5 +1,10 @@
 package swyp12.team9.server.domain.user.service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -9,25 +14,19 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.global.security.CustomOAuth2User;
 import swyp12.team9.server.domain.user.model.SocialProvider;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.model.UserRole;
 import swyp12.team9.server.domain.user.model.UserSocialLink;
+import swyp12.team9.server.domain.user.model.UserStatus;
 import swyp12.team9.server.domain.user.oauth.OAuthProvider;
 import swyp12.team9.server.domain.user.oauth.OAuthUserInfo;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.domain.user.repository.UserSocialLinkRepository;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import swyp12.team9.server.global.security.CustomOAuth2User;
 
 /**
- * 소셜 로그인 관련 서비스 (네이버, 구글, 카카오)
- * - 동일 이메일로 여러 소셜 계정 연동 지원
+ * 소셜 로그인 관련 서비스 (네이버, 구글, 카카오) - 동일 이메일로 여러 소셜 계정 연동 지원
  */
 @Slf4j
 @Service
@@ -74,24 +73,15 @@ public class OAuthService extends DefaultOAuth2UserService {
                 new SimpleGrantedAuthority("ROLE_" + user.getRoleType().name())
         );
 
-        return new CustomOAuth2User(
-                userInfo.getAttributes(),
-                authorities,
-                userInfo.getUsername(),
-                user.getId(),
-                user.getEmail(),
-                user.getRoleType().name()
-        );
+        return new CustomOAuth2User(userInfo.getAttributes(), authorities, userInfo.getUsername(), user.getId(),
+                user.getEmail(), user.getRoleType().name());
     }
 
     /**
      * 사용자 찾기 또는 생성 (계정 연동 지원)
-     *
-     * 1. UserSocialLink에서 (provider, providerUserId)로 검색
-     *    - 있으면: 해당 User 반환
-     * 2. 없으면 이메일로 User 검색
-     *    - User 있음: 소셜 연동 생성 (UserSocialLink) 후 User 반환
-     *    - User 없음: 새 User + UserSocialLink 생성
+     * <p>
+     * 1. UserSocialLink에서 (provider, providerUserId)로 검색 - 있으면: 해당 User 반환 2. 없으면 이메일로 User 검색 - User 있음: 소셜 연동 생성
+     * (UserSocialLink) 후 User 반환 - User 없음: 새 User + UserSocialLink 생성
      */
     private User findOrCreateUser(OAuthUserInfo userInfo) {
         SocialProvider provider = userInfo.getProviderType();
@@ -154,18 +144,16 @@ public class OAuthService extends DefaultOAuth2UserService {
                 .isSocial(true)
                 .socialProvider(userInfo.getProviderType())
                 .roleType(UserRole.USER)
-                .nickname(userInfo.getNickname())
+                .nickname(null)  // 프로필 완성 시 설정
                 .email(userInfo.getEmail())
-                .name(userInfo.getNickname())
+                .status(UserStatus.PENDING)  // 프로필 미완성 상태
                 .build();
 
         User savedUser = userRepository.save(newUser);
+        createSocialLink(savedUser, userInfo); // 소셜 연동 생성
 
-        // 소셜 연동 생성
-        createSocialLink(savedUser, userInfo);
-
-        log.info("새 사용자 생성 - userId: {}, provider: {}, email: {}",
-                savedUser.getId(), userInfo.getProviderType(), userInfo.getEmail());
+        log.info("새 사용자 생성 - userId: {}, provider: {}, email: {}", savedUser.getId(), userInfo.getProviderType(),
+                userInfo.getEmail());
 
         return savedUser;
     }
@@ -174,11 +162,8 @@ public class OAuthService extends DefaultOAuth2UserService {
      * 소셜 연동 생성
      */
     private void createSocialLink(User user, OAuthUserInfo userInfo) {
-        UserSocialLink socialLink = UserSocialLink.builder()
-                .user(user)
-                .provider(userInfo.getProviderType())
-                .providerUserId(userInfo.getProviderUserId())
-                .build();
+        UserSocialLink socialLink = UserSocialLink.builder().user(user).provider(userInfo.getProviderType())
+                .providerUserId(userInfo.getProviderUserId()).build();
 
         userSocialLinkRepository.save(socialLink);
     }

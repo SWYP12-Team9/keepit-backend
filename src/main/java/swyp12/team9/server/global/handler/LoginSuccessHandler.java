@@ -3,6 +3,8 @@ package swyp12.team9.server.global.handler;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -12,9 +14,8 @@ import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.global.util.JwtUtil;
 
-import java.io.IOException;
-
 // 자체 로그인 성공 핸들러
+@Slf4j
 @Component
 @Qualifier("LoginSuccessHandler")
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
@@ -28,7 +29,8 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     }
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
 
         // username, role
         String username = authentication.getName();
@@ -45,6 +47,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         // 발급한 Refresh DB 테이블 저장 (Refresh whitelist)
         jwtService.addRefresh(username, refreshToken);
+        log.info("자체 로그인 성공 - userId: {}, username: {}", userId, username);
 
         // 응답
         response.setContentType("application/json");

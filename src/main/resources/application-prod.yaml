@@ -38,6 +38,13 @@ spring:
       enabled: true
 
   security:
+    # HTTPS + 크로스사이트 쿠키 필요 시
+    security:
+      cookie:
+        refresh:
+          secure: true
+          same-site: None
+          max-age-seconds: 2592000 # 30일 예시
     oauth2:
       client:
         registration:
