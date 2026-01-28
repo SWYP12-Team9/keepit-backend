@@ -1,19 +1,54 @@
-version: '3.8'
-
 services:
-  mysql-local:
+  mysql:
     image: mysql:8.0
-    container_name: keepit-mysql-local
-    environment:
-      MYSQL_ROOT_PASSWORD: localpassword
-      MYSQL_DATABASE: swyp_db
-      MYSQL_USER: localuser
-      MYSQL_PASSWORD: localpassword
+    container_name: swyp-mysql
+    restart: always
     ports:
-      - "3307:3306"
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: swyp_db
+      MYSQL_USER: swyp
+      MYSQL_PASSWORD: password
+      TZ: Asia/Seoul
     volumes:
-      - mysql-local-data:/var/lib/mysql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      - mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: swyp-elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=swyp-cluster
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.0
+    container_name: swyp-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_SECURITY_ENABLED=false
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
 
 volumes:
-  mysql-local-data:
+  mysql-data:
+    driver: local
+  es-data:
+    driver: local

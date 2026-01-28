@@ -37,7 +37,13 @@ spring:
     restart:
       enabled: true
 
+  # 로컬 HTTP 개발환경
   security:
+    cookie:
+      refresh:
+        secure: false
+        same-site: Lax
+        max-age-seconds: 10
     oauth2:
       client:
         registration:
