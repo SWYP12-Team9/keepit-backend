@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
+import swyp12.team9.server.domain.link.model.LinkCategory;
 import swyp12.team9.server.domain.recommendation.service.LinkIndexingService;
 import swyp12.team9.server.domain.recommendation.service.RecommendationService;
 import swyp12.team9.server.global.common.dto.ApiResponse;
@@ -25,8 +26,17 @@ public class RecommendationController {
     private final LinkIndexingService linkIndexingService;
 
     @Operation(
+            summary = "카테고리 목록 조회",
+            description = "탐색 탭에서 사용할 카테고리 목록을 반환합니다."
+    )
+    @GetMapping("/categories")
+    public ApiResponse<List<String>> getCategories() {
+        return ApiResponse.ok(LinkCategory.getAllDisplayNames());
+    }
+
+    @Operation(
             summary = "카테고리별 추천 콘텐츠 조회",
-            description = "카테고리명을 검색어로 유사도 높은 순서로 링크를 가져옵니다."
+            description = "카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다."
     )
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(

@@ -12,12 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
 import swyp12.team9.server.domain.link.model.Link;
-import swyp12.team9.server.domain.link.repository.LinkRepository;
+import swyp12.team9.server.domain.userlink.model.UserLink;
+import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 /**
  * Elasticsearch 벡터 검색 기반 추천 서비스
  * - 링크 데이터(title, aiSummary)를 임베딩하여 Elasticsearch에 저장
  * - 카테고리명을 검색어로 유사도 높은 순서로 링크 반환
+ * - 공개 설정된 링크만 추천 대상
  */
 @Slf4j
 @Service
@@ -26,7 +28,7 @@ import swyp12.team9.server.domain.link.repository.LinkRepository;
 public class RecommendationService {
 
     private final VectorStore vectorStore;
-    private final LinkRepository linkRepository;
+    private final UserLinkRepository userLinkRepository;
 
     /**
      * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
@@ -91,13 +93,20 @@ public class RecommendationService {
         return value != null ? value.toString() : null;
     }
 
-    // ========== Fallback 메서드 (ES 실패 시 DB에서 최신순 조회) ==========
+    // ========== Fallback 메서드 (ES 실패 시 DB에서 공개 링크 최신순 조회) ==========
 
     private List<RecommendationResponse> fallbackGetRecentLinks(int size) {
         PageRequest pageRequest = PageRequest.of(0, size);
-        List<Link> links = linkRepository.findAllByOrderByIdDesc(pageRequest);
+        
+        // 공개된 UserLink에서 Link 추출 (중복 제거, 최신순)
+        List<Link> publicLinks = userLinkRepository.findByIsPublicTrueOrderByIdDesc(pageRequest)
+                .stream()
+                .map(UserLink::getLink)
+                .distinct()
+                .limit(size)
+                .toList();
 
-        return links.stream()
+        return publicLinks.stream()
                 .map(RecommendationResponse::from)
                 .collect(Collectors.toList());
     }

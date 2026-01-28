@@ -7,7 +7,8 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.link.model.Link;
-import swyp12.team9.server.domain.link.repository.LinkRepository;
+import swyp12.team9.server.domain.userlink.model.UserLink;
+import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,47 +17,61 @@ import java.util.stream.Collectors;
 
 /**
  * Link 데이터를 Elasticsearch에 색인하는 서비스
+ * - 공개 설정된 UserLink의 Link만 색인 대상
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class LinkIndexingService {
 
-    private final LinkRepository linkRepository;
+    private final UserLinkRepository userLinkRepository;
     private final VectorStore vectorStore;
 
     /**
-     * 모든 링크를 Elasticsearch에 색인
+     * 공개된 링크만 Elasticsearch에 색인
+     * - user_links 테이블에서 is_public = true인 링크만 대상
+     * - 동일 Link를 여러 사용자가 공개한 경우 중복 제거
      */
     @Transactional(readOnly = true)
     public void indexAllLinks() {
-        List<Link> links = linkRepository.findAll();
+        // 공개된 UserLink에서 Link만 추출 (중복 제거)
+        List<Link> publicLinks = userLinkRepository.findByIsPublicTrue()
+                .stream()
+                .map(UserLink::getLink)
+                .distinct()
+                .toList();
         
-        if (links.isEmpty()) {
-            log.info("색인할 링크가 없습니다.");
+        if (publicLinks.isEmpty()) {
+            log.info("색인할 공개 링크가 없습니다.");
             return;
         }
 
-        List<Document> documents = links.stream()
+        List<Document> documents = publicLinks.stream()
                 .map(this::createDocument)
                 .collect(Collectors.toList());
 
         vectorStore.add(documents);
-        log.info("총 {} 개의 링크를 Elasticsearch에 색인 완료", documents.size());
+        log.info("총 {} 개의 공개 링크를 Elasticsearch에 색인 완료", documents.size());
     }
 
     /**
      * 단일 링크를 Elasticsearch에 색인
+     * - 해당 링크가 1명 이상의 사용자에게 공개 설정되어 있어야 색인됨
      */
     @Transactional(readOnly = true)
     public void indexLink(Long linkId) {
-        Link link = linkRepository.findById(linkId).orElse(null);
+        // 해당 linkId를 가진 공개 UserLink가 있는지 확인
+        List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrue()
+                .stream()
+                .filter(ul -> ul.getLink().getId().equals(linkId))
+                .toList();
         
-        if (link == null) {
-            log.warn("링크를 찾을 수 없습니다. ID: {}", linkId);
+        if (publicUserLinks.isEmpty()) {
+            log.warn("공개된 링크가 없습니다. Link ID: {}", linkId);
             return;
         }
 
+        Link link = publicUserLinks.get(0).getLink();
         Document document = createDocument(link);
         vectorStore.add(List.of(document));
         log.info("링크 색인 완료 - ID: {}, title: {}", linkId, link.getTitle());
