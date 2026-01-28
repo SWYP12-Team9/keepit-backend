@@ -2,6 +2,7 @@ package swyp12.team9.server.api.recommendation.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import swyp12.team9.server.domain.link.model.Link;
+import swyp12.team9.server.domain.userlink.model.UserLink;
 
 /**
  * 추천 콘텐츠 응답 DTO
@@ -9,7 +10,7 @@ import swyp12.team9.server.domain.link.model.Link;
 @Schema(description = "추천 콘텐츠 응답")
 public record RecommendationResponse(
 
-        @Schema(description = "콘텐츠 ID", example = "1")
+        @Schema(description = "콘텐츠 ID (Link ID)", example = "1")
         Long id,
 
         @Schema(description = "URL", example = "https://example.com/article")
@@ -22,15 +23,23 @@ public record RecommendationResponse(
         String aiSummary,
 
         @Schema(description = "썸네일 URL", example = "https://example.com/thumb.jpg")
-        String thumbnailUrl
+        String thumbnailUrl,
+
+        @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
+        UserInfo user,
+
+        @Schema(description = "북마크 횟수", example = "42")
+        Long bookmarkCount
 ) {
-    public static RecommendationResponse from(Link link) {
+    public static RecommendationResponse from(Link link, UserLink firstUserLink, Long bookmarkCount) {
         return new RecommendationResponse(
                 link.getId(),
                 link.getUrl(),
                 link.getTitle(),
                 link.getAiSummary(),
-                link.getPreviewImageUrl()
+                link.getPreviewImageUrl(),
+                UserInfo.from(firstUserLink.getUser()),
+                bookmarkCount
         );
     }
 }
