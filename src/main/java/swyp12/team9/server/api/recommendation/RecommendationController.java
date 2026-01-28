@@ -3,8 +3,12 @@ package swyp12.team9.server.api.recommendation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +21,7 @@ import swyp12.team9.server.domain.recommendation.service.RecommendationService;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 
 @Tag(name = "Recommendation", description = "추천 콘텐츠 API (Elasticsearch 벡터 검색)")
+@Validated
 @RestController
 @RequestMapping("/api/v1/recommendations")
 @RequiredArgsConstructor
@@ -43,7 +48,7 @@ public class RecommendationController {
             @Parameter(description = "카테고리명 (경제/시사, 뷰티/패션 등)", example = "경제/시사")
             @RequestParam String category,
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10")
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
         List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(category,
                 size);
@@ -54,6 +59,7 @@ public class RecommendationController {
             summary = "[관리자] 전체 링크 색인",
             description = "DB의 모든 링크를 Elasticsearch에 색인합니다. (title, description, aiSummary 합쳐서 벡터화)"
     )
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index")
     public ApiResponse<String> indexAllLinks() {
         linkIndexingService.indexAllLinks();
@@ -64,6 +70,7 @@ public class RecommendationController {
             summary = "[관리자] 단일 링크 색인",
             description = "특정 링크를 Elasticsearch에 색인합니다."
     )
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index/link")
     public ApiResponse<String> indexLink(
             @Parameter(description = "링크 ID", example = "1")

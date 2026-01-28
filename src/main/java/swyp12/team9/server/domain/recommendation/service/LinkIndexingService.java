@@ -94,6 +94,11 @@ public class LinkIndexingService {
 
         String content = contentBuilder.toString().trim();
         
+        // 제목과 AI 요약이 모두 없으면 URL을 content로 사용 (벡터 추출용)
+        if (content.isEmpty()) {
+            content = link.getUrl();
+        }
+        
         // 메타데이터 설정
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("linkId", link.getId());

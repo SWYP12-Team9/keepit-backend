@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 탐색 탭의 고정 카테고리 (검색어로 사용)
@@ -27,13 +28,10 @@ public enum LinkCategory {
     /**
      * displayName으로 Enum 찾기
      */
-    public static LinkCategory fromDisplayName(String displayName) {
-        for (LinkCategory category : values()) {
-            if (category.displayName.equals(displayName)) {
-                return category;
-            }
-        }
-        return null;
+    public static Optional<LinkCategory> fromDisplayName(String displayName) {
+        return Arrays.stream(values())
+                .filter(category -> category.displayName.equals(displayName))
+                .findFirst();
     }
 
     /**

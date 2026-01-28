@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.*;
 import swyp12.team9.server.api.userlink.dto.CreateUserLinkRequest;
 import swyp12.team9.server.api.userlink.dto.UpdateUserLinkRequest;
@@ -147,7 +149,7 @@ public interface UserLinkApi {
             @Parameter(description = "커서 (첫 요청 시 null)", example = "10")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size,
             @CurrentUserId(required = false) Long userId
     );
 }
