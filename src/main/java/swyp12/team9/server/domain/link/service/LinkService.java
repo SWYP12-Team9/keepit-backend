@@ -8,10 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.api.link.dto.CreateLinkRequest;
 import swyp12.team9.server.api.link.dto.LinkResponse;
 import swyp12.team9.server.api.link.dto.UpdateLinkRequest;
-import swyp12.team9.server.domain.category.model.Category;
-import swyp12.team9.server.domain.category.model.CategoryLink;
-import swyp12.team9.server.domain.category.repository.CategoryLinkRepository;
-import swyp12.team9.server.domain.category.repository.CategoryRepository;
 import swyp12.team9.server.domain.link.exception.LinkAccessDeniedException;
 import swyp12.team9.server.domain.link.exception.LinkNotFoundException;
 import swyp12.team9.server.domain.link.model.Link;
@@ -34,8 +30,6 @@ public class LinkService {
 
     private final LinkRepository linkRepository;
     private final ReferenceRepository referenceRepository;
-    private final CategoryRepository categoryRepository;
-    private final CategoryLinkRepository categoryLinkRepository;
     private final UserRepository userRepository;
 
     /**
@@ -63,24 +57,9 @@ public class LinkService {
 
         Link savedLink = linkRepository.save(link);
 
-        // 카테고리 연결 (탐색 탭용)
-        if (request.categoryIds() != null && !request.categoryIds().isEmpty()) {
-            for (Long categoryId : request.categoryIds()) {
-                Category category = categoryRepository.findById(categoryId)
-                        .orElse(null);
-                if (category != null) {
-                    CategoryLink categoryLink = CategoryLink.builder()
-                            .link(savedLink)
-                            .category(category)
-                            .build();
-                    categoryLinkRepository.save(categoryLink);
-                }
-            }
-        }
-
         log.info("링크 생성 완료 - userId: {}, linkId: {}, url: {}", userId, savedLink.getId(), request.url());
 
-        return LinkResponse.from(savedLink, getCategoryNames(savedLink));
+        return LinkResponse.from(savedLink, List.of());
     }
 
     /**
@@ -91,7 +70,7 @@ public class LinkService {
 
         // 공개 링크면 누구나 조회 가능
         if (link.getIsPublic()) {
-            return LinkResponse.from(link, getCategoryNames(link));
+            return LinkResponse.from(link, List.of());
         }
 
         // 비공개 링크는 소유자만 조회 가능
@@ -100,7 +79,7 @@ public class LinkService {
         }
 
         link.validateOwner(userId);
-        return LinkResponse.from(link, getCategoryNames(link));
+        return LinkResponse.from(link, List.of());
     }
 
     /**
@@ -123,23 +102,8 @@ public class LinkService {
                 request.isPublic()
         );
 
-        // 카테고리 업데이트 (기존 연결 삭제 후 새로 연결)
-        if (request.categoryIds() != null) {
-            categoryLinkRepository.deleteByLink(link);
-            for (Long categoryId : request.categoryIds()) {
-                Category category = categoryRepository.findById(categoryId).orElse(null);
-                if (category != null) {
-                    CategoryLink categoryLink = CategoryLink.builder()
-                            .link(link)
-                            .category(category)
-                            .build();
-                    categoryLinkRepository.save(categoryLink);
-                }
-            }
-        }
-
         log.info("링크 수정 완료 - userId: {}, linkId: {}", userId, linkId);
-        return LinkResponse.from(link, getCategoryNames(link));
+        return LinkResponse.from(link, List.of());
     }
 
     /**
@@ -151,9 +115,6 @@ public class LinkService {
 
         // 소유자 검증
         link.validateOwner(userId);
-
-        // 카테고리 연결 먼저 삭제
-        categoryLinkRepository.deleteByLink(link);
 
         linkRepository.delete(link);
 
@@ -173,7 +134,7 @@ public class LinkService {
         link.markAsViewed();
 
         log.info("링크 열람 처리 완료 - userId: {}, linkId: {}", userId, linkId);
-        return LinkResponse.from(link, getCategoryNames(link));
+        return LinkResponse.from(link, List.of());
     }
 
     /**
@@ -189,7 +150,7 @@ public class LinkService {
         link.toggleBookmark();
 
         log.info("즐겨찾기 토글 완료 - userId: {}, linkId: {}, isBookmarked: {}", userId, linkId, link.getIsBookmarked());
-        return LinkResponse.from(link, getCategoryNames(link));
+        return LinkResponse.from(link, List.of());
     }
 
     /**
@@ -266,35 +227,10 @@ public class LinkService {
      * 탐색(Explore) - 카테고리별 공개 링크 목록 조회
      */
     public PageResponse<LinkResponse> getPublicLinksByCategory(Long categoryId, String cursor, int size) {
-        // 카테고리 ID가 없으면 전체 공개 링크 조회
-        if (categoryId == null) {
-            return getPublicLinks(cursor, size);
+        if (categoryId != null) {
+            log.warn("카테고리 기능은 별도 브랜치에서 제공됩니다. categoryId={}", categoryId);
         }
-
-        Category category = categoryRepository.findById(categoryId)
-                .orElse(null);
-
-        if (category == null) {
-            log.warn("잘못된 카테고리 ID: {}", categoryId);
-            return PageResponse.empty();
-        }
-
-        PageRequest pageRequest = PageRequest.of(0, size + 1);
-
-        List<CategoryLink> categoryLinks;
-        if (cursor == null) {
-            categoryLinks = categoryLinkRepository.findByCategoryAndLink_IsPublicTrueOrderByLink_IdDesc(category, pageRequest);
-        } else {
-            Long cursorId = Long.parseLong(cursor);
-            categoryLinks = categoryLinkRepository.findByCategoryAndLink_IsPublicTrueAndLink_IdLessThanOrderByLink_IdDesc(
-                    category, cursorId, pageRequest);
-        }
-
-        List<Link> links = categoryLinks.stream()
-                .map(CategoryLink::getLink)
-                .collect(Collectors.toList());
-
-        return buildCursorResponse(links, size);
+        return getPublicLinks(cursor, size);
     }
 
     /**
@@ -325,12 +261,6 @@ public class LinkService {
                 .orElseThrow(() -> new LinkNotFoundException("링크를 찾을 수 없습니다. ID: " + linkId));
     }
 
-    private List<String> getCategoryNames(Link link) {
-        return categoryLinkRepository.findByLinkId(link.getId()).stream()
-                .map(cl -> cl.getCategory().getName())
-                .collect(Collectors.toList());
-    }
-
     private PageResponse<LinkResponse> buildCursorResponse(List<Link> links, int size) {
         if (links.isEmpty()) {
             return PageResponse.empty();
@@ -341,7 +271,7 @@ public class LinkService {
         String nextCursor = hasNext ? String.valueOf(content.get(content.size() - 1).getId()) : null;
 
         List<LinkResponse> responses = content.stream()
-                .map(link -> LinkResponse.from(link, getCategoryNames(link)))
+                .map(link -> LinkResponse.from(link, List.of()))
                 .collect(Collectors.toList());
 
         return PageResponse.of(responses, nextCursor, hasNext);
