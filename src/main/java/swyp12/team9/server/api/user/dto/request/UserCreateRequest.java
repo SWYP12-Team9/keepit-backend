@@ -22,7 +22,6 @@ public record UserCreateRequest(
         return User.builder()
                 .email(email)
                 .password(encodedPassword)
-                .name(name)
                 .build();
     }
 }
