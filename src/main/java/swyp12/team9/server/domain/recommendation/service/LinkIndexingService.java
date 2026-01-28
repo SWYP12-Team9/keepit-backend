@@ -84,7 +84,6 @@ public class LinkIndexingService {
         metadata.put("linkId", link.getId());
         metadata.put("url", link.getUrl());
         metadata.put("title", link.getTitle() != null ? link.getTitle() : "");
-        metadata.put("description", link.getDescription() != null ? link.getDescription() : "");
         metadata.put("aiSummary", link.getAiSummary() != null ? link.getAiSummary() : "");
         metadata.put("thumbnailUrl", link.getPreviewImageUrl() != null ? link.getPreviewImageUrl() : "");
 

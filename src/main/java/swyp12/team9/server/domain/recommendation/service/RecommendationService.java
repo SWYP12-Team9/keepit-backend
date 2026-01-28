@@ -69,7 +69,6 @@ public class RecommendationService {
                 getLongFromMetadata(metadata, "linkId"),
                 getStringFromMetadata(metadata, "url"),
                 getStringFromMetadata(metadata, "title"),
-                getStringFromMetadata(metadata, "description"),
                 getStringFromMetadata(metadata, "aiSummary"),
                 getStringFromMetadata(metadata, "thumbnailUrl")
         );

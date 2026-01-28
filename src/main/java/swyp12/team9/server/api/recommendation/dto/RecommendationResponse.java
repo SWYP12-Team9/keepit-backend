@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import swyp12.team9.server.domain.link.model.Link;
 
 /**
- * DB에서 조회한 추천 콘텐츠 응답 DTO
+ * 추천 콘텐츠 응답 DTO
  */
 @Schema(description = "추천 콘텐츠 응답")
 public record RecommendationResponse(
@@ -18,9 +18,6 @@ public record RecommendationResponse(
         @Schema(description = "제목", example = "추천 아티클 제목")
         String title,
 
-        @Schema(description = "설명", example = "아티클 설명")
-        String description,
-
         @Schema(description = "AI 요약", example = "이 글의 핵심 요약...")
         String aiSummary,
 
@@ -32,7 +29,6 @@ public record RecommendationResponse(
                 link.getId(),
                 link.getUrl(),
                 link.getTitle(),
-                link.getDescription(),
                 link.getAiSummary(),
                 link.getPreviewImageUrl()
         );
