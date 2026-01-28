@@ -1,7 +1,18 @@
 package swyp12.team9.server.domain.user.model;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 
@@ -23,9 +34,6 @@ public class User extends BaseEntity {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(length = 50)
-    private String name;
-
     @Column(name = "is_lock", nullable = false)
     private Boolean isLock; // 계정이 잠겼는지, 안 잠겼는지
 
@@ -40,9 +48,9 @@ public class User extends BaseEntity {
     @Column(name = "role_type", nullable = false)
     private UserRole roleType; // 스프링 시큐리티에서 사용 (일반 회원 or 관리자)
 
-//    @Enumerated(EnumType.STRING)
-//    @Column(nullable = false, length = 20)
-//    private UserStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserStatus status;
 
     @Column(name = "nickname", length = 50)
     private String nickname;
@@ -53,24 +61,39 @@ public class User extends BaseEntity {
     @Column(name = "profile_image_url", length = 1024)
     private String profileImageUrl;
 
+    @Column(name = "background_image_url", length = 1024)
+    private String backgroundImageUrl;
+
     @Column(name = "email", unique = true, length = 100)
     private String email;
 
     @Builder
-    public User(String username, String password, String name, String nickname,
-                String introduction, String profileImageUrl, String email,
-                Boolean isLock, Boolean isSocial, SocialProvider socialProvider, UserRole roleType) {
+    public User(String username, String password, String nickname, String introduction, String profileImageUrl,
+                String backgroundImageUrl, String email, Boolean isLock, Boolean isSocial,
+                SocialProvider socialProvider, UserRole roleType, UserStatus status) {
         this.username = username;
         this.password = password;
-        this.name = name;
         this.nickname = nickname;
         this.introduction = introduction;
         this.profileImageUrl = profileImageUrl;
+        this.backgroundImageUrl = backgroundImageUrl;
         this.email = email;
         this.isLock = isLock;
         this.isSocial = isSocial;
         this.socialProvider = socialProvider;
         this.roleType = roleType;
+        this.status = status;
+    }
+
+    // 소셜 로그인 후 프로필 완성
+    // PENDING → ACTIVE로 상태 변경
+    public void completeProfile(String nickname, String introduction, String profileImageUrl,
+                                String backgroundImageUrl) {
+        this.nickname = nickname;
+        this.introduction = introduction;
+        this.profileImageUrl = profileImageUrl;
+        this.backgroundImageUrl = backgroundImageUrl;
+        this.status = UserStatus.ACTIVE; // 완성
     }
 
     // 회원 정보 수정
@@ -83,8 +106,43 @@ public class User extends BaseEntity {
         this.password = password;
     }
 
-    public void updateName(String name) {
-        this.name = name;
+    public void updateNickName(String nickname) {
+        this.nickname = nickname;
+    }
+
+    /**
+     * 프로필 이미지만 수정
+     */
+    public void updateProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    /**
+     * 배경 이미지만 수정
+     */
+    public void updateBackgroundImage(String backgroundImageUrl) {
+        this.backgroundImageUrl = backgroundImageUrl;
+    }
+
+    /**
+     * 한 줄 소개 수정
+     */
+    public void updateIntroduction(String introduction) {
+        this.introduction = introduction;
+    }
+
+    /**
+     * 프로필 완성 여부 확인
+     */
+    public boolean isProfileCompleted() {
+        return this.status != UserStatus.PENDING;
+    }
+
+    /**
+     * 소셜 로그인 사용자인지 확인
+     */
+    public boolean isSocialUser() {
+        return this.isSocial;
     }
 
 //    public void deactivate() {
