@@ -51,7 +51,7 @@ public interface UserApi {
     // ==================== 프로필 관련 ====================
 
     @Operation(
-            summary = "프로필 완성 (최소 소셜 로그인 후 회원과입 과정)",
+            summary = "프로필 완성 (최초 소셜 로그인 후 회원과입 과정)",
             description = "소셜 로그인 후 최초 프로필 정보 입력 (닉네임 필수, 나머지 선택)"
     )
     @SecurityRequirement(name = "AccessToken")
