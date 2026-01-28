@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
   shutdown: graceful
 
 spring:
@@ -8,13 +8,13 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME:swyp_db}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:password}
+    url: jdbc:mysql://localhost:3307/swyp_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: localuser
+    password: localpassword
 
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO:update}
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -37,44 +37,48 @@ spring:
     restart:
       enabled: true
 
+  # 로컬 HTTP 개발환경
   security:
+    cookie:
+      refresh:
+        secure: false
+        same-site: Lax
+        max-age-seconds: 604800  # 7일
     oauth2:
       client:
         registration:
-          # OAuth2 : NAVER registration
+          # OAuth2 설정은 필요시 환경변수로 추가
           naver:
             client-name: naver
-            client-id: ${NAVER_CLIENT_ID}
-            client-secret: ${NAVER_CLIENT_SECRET}
-            redirect-uri: ${SERVER_URL}/api/v1/login/oauth2/code/naver
+            client-id: ${NAVER_CLIENT_ID:dummy}
+            client-secret: ${NAVER_CLIENT_SECRET:dummy}
+            redirect-uri: http://localhost:8080/api/v1/login/oauth2/code/naver
             authorization-grant-type: authorization_code
             scope:
               - name
               - email
               - nickname
 
-          # OAuth2 : Google registration
           google:
             client-name: google
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: ${SERVER_URL}/api/v1/login/oauth2/code/google
+            client-id: ${GOOGLE_CLIENT_ID:dummy}
+            client-secret: ${GOOGLE_CLIENT_SECRET:dummy}
+            redirect-uri: http://localhost:8080/api/v1/login/oauth2/code/google
             authorization-grant-type: authorization_code
             scope:
               - profile
               - email
 
-          # OAuth2 : Kakao registration
           kakao:
             client-name: kakao
-            client-id: ${KAKAO_CLIENT_ID}
-            client-secret: ${KAKAO_CLIENT_SECRET}
-            redirect-uri: ${SERVER_URL}/api/v1/login/oauth2/code/kakao
+            client-id: ${KAKAO_CLIENT_ID:dummy}
+            client-secret: ${KAKAO_CLIENT_SECRET:dummy}
+            redirect-uri: http://localhost:8080/api/v1/login/oauth2/code/kakao
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             scope:
               - profile_nickname
-              #- account_email
+
         provider:
           naver:
             authorization-uri: https://nid.naver.com/oauth2.0/authorize
@@ -86,44 +90,38 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
-  #          google:
-  #            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-  #            token-uri: https://oauth2.googleapis.com/token
-  #            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-  #            user-name-attribute: sub
-  #google: 생략 가능
-  # Sring Security가 이미 알고있는 provider들
-  # google, facebook, github
-  # 그래서 따로 google은 추가안해도 된다.
 
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY} # 환경변수로 설정
+      api-key: ${OPENAI_API_KEY:dummy-key}
       chat:
         options:
           model: gpt-4o-mini
       embedding:
         options:
           model: text-embedding-3-small
+
   elasticsearch:
-    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    uris: http://localhost:9200
 
 logging:
   level:
-    root: WARN
-    swyp12.team9: INFO
-    org.hibernate.SQL: WARN
+    root: INFO
+    swyp12.team9: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.web: DEBUG
 
 # Frontend URL 설정
 frontend:
-  url: ${FRONTEND_URL:http://localhost:5173}
+  url: http://localhost:5173
 
 swagger:
-  server-url: ${SERVER_URL:http://localhost:8080}
+  server-url: http://localhost:8080
 
 # CORS 설정
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  allowed-origins: http://localhost:5173,http://localhost:3000
 
 management:
   endpoints:
@@ -132,21 +130,26 @@ management:
         include: health,info,metrics
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
 
-# NCP Object Storage 설정
+# NCP Object Storage 설정 (로컬 테스트시에는 사용 안함)
 cloud:
   ncp:
     object-storage:
-      endpoint: ${NCP_OBJECT_STORAGE_ENDPOINT:https://kr.object.ncloudstorage.com}
-      region: ${NCP_REGION:kr-standard}
+      endpoint: https://kr.object.ncloudstorage.com
+      region: kr-standard
       credentials:
-        access-key: ${NCP_ACCESS_KEY}
-        secret-key: ${NCP_SECRET_KEY}
-      bucket-name: ${NCP_BUCKET_NAME}
+        access-key: ${NCP_ACCESS_KEY:dummy}
+        secret-key: ${NCP_SECRET_KEY:dummy}
+      bucket-name: ${NCP_BUCKET_NAME:dummy}
 
 # 이미지 업로드 설정
 image:
-  max-size: ${IMAGE_MAX_SIZE:10485760} # 10MB (byte 단위)
+  max-size: 10485760 # 10MB (byte 단위)
   allowed-types: image/jpeg,image/jpg,image/png,image/gif,image/webp
-  directory: ${IMAGE_DIRECTORY:images} # 버킷 내 저장 경로
+  directory: images
+
+# 파이썬 서버 설정 (추천/크롤링)
+python:
+  server:
+    url: http://localhost:8000
