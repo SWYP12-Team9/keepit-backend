@@ -77,10 +77,10 @@ public class ProfileService {
         }
 
         // 프로필 이미지 교체
-        String newProfileImageUrl = updateImageIfPresent(profileImage, user.getProfileImageUrl());
+        String newProfileImageUrl = imageService.updateImage(user.getProfileImageUrl(), profileImage);
 
         // 배경 이미지 교체
-        String newBackgroundImageUrl = updateImageIfPresent(backgroundImage, user.getBackgroundImageUrl());
+        String newBackgroundImageUrl = imageService.updateImage(user.getBackgroundImageUrl(), backgroundImage);
 
         // 프로필 업데이트
         user.updateProfile(request.nickname(), request.introduction(), newProfileImageUrl, newBackgroundImageUrl);
@@ -121,21 +121,5 @@ public class ProfileService {
         }
         return null;
     }
-
-    // 새 이미지가 있으면 기존 이미지 삭제 후 새 이미지 업로드
-    private String updateImageIfPresent(MultipartFile newImage, String oldImageUrl) {
-        if (newImage != null && !newImage.isEmpty()) {
-            // 기존 이미지가 있으면 삭제
-            if (oldImageUrl != null) {
-                try {
-                    imageService.deleteImage(oldImageUrl);
-                } catch (Exception e) {
-                    log.warn("기존 이미지 삭제 실패: {}", oldImageUrl, e);
-                }
-            }
-            // 새 이미지 업로드
-            return imageService.uploadImage(newImage);
-        }
-        return oldImageUrl; // 새 이미지 없으면 기존 URL 유지
-    }
+    
 }
