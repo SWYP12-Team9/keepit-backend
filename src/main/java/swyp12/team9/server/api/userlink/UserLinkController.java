@@ -8,7 +8,7 @@ import swyp12.team9.server.api.userlink.dto.CreateUserLinkRequest;
 import swyp12.team9.server.api.userlink.dto.UpdateUserLinkRequest;
 import swyp12.team9.server.api.userlink.dto.UserLinkResponse;
 import swyp12.team9.server.api.userlink.dto.UserLinkType;
-import swyp12.team9.server.domain.userlink.service.UserLinkService2;
+import swyp12.team9.server.domain.userlink.service.UserLinkService;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 import swyp12.team9.server.global.util.PaginationUtils;
@@ -17,9 +17,9 @@ import swyp12.team9.server.global.util.PaginationUtils;
 @RestController
 @RequestMapping("/api/v1/user-links")
 @RequiredArgsConstructor
-public class UserLinkController2 implements UserLinkApi2 {
+public class UserLinkController implements UserLinkApi {
 
-    private final UserLinkService2 userLinkService;
+    private final UserLinkService userLinkService;
 
     // 사용자 링크 생성
     @Override

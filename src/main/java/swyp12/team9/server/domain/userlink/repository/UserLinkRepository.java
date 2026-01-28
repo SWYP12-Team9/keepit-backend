@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserLinkRepository2 extends JpaRepository<UserLink, Long> {
+public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
 
     // ========== 기본 조회 ==========
     /**

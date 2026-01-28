@@ -22,7 +22,7 @@ import swyp12.team9.server.global.util.PaginationUtils;
  */
 @Tag(name = "UserLink", description = "사용자 링크 관리 API")
 @RequestMapping("/api/v1/user-links")
-public interface UserLinkApi2 {
+public interface UserLinkApi {
 
     @Operation(
             summary = "링크 게시물 생성",

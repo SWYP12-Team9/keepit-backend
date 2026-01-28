@@ -10,7 +10,7 @@ import swyp12.team9.server.api.userlink.dto.UpdateUserLinkRequest;
 import swyp12.team9.server.api.userlink.dto.UserLinkResponse;
 import swyp12.team9.server.api.userlink.dto.UserLinkType;
 import swyp12.team9.server.domain.link.model.Link;
-import swyp12.team9.server.domain.link.repository.LinkRepository2;
+import swyp12.team9.server.domain.link.repository.LinkRepository;
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
@@ -18,7 +18,7 @@ import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedExcepti
 import swyp12.team9.server.domain.userlink.exception.UserLinkDuplicateException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkNotFoundException;
 import swyp12.team9.server.domain.userlink.model.UserLink;
-import swyp12.team9.server.domain.userlink.repository.UserLinkRepository2;
+import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.global.util.PaginationUtils.Cursor.PageResponse;
 
 import java.util.List;
@@ -28,10 +28,10 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserLinkService2 {
+public class UserLinkService {
 
-    private final UserLinkRepository2 userLinkRepository;
-    private final LinkRepository2 linkRepository;
+    private final UserLinkRepository userLinkRepository;
+    private final LinkRepository linkRepository;
     private final UserRepository userRepository;
 
     /**
