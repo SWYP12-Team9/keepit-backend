@@ -25,10 +25,7 @@ public record RecommendationResponse(
         String aiSummary,
 
         @Schema(description = "썸네일 URL", example = "https://example.com/thumb.jpg")
-        String thumbnailUrl,
-
-        @Schema(description = "카테고리", example = "경제/시사")
-        String category
+        String thumbnailUrl
 ) {
     public static RecommendationResponse from(Link link) {
         return new RecommendationResponse(
@@ -37,8 +34,7 @@ public record RecommendationResponse(
                 link.getTitle(),
                 link.getDescription(),
                 link.getAiSummary(),
-                link.getPreviewImageUrl(),
-                link.getCategory() != null ? link.getCategory().getDisplayName() : null
+                link.getPreviewImageUrl()
         );
     }
 }

@@ -1,6 +1,8 @@
 package swyp12.team9.server.global.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,9 +31,6 @@ import swyp12.team9.server.domain.user.model.UserRole;
 import swyp12.team9.server.global.filter.JwtFilter;
 import swyp12.team9.server.global.filter.LoginFilter;
 import swyp12.team9.server.global.handler.RefreshTokenLogoutHandler;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -110,7 +109,8 @@ public class SecurityConfig {
                         ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
                         // 인증 관련
-                        .requestMatchers("/api/v1/jwt/exchange", "/api/v1/jwt/refresh", "/api/v1/auth/logout").permitAll()
+                        .requestMatchers("/api/v1/jwt/exchange", "/api/v1/jwt/refresh", "/api/v1/auth/logout")
+                        .permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/users/exist",
                                 "/api/v1/users/signup",
@@ -215,7 +215,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-
 
 // ✅ 올바른 순서
 //1. 공개 엔드포인트 (permitAll)

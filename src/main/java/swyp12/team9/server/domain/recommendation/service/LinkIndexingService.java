@@ -64,17 +64,14 @@ public class LinkIndexingService {
 
     /**
      * Link를 Document로 변환
-     * - 제목, 설명, AI요약을 합쳐서 텍스트로 만듦
+     * - 제목과 AI 요약만 합쳐서 텍스트로 만듦
      */
     private Document createDocument(Link link) {
-        // 제목 + 설명 + AI요약을 합쳐서 검색용 텍스트 생성
+        // 제목 + AI요약을 합쳐서 검색용 텍스트 생성
         StringBuilder contentBuilder = new StringBuilder();
         
         if (link.getTitle() != null) {
             contentBuilder.append(link.getTitle()).append(" ");
-        }
-        if (link.getDescription() != null) {
-            contentBuilder.append(link.getDescription()).append(" ");
         }
         if (link.getAiSummary() != null) {
             contentBuilder.append(link.getAiSummary());
@@ -90,7 +87,6 @@ public class LinkIndexingService {
         metadata.put("description", link.getDescription() != null ? link.getDescription() : "");
         metadata.put("aiSummary", link.getAiSummary() != null ? link.getAiSummary() : "");
         metadata.put("thumbnailUrl", link.getPreviewImageUrl() != null ? link.getPreviewImageUrl() : "");
-        metadata.put("category", link.getCategory() != null ? link.getCategory().getDisplayName() : "");
 
         return new Document(String.valueOf(link.getId()), content, metadata);
     }

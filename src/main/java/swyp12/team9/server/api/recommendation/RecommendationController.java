@@ -25,25 +25,10 @@ public class RecommendationController {
     private final LinkIndexingService linkIndexingService;
 
     @Operation(
-            summary = "개인화 추천 콘텐츠 조회",
-            description = "사용자가 읽은 링크 ID 목록을 기반으로 추천 콘텐츠를 가져옵니다."
-    )
-    @GetMapping
-    public ApiResponse<List<RecommendationResponse>> getRecommendations(
-            @Parameter(description = "읽은 링크 ID 목록", example = "1,2,3")
-            @RequestParam(required = false) List<Long> readIds,
-            @Parameter(description = "가져올 추천 콘텐츠 수", example = "10")
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        List<RecommendationResponse> recommendations = recommendationService.getRecommendations(readIds, size);
-        return ApiResponse.ok(recommendations);
-    }
-
-    @Operation(
             summary = "카테고리별 추천 콘텐츠 조회",
             description = "카테고리명을 검색어로 유사도 높은 순서로 링크를 가져옵니다."
     )
-    @GetMapping("/category")
+    @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
             @Parameter(description = "카테고리명 (경제/시사, 뷰티/패션 등)", example = "경제/시사")
             @RequestParam String category,

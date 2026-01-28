@@ -4,26 +4,29 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 링크 카테고리 (고정 enum)
+ * 탐색 탭의 고정 카테고리 (검색어로 사용)
+ * DB에 저장되지 않으며, Elasticsearch 검색 키워드로만 활용
  */
 @Getter
 @RequiredArgsConstructor
 public enum LinkCategory {
-
-    ECONOMY_CURRENT("경제/시사"),
+    ECONOMY_CURRENT_AFFAIRS("경제/시사"),
     BEAUTY_FASHION("뷰티/패션"),
-    FOOD_COOKING("요리/식품"),
-    HEALTH_FITNESS("운동/건강"),
-    HUMANITIES_KNOWLEDGE("인문/지식"),
-    CAREER_SELF_DEV("직장/자기개발"),
-    HOME_LIVING("홈/리빙");
+    FOOD("푸드"),
+    TRAVEL("여행"),
+    SPORTS_LEISURE("스포츠/레저"),
+    CULTURE_ART("문화/예술"),
+    TECH_IT("테크/IT"),
+    LIFE_HEALTH("라이프/건강"),
+    EDUCATION_CAREER("교육/커리어"),
+    ENTERTAINMENT("엔터테인먼트");
 
     private final String displayName;
 
+    /**
+     * displayName으로 Enum 찾기
+     */
     public static LinkCategory fromDisplayName(String displayName) {
-        if (displayName == null || displayName.isBlank()) {
-            return null;
-        }
         for (LinkCategory category : values()) {
             if (category.displayName.equals(displayName)) {
                 return category;
