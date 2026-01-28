@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
+import swyp12.team9.server.api.user.dto.response.ProfileUpdateResponse;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 
 /**
@@ -110,7 +111,7 @@ public interface UserApi {
             @ApiResponse(responseCode = "409", description = "닉네임 중복")
     })
     @PatchMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    swyp12.team9.server.global.common.dto.ApiResponse<ProfileCompleteResponse> updateProfile(
+    swyp12.team9.server.global.common.dto.ApiResponse<ProfileUpdateResponse> updateProfile(
             @Parameter(hidden = true) @CurrentUserId Long userId,
             @Parameter(description = "프로필 정보 (JSON)", required = true)
             @Valid @RequestPart("profile") ProfileCompleteRequest request,

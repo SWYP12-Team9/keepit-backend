@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
+import swyp12.team9.server.api.user.dto.response.ProfileUpdateResponse;
 import swyp12.team9.server.domain.user.service.ProfileService;
 import swyp12.team9.server.domain.user.service.UserService;
 import swyp12.team9.server.global.annotation.CurrentUserId;
@@ -53,7 +54,7 @@ public class UserController implements UserApi {
 
     // 프로필 수정
     @Override
-    public ApiResponse<ProfileCompleteResponse>
+    public ApiResponse<ProfileUpdateResponse>
     updateProfile(@CurrentUserId Long userId,
                   @Valid @RequestPart("profile")
                   ProfileCompleteRequest request,
@@ -61,7 +62,7 @@ public class UserController implements UserApi {
                   MultipartFile profileImage,
                   @RequestPart(value = "backgroundImage", required = false)
                   MultipartFile backgroundImage) {
-        ProfileCompleteResponse response = profileService.updateProfile(userId, request, profileImage, backgroundImage);
+        ProfileUpdateResponse response = profileService.updateProfile(userId, request, profileImage, backgroundImage);
         return ApiResponse.ok(response, "프로필이 수정되었습니다.");
     }
 

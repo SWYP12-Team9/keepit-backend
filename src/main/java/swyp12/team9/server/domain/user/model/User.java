@@ -13,7 +13,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 
 @Entity
@@ -52,7 +51,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 20)
     private UserStatus status;
 
-    @Column(name = "nickname", length = 50)
+    @Column(name = "nickname", unique = true, length = 50)
     private String nickname;
 
     @Column(name = "introduction", length = 300)
@@ -97,9 +96,12 @@ public class User extends BaseEntity {
     }
 
     // 회원 정보 수정
-    public void updateUser(UserRequest userRequest) {
-        this.email = userRequest.getEmail();
-        this.nickname = userRequest.getNickname();
+    public void updateProfile(String nickname, String introduction, String profileImageUrl,
+                              String backgroundImageUrl) {
+        this.nickname = nickname;
+        this.introduction = introduction;
+        this.profileImageUrl = profileImageUrl;
+        this.backgroundImageUrl = backgroundImageUrl;
     }
 
     public void updatePassword(String password) {

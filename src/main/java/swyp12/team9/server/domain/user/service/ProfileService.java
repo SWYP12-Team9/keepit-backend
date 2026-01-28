@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
+import swyp12.team9.server.api.user.dto.response.ProfileUpdateResponse;
 import swyp12.team9.server.domain.image.service.ImageService;
 import swyp12.team9.server.domain.user.exception.NicknameDuplicateException;
 import swyp12.team9.server.domain.user.exception.ProfileAlreadyCompletedException;
@@ -65,8 +66,8 @@ public class ProfileService {
 
     // 프로필 수정 (이미지 포함)
     @Transactional
-    public ProfileCompleteResponse updateProfile(Long userId, ProfileCompleteRequest request,
-                                                 MultipartFile profileImage, MultipartFile backgroundImage) {
+    public ProfileUpdateResponse updateProfile(Long userId, ProfileCompleteRequest request,
+                                               MultipartFile profileImage, MultipartFile backgroundImage) {
 
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
@@ -82,11 +83,11 @@ public class ProfileService {
         String newBackgroundImageUrl = updateImageIfPresent(backgroundImage, user.getBackgroundImageUrl());
 
         // 프로필 업데이트
-        user.completeProfile(request.nickname(), request.introduction(), newProfileImageUrl, newBackgroundImageUrl);
+        user.updateProfile(request.nickname(), request.introduction(), newProfileImageUrl, newBackgroundImageUrl);
 
         log.info("프로필 수정 완료 - userId: {}", userId);
 
-        return ProfileCompleteResponse.from(user);
+        return ProfileUpdateResponse.from(user);
     }
 
     // 프로필 이미지만 삭제
