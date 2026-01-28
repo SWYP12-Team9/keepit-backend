@@ -2,13 +2,14 @@ package swyp12.team9.server.global.handler;
 
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -29,12 +30,22 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
     private final UserRepository userRepository;
     private final String frontendUrl;
 
-    public SocialSuccessHandler(JwtService jwtService,
-                                UserRepository userRepository,
-                                @Value("${frontend.url}") String frontendUrl) {
+    // 환경변수/설정으로 관리
+    private final boolean refreshCookieSecure;
+    private final String refreshCookieSameSite; // "Lax" or "None" or "Strict"
+    private final int refreshCookieMaxAgeSeconds;
+
+    public SocialSuccessHandler(JwtService jwtService, UserRepository userRepository,
+                                @Value("${frontend.url}") String frontendUrl,
+                                @Value("${security.cookie.refresh.secure:false}") boolean refreshCookieSecure,
+                                @Value("${security.cookie.refresh.same-site:Lax}") String refreshCookieSameSite,
+                                @Value("${security.cookie.refresh.max-age-seconds:10}") int refreshCookieMaxAgeSeconds) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.frontendUrl = frontendUrl;
+        this.refreshCookieSecure = refreshCookieSecure;
+        this.refreshCookieSameSite = refreshCookieSameSite;
+        this.refreshCookieMaxAgeSeconds = refreshCookieMaxAgeSeconds;
     }
 
     @Override
@@ -60,13 +71,23 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         jwtService.addRefresh(username, refreshToken);
 
         // 응답
-        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(false); // 프로덕션에서는 true로 변경
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(10); // 10초 (프론트에서 발급 후 바로 헤더 전환 로직 진행 예정)
+        // SameSite + Secure + HttpOnly
+//        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+//        refreshCookie.setHttpOnly(true);
+//        refreshCookie.setSecure(false); // 프로덕션에서는 true로 변경
+//        refreshCookie.setPath("/");
+//        refreshCookie.setMaxAge(10); // 10초 (프론트에서 발급 후 바로 헤더 전환 로직 진행 예정)
 
-        response.addCookie(refreshCookie);
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(refreshCookieSecure)
+                .path("/").maxAge(refreshCookieMaxAgeSeconds)
+                .sameSite(refreshCookieSameSite) // "Lax", "Strict", "None"
+                // .domain("example.com") // 필요할 때만 (서브도메인 공유 등)
+                .build();
+
+        //response.addCookie(refreshCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         // UserStatus에 따라 리다이렉트 URL 분기
         String redirectUrl;
