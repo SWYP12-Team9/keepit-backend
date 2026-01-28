@@ -31,11 +31,17 @@ public class Link extends BaseEntity {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", length = 50)
+    private LinkCategory category;
+
     @Builder
-    public Link(String url, String title, String description, String previewImageUrl) {
+    public Link(String url, String title, String description, String previewImageUrl, String aiSummary, LinkCategory category) {
         this.url = url;
         this.title = title;
         this.description = description;
         this.previewImageUrl = previewImageUrl;
+        this.aiSummary = aiSummary;
+        this.category = category;
     }
 }
