@@ -1,6 +1,7 @@
 package swyp12.team9.server.global.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,18 +13,24 @@ import java.util.List;
 
 @Getter
 @Builder(access = AccessLevel.PRIVATE)
+@Schema(description = "공통 응답 객체")
 public class ApiResponse<T> {
 
+    @Schema(description = "HTTP 상태 코드", example = "200")
     private final int status;
 
+    @Schema(description = "에러 코드 (성공 시 null)", example = "null")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final String code;
 
+    @Schema(description = "응답 메시지", example = "요청 성공")
     private final String message;
 
+    @Schema(description = "응답 데이터")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final T data;
 
+    @Schema(description = "에러 상세 내용")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final List<FieldErrorResponse> errors;
 
@@ -107,9 +114,13 @@ public class ApiResponse<T> {
 
     @Getter
     @Builder(access = AccessLevel.PRIVATE)
+    @Schema(description = "필드 에러 상세")
     public static class FieldErrorResponse {
+        @Schema(description = "에러 발생 필드", example = "email")
         private final String field;
+        @Schema(description = "입력된 값", example = "invalid-email")
         private final String value;
+        @Schema(description = "에러 사유", example = "올바른 이메일 형식이 아닙니다.")
         private final String reason;
 
         public static List<FieldErrorResponse> of(BindingResult bindingResult) {
