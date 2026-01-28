@@ -14,21 +14,6 @@ import swyp12.team9.server.domain.user.model.UserRole;
 @Setter
 public class UserRequest {
 
-    public interface existGroup {
-    } // 회원 가입시 username 존재 확인
-
-    public interface addGroup {
-    } // 회원 가입시
-
-    public interface passwordGroup {
-    } // 비밀번호 변경시
-
-    public interface updateGroup {
-    } // 회원 수정시
-
-    public interface deleteGroup {
-    } // 회원 삭제시
-
     @Schema(description = "사용자 아이디", example = "testuser")
     @NotBlank(groups = {existGroup.class, addGroup.class, updateGroup.class, deleteGroup.class})
     @Size(min = 4)
@@ -43,11 +28,6 @@ public class UserRequest {
     @NotBlank(groups = {addGroup.class, updateGroup.class})
     private String nickname;
 
-    @Schema(description = "이름 (2~50자)", example = "홍길동")
-    @NotBlank(groups = {addGroup.class, updateGroup.class})
-    @Size(min = 2, max = 50, message = "이름은 2자 이상 50자 이하여야 합니다.")
-    private String name;
-
     @Schema(description = "이메일", example = "test@example.com")
     @Email(groups = {updateGroup.class}, message = "올바른 이메일 형식이 아닙니다.")
     private String email;
@@ -61,7 +41,21 @@ public class UserRequest {
                 .roleType(UserRole.USER) // 우선 일반 유저로 가입
                 .nickname(nickname)
                 .email(email)
-                .name(name)
                 .build();
     }
+
+    public interface existGroup {
+    } // 회원 가입시 username 존재 확인
+
+    public interface addGroup {
+    } // 회원 가입시
+
+    public interface passwordGroup {
+    } // 비밀번호 변경시
+
+    public interface updateGroup {
+    } // 회원 수정시
+
+    public interface deleteGroup {
+    } // 회원 삭제시
 }
