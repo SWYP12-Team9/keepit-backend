@@ -31,6 +31,7 @@ public class LinkIndexingService {
      * 공개된 링크만 Elasticsearch에 색인
      * - user_links 테이블에서 is_public = true인 링크만 대상
      * - 동일 Link를 여러 사용자가 공개한 경우 중복 제거
+     * - title과 aiSummary가 둘 다 있는 링크만 색인 (예외처리)
      */
     @Transactional(readOnly = true)
     public void indexAllLinks() {
@@ -46,7 +47,22 @@ public class LinkIndexingService {
             return;
         }
 
-        List<Document> documents = publicLinks.stream()
+        // title과 aiSummary가 둘 다 있는 링크만 필터링
+        List<Link> validLinks = publicLinks.stream()
+                .filter(this::hasValidContent)
+                .toList();
+        
+        int skippedCount = publicLinks.size() - validLinks.size();
+        if (skippedCount > 0) {
+            log.info("title 또는 aiSummary가 없는 링크 {} 개 색인 제외", skippedCount);
+        }
+        
+        if (validLinks.isEmpty()) {
+            log.info("색인 가능한 유효한 링크가 없습니다.");
+            return;
+        }
+
+        List<Document> documents = validLinks.stream()
                 .map(this::createDocument)
                 .collect(Collectors.toList());
 
@@ -57,6 +73,7 @@ public class LinkIndexingService {
     /**
      * 단일 링크를 Elasticsearch에 색인
      * - 해당 링크가 1명 이상의 사용자에게 공개 설정되어 있어야 색인됨
+     * - title과 aiSummary가 둘 다 있는 링크만 색인 (예외처리)
      */
     @Transactional(readOnly = true)
     public void indexLink(Long linkId) {
@@ -72,39 +89,42 @@ public class LinkIndexingService {
         }
 
         Link link = publicUserLinks.get(0).getLink();
+        
+        // title과 aiSummary 유효성 검증
+        if (!hasValidContent(link)) {
+            log.warn("링크 색인 제외 (title 또는 aiSummary 없음) - ID: {}", linkId);
+            return;
+        }
+        
         Document document = createDocument(link);
         vectorStore.add(List.of(document));
         log.info("링크 색인 완료 - ID: {}, title: {}", linkId, link.getTitle());
     }
 
     /**
+     * Link의 title과 aiSummary 유효성 검증
+     * - 둘 다 있어야 true 반환
+     */
+    private boolean hasValidContent(Link link) {
+        return link.getTitle() != null && !link.getTitle().trim().isEmpty()
+                && link.getAiSummary() != null && !link.getAiSummary().trim().isEmpty();
+    }
+
+    /**
      * Link를 Document로 변환
-     * - 제목과 AI 요약만 합쳐서 텍스트로 만듦
+     * - 제목과 AI 요약을 합쳐서 텍스트로 만듦
+     * - 이 메서드는 hasValidContent() 통과한 링크만 들어옴
      */
     private Document createDocument(Link link) {
         // 제목 + AI요약을 합쳐서 검색용 텍스트 생성
-        StringBuilder contentBuilder = new StringBuilder();
-        
-        if (link.getTitle() != null) {
-            contentBuilder.append(link.getTitle()).append(" ");
-        }
-        if (link.getAiSummary() != null) {
-            contentBuilder.append(link.getAiSummary());
-        }
-
-        String content = contentBuilder.toString().trim();
-        
-        // 제목과 AI 요약이 모두 없으면 URL을 content로 사용 (벡터 추출용)
-        if (content.isEmpty()) {
-            content = link.getUrl();
-        }
+        String content = link.getTitle() + " " + link.getAiSummary();
         
         // 메타데이터 설정
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("linkId", link.getId());
         metadata.put("url", link.getUrl());
-        metadata.put("title", link.getTitle() != null ? link.getTitle() : "");
-        metadata.put("aiSummary", link.getAiSummary() != null ? link.getAiSummary() : "");
+        metadata.put("title", link.getTitle());
+        metadata.put("aiSummary", link.getAiSummary());
         metadata.put("thumbnailUrl", link.getPreviewImageUrl() != null ? link.getPreviewImageUrl() : "");
 
         return new Document(String.valueOf(link.getId()), content, metadata);

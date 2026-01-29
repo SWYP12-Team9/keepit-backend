@@ -12,7 +12,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
-import swyp12.team9.server.domain.bookmark.repository.BookmarkRepository;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
@@ -22,7 +21,7 @@ import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
  * - 링크 데이터(title, aiSummary)를 임베딩하여 Elasticsearch에 저장
  * - 카테고리명을 검색어로 유사도 높은 순서로 링크 반환
  * - 공개 설정된 링크만 추천 대상
- * - 첫 발견자(가장 먼저 공개 저장한 사용자) 정보 및 북마크 횟수 포함
+ * - 첫 발견자(가장 먼저 공개 저장한 사용자) 정보 포함
  */
 @Slf4j
 @Service
@@ -32,7 +31,6 @@ public class RecommendationService {
 
     private final VectorStore vectorStore;
     private final UserLinkRepository userLinkRepository;
-    private final BookmarkRepository bookmarkRepository;
 
     /**
      * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
@@ -68,7 +66,7 @@ public class RecommendationService {
 
     /**
      * Document → RecommendationResponse 변환
-     * - linkId로 첫 발견자 및 북마크 횟수 조회
+     * - linkId로 첫 발견자 조회
      */
     private RecommendationResponse documentToResponse(Document doc) {
         var metadata = doc.getMetadata();
@@ -83,13 +81,9 @@ public class RecommendationService {
             return null; // 필터링됨
         }
         
-        // 북마크 횟수 조회
-        long bookmarkCount = bookmarkRepository.countByLinkId(linkId);
-        
         return RecommendationResponse.from(
                 firstUserLink.get().getLink(),
-                firstUserLink.get(),
-                bookmarkCount
+                firstUserLink.get()
         );
     }
 
@@ -118,7 +112,7 @@ public class RecommendationService {
         // 공개된 UserLink 조회 (최신순)
         List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrueOrderByIdDesc(pageRequest);
         
-        // Link ID 기준으로 중복 제거 후, 첫 발견자와 북마크 횟수 포함하여 응답 생성
+        // Link ID 기준으로 중복 제거 후, 첫 발견자 정보 포함하여 응답 생성
         return publicUserLinks.stream()
                 .map(UserLink::getLink)
                 .distinct()
@@ -132,10 +126,7 @@ public class RecommendationService {
                         return null;
                     }
                     
-                    // 북마크 횟수 조회
-                    long bookmarkCount = bookmarkRepository.countByLinkId(link.getId());
-                    
-                    return RecommendationResponse.from(link, firstUserLink.get(), bookmarkCount);
+                    return RecommendationResponse.from(link, firstUserLink.get());
                 })
                 .filter(response -> response != null)
                 .collect(Collectors.toList());

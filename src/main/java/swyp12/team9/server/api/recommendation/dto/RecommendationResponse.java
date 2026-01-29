@@ -26,20 +26,16 @@ public record RecommendationResponse(
         String thumbnailUrl,
 
         @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
-        UserInfo user,
-
-        @Schema(description = "북마크 횟수", example = "42")
-        Long bookmarkCount
+        UserInfo user
 ) {
-    public static RecommendationResponse from(Link link, UserLink firstUserLink, Long bookmarkCount) {
+    public static RecommendationResponse from(Link link, UserLink firstUserLink) {
         return new RecommendationResponse(
                 link.getId(),
                 link.getUrl(),
                 link.getTitle(),
                 link.getAiSummary(),
                 link.getPreviewImageUrl(),
-                UserInfo.from(firstUserLink.getUser()),
-                bookmarkCount
+                UserInfo.from(firstUserLink.getUser())
         );
     }
 }
