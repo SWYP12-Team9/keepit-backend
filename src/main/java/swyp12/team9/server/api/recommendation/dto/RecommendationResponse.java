@@ -22,19 +22,19 @@ public record RecommendationResponse(
         @Schema(description = "AI 요약", example = "이 글의 핵심 요약...")
         String aiSummary,
 
-        @Schema(description = "썸네일 URL", example = "https://example.com/thumb.jpg")
-        String thumbnailUrl,
+        @Schema(description = "카테고리명", example = "경제/시사")
+        String category,
 
         @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
         UserInfo user
 ) {
-    public static RecommendationResponse from(Link link, UserLink firstUserLink) {
+    public static RecommendationResponse from(Link link, UserLink firstUserLink, String category) {
         return new RecommendationResponse(
                 link.getId(),
                 link.getUrl(),
                 link.getTitle(),
                 link.getAiSummary(),
-                link.getPreviewImageUrl(),
+                category,
                 UserInfo.from(firstUserLink.getUser())
         );
     }

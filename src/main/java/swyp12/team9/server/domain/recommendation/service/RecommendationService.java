@@ -3,7 +3,6 @@ package swyp12.team9.server.domain.recommendation.service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +69,7 @@ public class RecommendationService {
                         Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
                         UserLink firstUserLink = firstUserLinkMap.get(linkId);
                         if (firstUserLink == null) return null;
-                        return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink);
+                        return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, category);
                     })
                     .filter(response -> response != null)
                     .collect(Collectors.toList());
@@ -81,7 +80,7 @@ public class RecommendationService {
         } catch (Exception e) {
             log.error("Elasticsearch 유사도 검색 실패: {}", e.getMessage());
             // fallback: DB에서 최신 링크 조회
-            return fallbackGetRecentLinks(size);
+            return fallbackGetRecentLinks(category, size);
         }
     }
 
@@ -114,7 +113,7 @@ public class RecommendationService {
 
     // ========== Fallback 메서드 (ES 실패 시 DB에서 공개 링크 최신순 조회) ==========
 
-    private List<RecommendationResponse> fallbackGetRecentLinks(int size) {
+    private List<RecommendationResponse> fallbackGetRecentLinks(String category, int size) {
         PageRequest pageRequest = PageRequest.of(0, size * 2);
 
         // 1. 공개된 UserLink 조회 (최신순)
@@ -139,7 +138,7 @@ public class RecommendationService {
                 .map(linkId -> {
                     UserLink firstUserLink = firstUserLinkMap.get(linkId);
                     if (firstUserLink == null) return null;
-                    return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink);
+                    return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, category);
                 })
                 .filter(response -> response != null)
                 .collect(Collectors.toList());
