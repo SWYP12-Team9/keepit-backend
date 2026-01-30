@@ -88,5 +88,10 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
     /**
      * 특정 Link의 공개 UserLink 중 가장 먼저 저장한 것 조회 (첫 발견자)
      */
-    Optional<UserLink> findFirstByLinkIdAndIsPublicTrueOrderByCreatedAtAsc(Long linkId);
+    Optional<UserLink> findFirstByLink_IdAndIsPublicTrueOrderByCreatedAtAsc(Long linkId);
+
+    /**
+     * 여러 Link ID들에 대해 공개 UserLink 목록 조회 (첫 발견자들을 배치로 찾기 위함)
+     */
+    List<UserLink> findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(List<Long> linkIds);
 }

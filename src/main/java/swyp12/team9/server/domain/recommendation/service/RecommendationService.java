@@ -1,6 +1,8 @@
 package swyp12.team9.server.domain.recommendation.service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
-import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
@@ -49,9 +50,29 @@ public class RecommendationService {
 
             List<Document> results = vectorStore.similaritySearch(searchRequest);
 
+            // 1. Link ID 목록 추출 (중복 제거 및 null 제외)
+            List<Long> linkIds = results.stream()
+                    .map(doc -> getLongFromMetadata(doc.getMetadata(), "linkId"))
+                    .filter(id -> id != null)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (linkIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            // 2. 첫 발견자 정보 배치 조회
+            Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
+
+            // 3. 결과 매핑
             List<RecommendationResponse> responses = results.stream()
-                    .map(this::documentToResponse)
-                    .filter(response -> response != null) // null 필터링 (공개 UserLink 없는 경우)
+                    .map(doc -> {
+                        Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
+                        UserLink firstUserLink = firstUserLinkMap.get(linkId);
+                        if (firstUserLink == null) return null;
+                        return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink);
+                    })
+                    .filter(response -> response != null)
                     .collect(Collectors.toList());
 
             log.info("유사도 검색 완료 - 키워드: [{}], 결과: {} 개", category, responses.size());
@@ -65,26 +86,18 @@ public class RecommendationService {
     }
 
     /**
-     * Document → RecommendationResponse 변환
-     * - linkId로 첫 발견자 조회
+     * Link ID 목록을 받아 각 Link의 '첫 발견자'(가장 먼저 공개 저장한 UserLink) Map 반환
      */
-    private RecommendationResponse documentToResponse(Document doc) {
-        var metadata = doc.getMetadata();
-        Long linkId = getLongFromMetadata(metadata, "linkId");
-        
-        // 첫 발견자 조회 (가장 먼저 공개 저장한 사용자)
-        Optional<UserLink> firstUserLink = userLinkRepository
-                .findFirstByLinkIdAndIsPublicTrueOrderByCreatedAtAsc(linkId);
-        
-        if (firstUserLink.isEmpty()) {
-            log.warn("공개 UserLink를 찾을 수 없습니다. Link ID: {}", linkId);
-            return null; // 필터링됨
+    private Map<Long, UserLink> getFirstUserLinkMap(List<Long> linkIds) {
+        List<UserLink> allPublicUserLinks = userLinkRepository
+                .findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(linkIds);
+
+        // createdAt 기준 오름차순 정렬되어 있으므로, putIfAbsent를 쓰면 가장 먼저 생성된 것만 남음
+        Map<Long, UserLink> firstUserLinkMap = new java.util.HashMap<>();
+        for (UserLink ul : allPublicUserLinks) {
+            firstUserLinkMap.putIfAbsent(ul.getLink().getId(), ul);
         }
-        
-        return RecommendationResponse.from(
-                firstUserLink.get().getLink(),
-                firstUserLink.get()
-        );
+        return firstUserLinkMap;
     }
 
     private Long getLongFromMetadata(java.util.Map<String, Object> metadata, String key) {
@@ -99,34 +112,34 @@ public class RecommendationService {
         }
     }
 
-    private String getStringFromMetadata(java.util.Map<String, Object> metadata, String key) {
-        Object value = metadata.get(key);
-        return value != null ? value.toString() : null;
-    }
-
     // ========== Fallback 메서드 (ES 실패 시 DB에서 공개 링크 최신순 조회) ==========
 
     private List<RecommendationResponse> fallbackGetRecentLinks(int size) {
-        PageRequest pageRequest = PageRequest.of(0, size * 2); // 중복 제거 고려하여 많이 가져옴
-        
-        // 공개된 UserLink 조회 (최신순)
+        PageRequest pageRequest = PageRequest.of(0, size * 2);
+
+        // 1. 공개된 UserLink 조회 (최신순)
         List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrueOrderByIdDesc(pageRequest);
-        
-        // Link ID 기준으로 중복 제거 후, 첫 발견자 정보 포함하여 응답 생성
-        return publicUserLinks.stream()
-                .map(UserLink::getLink)
+
+        // 2. 중복 제거된 Link ID 목록 추출
+        List<Long> linkIds = publicUserLinks.stream()
+                .map(ul -> ul.getLink().getId())
                 .distinct()
                 .limit(size)
-                .map(link -> {
-                    // 첫 발견자 조회
-                    Optional<UserLink> firstUserLink = userLinkRepository
-                            .findFirstByLinkIdAndIsPublicTrueOrderByCreatedAtAsc(link.getId());
-                    
-                    if (firstUserLink.isEmpty()) {
-                        return null;
-                    }
-                    
-                    return RecommendationResponse.from(link, firstUserLink.get());
+                .collect(Collectors.toList());
+
+        if (linkIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 3. 각 링크의 첫 발견자 정보 배치 조회
+        Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
+
+        // 4. 결과 매핑
+        return linkIds.stream()
+                .map(linkId -> {
+                    UserLink firstUserLink = firstUserLinkMap.get(linkId);
+                    if (firstUserLink == null) return null;
+                    return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink);
                 })
                 .filter(response -> response != null)
                 .collect(Collectors.toList());

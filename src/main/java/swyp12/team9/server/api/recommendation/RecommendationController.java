@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,10 +47,13 @@ public class RecommendationController {
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
             @Parameter(description = "카테고리명 (경제/시사, 뷰티/패션 등)", example = "경제/시사")
-            @RequestParam String category,
+            @RequestParam @NotBlank String category,
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
+        LinkCategory.fromDisplayName(category)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 카테고리입니다."));
+
         List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(category,
                 size);
         return ApiResponse.ok(recommendations);
