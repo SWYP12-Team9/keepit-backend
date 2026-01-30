@@ -57,3 +57,8 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+
+### Local Configuration ###
+src/main/resources/application-local.yaml
+README-LOCAL.md
+

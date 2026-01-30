@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserLinkRepository2 extends JpaRepository<UserLink, Long> {
+public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
 
     // ========== 기본 조회 ==========
     /**
@@ -83,4 +83,15 @@ public interface UserLinkRepository2 extends JpaRepository<UserLink, Long> {
      */
     List<UserLink> findByUserIdAndStatusAndIdLessThanOrderByIdDesc(
             Long userId, swyp12.team9.server.domain.userlink.model.LinkStatus status, Long cursor, Pageable pageable);
+
+    // ========== 추천 시스템용 ==========
+    /**
+     * 특정 Link의 공개 UserLink 중 가장 먼저 저장한 것 조회 (첫 발견자)
+     */
+    Optional<UserLink> findFirstByLink_IdAndIsPublicTrueOrderByCreatedAtAsc(Long linkId);
+
+    /**
+     * 여러 Link ID들에 대해 공개 UserLink 목록 조회 (첫 발견자들을 배치로 찾기 위함)
+     */
+    List<UserLink> findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(List<Long> linkIds);
 }

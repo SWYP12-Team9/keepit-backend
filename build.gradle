@@ -26,6 +26,7 @@ configurations {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
 }
 
 dependencies {
@@ -85,10 +86,6 @@ dependencyManagement {
 	}
 }
 
-repositories {
-	mavenCentral()
-	maven { url 'https://repo.spring.io/milestone' }
-}
 
 tasks.named('test') {
 	useJUnitPlatform()

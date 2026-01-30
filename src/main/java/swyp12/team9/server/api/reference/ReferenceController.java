@@ -3,7 +3,7 @@ package swyp12.team9.server.api.reference;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import swyp12.team9.server.api.reference.dto.CreateReferenceRequest;
 import swyp12.team9.server.api.reference.dto.ReferenceResponse;
@@ -15,6 +15,7 @@ import swyp12.team9.server.global.common.dto.ApiResponse;
 import swyp12.team9.server.global.util.PaginationUtils;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/v1/references")
 @RequiredArgsConstructor
