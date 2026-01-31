@@ -14,6 +14,8 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp12.team9.server.domain.reference.model.Reference;
+import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.user.model.SocialProvider;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.model.UserRole;
@@ -35,13 +37,16 @@ public class OAuthService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
     private final UserSocialLinkRepository userSocialLinkRepository;
+    private final ReferenceRepository referenceRepository;
     private final Map<SocialProvider, OAuthProvider> providerMap;
 
     public OAuthService(UserRepository userRepository,
                         UserSocialLinkRepository userSocialLinkRepository,
+                        ReferenceRepository referenceRepository,
                         List<OAuthProvider> providers) {
         this.userRepository = userRepository;
         this.userSocialLinkRepository = userSocialLinkRepository;
+        this.referenceRepository = referenceRepository;
         this.providerMap = providers.stream()
                 .collect(Collectors.toMap(OAuthProvider::getProviderType, Function.identity()));
     }
@@ -134,7 +139,7 @@ public class OAuthService extends DefaultOAuth2UserService {
     }
 
     /**
-     * 새 사용자 생성 + 소셜 연동 생성
+     * 새 사용자 생성 + 소셜 연동 생성 + 기본 미지정 폴더 생성
      */
     private User createNewUser(OAuthUserInfo userInfo) {
         User newUser = User.builder()
@@ -151,6 +156,7 @@ public class OAuthService extends DefaultOAuth2UserService {
 
         User savedUser = userRepository.save(newUser);
         createSocialLink(savedUser, userInfo); // 소셜 연동 생성
+        createDefaultReference(savedUser); // 기본 미지정 폴더 생성
 
         log.info("새 사용자 생성 - userId: {}, provider: {}, email: {}", savedUser.getId(), userInfo.getProviderType(),
                 userInfo.getEmail());
@@ -166,5 +172,15 @@ public class OAuthService extends DefaultOAuth2UserService {
                 .providerUserId(userInfo.getProviderUserId()).build();
 
         userSocialLinkRepository.save(socialLink);
+    }
+
+    /**
+     * 기본 미지정 폴더 생성
+     */
+    private void createDefaultReference(User user) {
+        Reference defaultReference = Reference.createDefault(user);
+        referenceRepository.save(defaultReference);
+
+        log.info("기본 미지정 폴더 생성 완료 - userId: {}", user.getId());
     }
 }

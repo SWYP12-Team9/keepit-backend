@@ -14,6 +14,8 @@ import swyp12.team9.server.api.user.dto.request.UserPasswordUpdateRequest;
 import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.api.user.dto.response.UserResponse;
 import swyp12.team9.server.domain.jwt.service.JwtService;
+import swyp12.team9.server.domain.reference.model.Reference;
+import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.user.exception.DuplicateEmailException;
 import swyp12.team9.server.domain.user.exception.InvalidPasswordException;
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
@@ -31,6 +33,7 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ReferenceRepository referenceRepository;
 
     // 회원 가입
     @Transactional
@@ -50,6 +53,9 @@ public class UserService implements UserDetailsService {
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         User user = request.toEntity(encodedPassword);
         User savedUser = userRepository.save(user);
+
+        // 기본 미지정 폴더 생성
+        createDefaultReference(savedUser);
 
         log.info("회원가입 완료 - username: {}, email: {}", savedUser.getUsername(), savedUser.getEmail());
         return UserResponse.from(savedUser);
@@ -130,5 +136,15 @@ public class UserService implements UserDetailsService {
         return userRepository.findAll().stream()
                 .map(UserResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 기본 미지정 폴더 생성
+     */
+    private void createDefaultReference(User user) {
+        Reference defaultReference = Reference.createDefault(user);
+        referenceRepository.save(defaultReference);
+
+        log.info("기본 미지정 폴더 생성 완료 - userId: {}", user.getId());
     }
 }
