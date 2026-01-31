@@ -72,7 +72,7 @@ public class ReferenceController implements ReferenceApi {
             @RequestParam(defaultValue = "CREATED_DESC") ReferenceSortType sortBy,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size,
-            @CurrentUserId(required = false) Long userId) {
+            @CurrentUserId Long userId) {
 
         PaginationUtils.Cursor.PageResponse<ReferenceListResponse> response =
                 referenceService.getReferences(userId, type, sortBy, cursor, size);
