@@ -34,106 +34,110 @@ public class RecommendationService {
 
     /**
      * 키워드로 링크 검색 (Elasticsearch 벡터 검색)
+     * - 현재 사용자가 이미 저장한 링크는 제외
      *
+     * @param userId  현재 로그인한 사용자 ID (null 가능)
      * @param keyword 사용자가 입력한 검색 키워드
      * @param size    가져올 결과 수
      * @return 검색 결과 목록 (유사도 순)
      */
-    public List<RecommendationResponse> searchByKeyword(String keyword, int size) {
+    public List<RecommendationResponse> searchByKeyword(Long userId, String keyword, int size) {
         try {
-            // 검색 키워드로 유사도 검색
+            // 1. 내가 저장한 링크 ID 목록 조회 (단일 쿼리로 최적화)
+            List<Long> myLinkIds = userId != null 
+                ? userLinkRepository.findLinkIdsByUserId(userId) 
+                : Collections.emptyList();
+
+            // 2. Elasticsearch 검색 (필터링 여유를 고려해 넉넉하게 조회)
+            int searchLimit = myLinkIds.isEmpty() ? size : Math.min(size * 5, 100);
             SearchRequest searchRequest = SearchRequest.builder()
                     .query(keyword)
-                    .topK(size)
+                    .topK(searchLimit)
                     .build();
 
             List<Document> results = vectorStore.similaritySearch(searchRequest);
 
-            // 1. Link ID 목록 추출 (중복 제거 및 null 제외)
-            List<Long> linkIds = results.stream()
+            // 3. Link ID 추출 및 필터링 (내 링크 제외, 중복 제거)
+            List<Long> filteredLinkIds = results.stream()
                     .map(doc -> getLongFromMetadata(doc.getMetadata(), "linkId"))
-                    .filter(id -> id != null)
+                    .filter(id -> id != null && !myLinkIds.contains(id))
                     .distinct()
+                    .limit(size)
                     .collect(Collectors.toList());
 
-            if (linkIds.isEmpty()) {
+            if (filteredLinkIds.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 2. 첫 발견자 정보 배치 조회
-            Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
-
-            // 3. 결과 매핑
-            List<RecommendationResponse> responses = results.stream()
-                    .map(doc -> {
-                        Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
-                        UserLink firstUserLink = firstUserLinkMap.get(linkId);
-                        if (firstUserLink == null) return null;
-                        return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, keyword);
-                    })
-                    .filter(response -> response != null)
-                    .collect(Collectors.toList());
-
-            log.info("키워드 검색 완료 - 키워드: [{}], 결과: {} 개", keyword, responses.size());
-            return responses;
+            // 4. 첫 발견자 정보 배치 조회 및 응답 생성
+            return buildResponsesFromLinkIds(filteredLinkIds, keyword);
 
         } catch (Exception e) {
             log.error("Elasticsearch 키워드 검색 실패: {}", e.getMessage());
-            // fallback: DB에서 최신 링크 조회
-            return fallbackGetRecentLinks(keyword, size);
+            return fallbackGetRecentLinks(userId, keyword, size);
         }
     }
 
     /**
      * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
+     * - 현재 사용자가 이미 저장한 링크는 제외
      *
+     * @param userId   현재 로그인한 사용자 ID (null 가능)
      * @param category 검색어 (카테고리명 등)
      * @param size     가져올 추천 콘텐츠 수
      * @return 추천 콘텐츠 목록 (유사도 순)
      */
-    public List<RecommendationResponse> getRecommendationsByCategory(String category, int size) {
+    public List<RecommendationResponse> getRecommendationsByCategory(Long userId, String category, int size) {
         try {
-            // 검색어로 유사도 검색
+            // 1. 내가 저장한 링크 ID 목록 조회 (단일 쿼리로 최적화)
+            List<Long> myLinkIds = userId != null 
+                ? userLinkRepository.findLinkIdsByUserId(userId) 
+                : Collections.emptyList();
+
+            // 2. Elasticsearch 검색 (필터링 여유를 고려해 넉넉하게 조회)
+            int searchLimit = myLinkIds.isEmpty() ? size : Math.min(size * 5, 100);
             SearchRequest searchRequest = SearchRequest.builder()
                     .query(category)
-                    .topK(size)
+                    .topK(searchLimit)
                     .build();
 
             List<Document> results = vectorStore.similaritySearch(searchRequest);
 
-            // 1. Link ID 목록 추출 (중복 제거 및 null 제외)
-            List<Long> linkIds = results.stream()
+            // 3. Link ID 추출 및 필터링 (내 링크 제외, 중복 제거)
+            List<Long> filteredLinkIds = results.stream()
                     .map(doc -> getLongFromMetadata(doc.getMetadata(), "linkId"))
-                    .filter(id -> id != null)
+                    .filter(id -> id != null && !myLinkIds.contains(id))
                     .distinct()
+                    .limit(size)
                     .collect(Collectors.toList());
 
-            if (linkIds.isEmpty()) {
+            if (filteredLinkIds.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 2. 첫 발견자 정보 배치 조회
-            Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
-
-            // 3. 결과 매핑
-            List<RecommendationResponse> responses = results.stream()
-                    .map(doc -> {
-                        Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
-                        UserLink firstUserLink = firstUserLinkMap.get(linkId);
-                        if (firstUserLink == null) return null;
-                        return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, category);
-                    })
-                    .filter(response -> response != null)
-                    .collect(Collectors.toList());
-
-            log.info("유사도 검색 완료 - 키워드: [{}], 결과: {} 개", category, responses.size());
-            return responses;
+            // 4. 첫 발견자 정보 배치 조회 및 응답 생성
+            return buildResponsesFromLinkIds(filteredLinkIds, category);
 
         } catch (Exception e) {
             log.error("Elasticsearch 유사도 검색 실패: {}", e.getMessage());
-            // fallback: DB에서 최신 링크 조회
-            return fallbackGetRecentLinks(category, size);
+            return fallbackGetRecentLinks(userId, category, size);
         }
+    }
+
+    /**
+     * Link ID 목록으로부터 응답 객체 생성 (첫 발견자 정보 포함)
+     */
+    private List<RecommendationResponse> buildResponsesFromLinkIds(List<Long> linkIds, String keyword) {
+        Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
+        
+        return linkIds.stream()
+                .map(linkId -> {
+                    UserLink firstUserLink = firstUserLinkMap.get(linkId);
+                    if (firstUserLink == null) return null;
+                    return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, keyword);
+                })
+                .filter(response -> response != null)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -165,34 +169,29 @@ public class RecommendationService {
 
     // ========== Fallback 메서드 (ES 실패 시 DB에서 공개 링크 최신순 조회) ==========
 
-    private List<RecommendationResponse> fallbackGetRecentLinks(String category, int size) {
-        PageRequest pageRequest = PageRequest.of(0, size * 2);
+    private List<RecommendationResponse> fallbackGetRecentLinks(Long userId, String keyword, int size) {
+        // 1. 내가 저장한 링크 ID 목록 조회
+        List<Long> myLinkIds = userId != null 
+            ? userLinkRepository.findLinkIdsByUserId(userId) 
+            : Collections.emptyList();
 
-        // 1. 공개된 UserLink 조회 (최신순)
+        // 2. 공개된 UserLink 조회 (필터링 고려해 넉넉하게)
+        PageRequest pageRequest = PageRequest.of(0, Math.min(size * 5, 100));
         List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrueOrderByIdDesc(pageRequest);
 
-        // 2. 중복 제거된 Link ID 목록 추출
-        List<Long> linkIds = publicUserLinks.stream()
+        // 3. 내 링크 제외 및 중복 제거된 Link ID 목록 추출
+        List<Long> filteredLinkIds = publicUserLinks.stream()
                 .map(ul -> ul.getLink().getId())
+                .filter(id -> !myLinkIds.contains(id))
                 .distinct()
                 .limit(size)
                 .collect(Collectors.toList());
 
-        if (linkIds.isEmpty()) {
+        if (filteredLinkIds.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 3. 각 링크의 첫 발견자 정보 배치 조회
-        Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
-
-        // 4. 결과 매핑
-        return linkIds.stream()
-                .map(linkId -> {
-                    UserLink firstUserLink = firstUserLinkMap.get(linkId);
-                    if (firstUserLink == null) return null;
-                    return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, category);
-                })
-                .filter(response -> response != null)
-                .collect(Collectors.toList());
+        // 4. 첫 발견자 정보 배치 조회 및 응답 생성
+        return buildResponsesFromLinkIds(filteredLinkIds, keyword);
     }
 }

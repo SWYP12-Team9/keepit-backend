@@ -20,6 +20,7 @@ import swyp12.team9.server.domain.link.exception.InvalidCategoryException;
 import swyp12.team9.server.domain.link.model.LinkCategory;
 import swyp12.team9.server.domain.recommendation.service.LinkIndexingService;
 import swyp12.team9.server.domain.recommendation.service.RecommendationService;
+import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 
 @Tag(name = "Recommendation", description = "추천 콘텐츠 API (Elasticsearch 벡터 검색)")
@@ -47,12 +48,13 @@ public class RecommendationController {
     )
     @GetMapping("/search")
     public ApiResponse<List<RecommendationResponse>> searchByKeyword(
+            @CurrentUserId(required = false) Long userId,
             @Parameter(description = "검색 키워드", example = "프론트엔드 성능 최적화")
             @RequestParam @NotBlank String keyword,
             @Parameter(description = "가져올 결과 수", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
-        List<RecommendationResponse> searchResults = recommendationService.searchByKeyword(keyword, size);
+        List<RecommendationResponse> searchResults = recommendationService.searchByKeyword(userId, keyword, size);
         return ApiResponse.ok(searchResults);
     }
 
@@ -62,6 +64,7 @@ public class RecommendationController {
     )
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
+            @CurrentUserId(required = false) Long userId,
             @Parameter(description = "카테고리명 (경제/시사, 뷰티/패션 등)", example = "경제/시사")
             @RequestParam @NotBlank String category,
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10")
@@ -70,7 +73,7 @@ public class RecommendationController {
         LinkCategory.fromDisplayName(category)
                 .orElseThrow(InvalidCategoryException::new);
 
-        List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(category,
+        List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(userId, category,
                 size);
         return ApiResponse.ok(recommendations);
     }

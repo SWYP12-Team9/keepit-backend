@@ -2,6 +2,8 @@ package swyp12.team9.server.domain.userlink.repository;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
@@ -94,4 +96,10 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
      * 여러 Link ID들에 대해 공개 UserLink 목록 조회 (첫 발견자들을 배치로 찾기 위함)
      */
     List<UserLink> findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(List<Long> linkIds);
+
+    /**
+     * 특정 사용자의 Link ID 목록만 조회 (빠른 필터링용)
+     */
+    @Query("SELECT ul.link.id FROM UserLink ul WHERE ul.user.id = :userId")
+    List<Long> findLinkIdsByUserId(@Param("userId") Long userId);
 }
