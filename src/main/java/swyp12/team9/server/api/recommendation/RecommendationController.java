@@ -42,6 +42,21 @@ public class RecommendationController {
     }
 
     @Operation(
+            summary = "키워드 검색",
+            description = "검색 키워드를 벡터 유사도 검색하여 관련성 높은 순서로 공개된 링크를 가져옵니다."
+    )
+    @GetMapping("/search")
+    public ApiResponse<List<RecommendationResponse>> searchByKeyword(
+            @Parameter(description = "검색 키워드", example = "프론트엔드 성능 최적화")
+            @RequestParam @NotBlank String keyword,
+            @Parameter(description = "가져올 결과 수", example = "10")
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
+    ) {
+        List<RecommendationResponse> searchResults = recommendationService.searchByKeyword(keyword, size);
+        return ApiResponse.ok(searchResults);
+    }
+
+    @Operation(
             summary = "카테고리별 추천 콘텐츠 조회",
             description = "카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다."
     )

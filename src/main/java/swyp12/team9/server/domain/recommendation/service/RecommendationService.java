@@ -33,6 +33,58 @@ public class RecommendationService {
     private final UserLinkRepository userLinkRepository;
 
     /**
+     * 키워드로 링크 검색 (Elasticsearch 벡터 검색)
+     *
+     * @param keyword 사용자가 입력한 검색 키워드
+     * @param size    가져올 결과 수
+     * @return 검색 결과 목록 (유사도 순)
+     */
+    public List<RecommendationResponse> searchByKeyword(String keyword, int size) {
+        try {
+            // 검색 키워드로 유사도 검색
+            SearchRequest searchRequest = SearchRequest.builder()
+                    .query(keyword)
+                    .topK(size)
+                    .build();
+
+            List<Document> results = vectorStore.similaritySearch(searchRequest);
+
+            // 1. Link ID 목록 추출 (중복 제거 및 null 제외)
+            List<Long> linkIds = results.stream()
+                    .map(doc -> getLongFromMetadata(doc.getMetadata(), "linkId"))
+                    .filter(id -> id != null)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (linkIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            // 2. 첫 발견자 정보 배치 조회
+            Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
+
+            // 3. 결과 매핑
+            List<RecommendationResponse> responses = results.stream()
+                    .map(doc -> {
+                        Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
+                        UserLink firstUserLink = firstUserLinkMap.get(linkId);
+                        if (firstUserLink == null) return null;
+                        return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, keyword);
+                    })
+                    .filter(response -> response != null)
+                    .collect(Collectors.toList());
+
+            log.info("키워드 검색 완료 - 키워드: [{}], 결과: {} 개", keyword, responses.size());
+            return responses;
+
+        } catch (Exception e) {
+            log.error("Elasticsearch 키워드 검색 실패: {}", e.getMessage());
+            // fallback: DB에서 최신 링크 조회
+            return fallbackGetRecentLinks(keyword, size);
+        }
+    }
+
+    /**
      * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
      *
      * @param category 검색어 (카테고리명 등)
