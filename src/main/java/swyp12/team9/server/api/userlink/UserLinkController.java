@@ -3,19 +3,17 @@ package swyp12.team9.server.api.userlink;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import swyp12.team9.server.api.userlink.dto.CreateUserLinkRequest;
-import swyp12.team9.server.api.userlink.dto.UpdateUserLinkRequest;
-import swyp12.team9.server.api.userlink.dto.UserLinkResponse;
-import swyp12.team9.server.api.userlink.dto.UserLinkType;
+import swyp12.team9.server.api.userlink.dto.request.UserLinkCreateRequest;
+import swyp12.team9.server.api.userlink.dto.request.UserLinkUpdateRequest;
+import swyp12.team9.server.api.userlink.dto.response.UserLinkListResponse;
+import swyp12.team9.server.api.userlink.dto.response.UserLinkResponse;
 import swyp12.team9.server.domain.userlink.service.UserLinkService;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 import swyp12.team9.server.global.util.PaginationUtils;
 
 @Slf4j
-@Validated
 @RestController
 @RequestMapping("/api/v1/user-links")
 @RequiredArgsConstructor
@@ -26,7 +24,7 @@ public class UserLinkController implements UserLinkApi {
     // 사용자 링크 생성
     @Override
     public ApiResponse<UserLinkResponse> createUserLink(
-            @Valid @RequestBody CreateUserLinkRequest request,
+            @Valid @RequestBody UserLinkCreateRequest request,
             @CurrentUserId Long userId) {
 
         UserLinkResponse response = userLinkService.createUserLink(userId, request);
@@ -47,7 +45,7 @@ public class UserLinkController implements UserLinkApi {
     @Override
     public ApiResponse<UserLinkResponse> updateUserLink(
             @PathVariable Long userLinkId,
-            @Valid @RequestBody UpdateUserLinkRequest request,
+            @Valid @RequestBody UserLinkUpdateRequest request,
             @CurrentUserId Long userId) {
 
         UserLinkResponse response = userLinkService.updateUserLink(userId, userLinkId, request);
@@ -74,16 +72,16 @@ public class UserLinkController implements UserLinkApi {
         return ApiResponse.ok(response, "링크를 읽음 처리했습니다.");
     }
 
-    // 사용자 링크 목록 조회 (통합 API - 전체, 공개, 비공기)
+    // 사용자 링크 목록 조회 (레퍼런스별)
     @Override
-    public ApiResponse<PaginationUtils.Cursor.PageResponse<UserLinkResponse>> getUserLinks(
-            @RequestParam(defaultValue = "ALL") UserLinkType type,
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<UserLinkListResponse>> getUserLinks(
+            @RequestParam(required = false) Long referenceId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size,
-            @CurrentUserId(required = false) Long userId) {
+            @CurrentUserId Long userId) {
 
-        PaginationUtils.Cursor.PageResponse<UserLinkResponse> response =
-                userLinkService.getUserLinks(userId, type, cursor, size);
+        PaginationUtils.Cursor.PageResponse<UserLinkListResponse> response =
+                userLinkService.getUserLinksByReferenceId(userId, referenceId, cursor, size);
         return ApiResponse.ok(response);
     }
 }

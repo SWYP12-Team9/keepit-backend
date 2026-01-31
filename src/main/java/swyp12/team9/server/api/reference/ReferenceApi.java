@@ -11,10 +11,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.*;
-import swyp12.team9.server.api.reference.dto.CreateReferenceRequest;
-import swyp12.team9.server.api.reference.dto.ReferenceResponse;
+import swyp12.team9.server.api.reference.dto.ReferenceSortType;
 import swyp12.team9.server.api.reference.dto.ReferenceType;
-import swyp12.team9.server.api.reference.dto.UpdateReferenceRequest;
+import swyp12.team9.server.api.reference.dto.request.ReferenceCreateRequest;
+import swyp12.team9.server.api.reference.dto.request.ReferenceUpdateRequest;
+import swyp12.team9.server.api.reference.dto.response.ReferenceListResponse;
+import swyp12.team9.server.api.reference.dto.response.ReferenceResponse;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.util.PaginationUtils;
 
@@ -37,17 +39,20 @@ public interface ReferenceApi {
                     content = @Content(schema = @Schema(implementation = ReferenceResponse.class))
             ),
             @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음"),
+            @ApiResponse(responseCode = "409", description = "사용자의 레퍼런스 제목 중복")
     })
     @PostMapping
     swyp12.team9.server.global.common.dto.ApiResponse<ReferenceResponse> createReference(
-            @Valid @RequestBody CreateReferenceRequest request,
+            @Valid @RequestBody ReferenceCreateRequest request,
             @CurrentUserId Long userId
     );
 
     @Operation(
             summary = "레퍼런스 단건 조회",
-            description = "레퍼런스 ID로 단건 조회합니다. 비공개 레퍼런스는 소유자만 조회 가능합니다."
+            description = """
+                    레퍼런스 ID로 단건 조회합니다. 비공개 레퍼런스는 소유자만 조회 가능합니다.
+                    """
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -83,7 +88,7 @@ public interface ReferenceApi {
     swyp12.team9.server.global.common.dto.ApiResponse<ReferenceResponse> updateReference(
             @Parameter(description = "레퍼런스 ID", required = true, example = "1")
             @PathVariable Long referenceId,
-            @Valid @RequestBody UpdateReferenceRequest request,
+            @Valid @RequestBody ReferenceUpdateRequest request,
             @CurrentUserId Long userId
     );
 
@@ -103,28 +108,36 @@ public interface ReferenceApi {
             @CurrentUserId Long userId
     );
 
-    // ========== 레퍼런스 목록 조회 (통합 API) ==========
-
     @Operation(
             summary = "레퍼런스 목록 조회",
             description = """
-                    레퍼런스 목록을 무한스크롤로 조회합니다.
+                    레퍼런스 목록을 커서 기반 페이징으로 조회합니다.
+                    미지정 폴더일 경우 isDefault = true 로 표시됩니다.
 
                     **type 파라미터:**
-                    - `ALL`: 내 전체 레퍼런스 (공개 + 비공개) - 로그인 필요
-                    - `PUBLIC`: 공개 레퍼런스만 - 로그인 불필요
-                    - `PRIVATE`: 내 비공개 레퍼런스만 - 로그인 필요
+                    - `all`: 내 전체 레퍼런스 (공개 + 비공개 + 미지정 폴더)
+                    - `public`: 내 공개 레퍼런스만
+                    - `private`: 내 비공개 레퍼런스만
+
+                    **sortBy 파라미터:**
+                    - `latest`: 최신 생성순 (기본값)
+                    - `oldest`: 오래된 생성순
+                    - `link-count-desc`: 링크 개수 많은 순
+                    - `link-count-asc`: 링크 개수 적은 순
                     """
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "목록 조회 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 필요 (ALL, PRIVATE 타입)"),
-            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+            @ApiResponse(responseCode = "200",
+                    description = "목록 조회 성공",
+            content = @Content(schema = @Schema(implementation = ReferenceListResponse.class))
+            )
     })
     @GetMapping
-    swyp12.team9.server.global.common.dto.ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceResponse>> getReferences(
-            @Parameter(description = "조회 타입 (ALL: 전체, PUBLIC: 공개, PRIVATE: 비공개)", example = "ALL")
+    swyp12.team9.server.global.common.dto.ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceListResponse>> getReferences(
+            @Parameter(description = "조회 타입 (all: 전체, public: 공개, private: 비공개)", example = "all")
             @RequestParam(defaultValue = "ALL") ReferenceType type,
+            @Parameter(description = "정렬 타입 (latest: 최신순, oldest: 오래된순, link-count-desc: 링크많은순, link-count-asc: 링크적은순)", example = "latest")
+            @RequestParam(defaultValue = "CREATED_DESC") ReferenceSortType sortBy,
             @Parameter(description = "커서 (첫 요청 시 null)", example = "10")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "페이지 크기", example = "20")

@@ -1,13 +1,14 @@
-package swyp12.team9.server.api.userlink.dto;
+package swyp12.team9.server.api.userlink.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
 
+import java.util.List;
+
 @Schema(description = "사용자 링크 생성 요청 객체")
-public record CreateUserLinkRequest(
+public record UserLinkCreateRequest(
 
         @Schema(
                 description = "링크를 저장하는 이유",
@@ -27,19 +28,11 @@ public record CreateUserLinkRequest(
         String url,
 
         @Schema(
-                description = "공개 여부",
-                example = "true",
-                requiredMode = Schema.RequiredMode.REQUIRED
-        )
-        @NotNull(message = "공개여부는 필수입니다.")
-        Boolean isPublic,
-
-        @Schema(
-                description = "레퍼런스 폴더 선택",
-                example = "경제",
+                description = "레퍼런스 폴더 ID 목록 (null 또는 빈 배열이면 미지정 폴더로 자동 분류)",
+                example = "[1, 2, 3]",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
-        String referenceType,
+        List<Long> referenceIds,
 
         @Schema(
                 description = "메모",

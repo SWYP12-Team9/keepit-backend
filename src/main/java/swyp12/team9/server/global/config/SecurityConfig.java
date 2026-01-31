@@ -122,11 +122,11 @@ public class SecurityConfig {
 
                         // 레퍼런스 조회 (익명 허용 - Service에서 type별 권한 체크)
                         .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/references").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/v1/references").permitAll()
 
                         // 사용자 링크 조회 (익명 허용 - Service에서 type별 권한 체크)
                         .requestMatchers(HttpMethod.GET, "/api/v1/user-links/{userLinkId}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links").permitAll()
 
                         // 관리자 전용 API (가장 먼저 체크)
                         .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용

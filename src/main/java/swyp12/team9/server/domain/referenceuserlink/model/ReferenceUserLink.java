@@ -31,4 +31,18 @@ public class ReferenceUserLink extends BaseEntity {
         this.reference = reference;
         this.userLink = userLink;
     }
+
+    /**
+     * ReferenceUserLink 생성
+     *
+     * @param reference Reference 엔티티
+     * @param userLink  UserLink 엔티티
+     * @return 생성된 ReferenceUserLink
+     */
+    public static ReferenceUserLink create(Reference reference, UserLink userLink) {
+        return ReferenceUserLink.builder()
+                .reference(reference)
+                .userLink(userLink)
+                .build();
+    }
 }

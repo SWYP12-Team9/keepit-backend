@@ -47,6 +47,9 @@ public enum ErrorCode {
     REFERENCE_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "REF003", "제목은 필수입니다"),
     REFERENCE_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "REF004", "제목은 200자를 초과할 수 없습니다"),
     REFERENCE_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "REF005", "설명은 500자를 초과할 수 없습니다"),
+    REFERENCE_TITLE_DUPLICATE(HttpStatus.CONFLICT, "REF006", "이미 존재하는 레퍼런스 제목입니다"),
+    REFERENCE_DEFAULT_NOT_MODIFIABLE(HttpStatus.BAD_REQUEST, "REF007", "기본 레퍼런스는 수정/삭제할 수 없습니다"),
+    REFERENCE_DEFAULT_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "REF008", "기본 미지정 폴더는 삭제할 수 없습니다"),
 
     // Image
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMG001", "이미지 업로드에 실패했습니다"),
@@ -65,6 +68,8 @@ public enum ErrorCode {
     LINK_INVALID_URL(HttpStatus.BAD_REQUEST, "LNK004", "유효하지 않은 URL 형식입니다"),
     LINK_WHY_REQUIRED(HttpStatus.BAD_REQUEST, "LNK005", "WHY는 필수입니다"),
     LINK_DUPLICATE(HttpStatus.CONFLICT, "LNK006", "이미 저장된 링크입니다"),
+    LINK_SCRAPING_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "LNK002", "스크래핑 서버에서 오류가 발생했습니다"),
+    LINK_SCRAPING_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "LNK003", "스크래핑 요청 시간이 초과되었습니다"),
 
     // UserLink
     USER_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "ULK001", "사용자 링크를 찾을 수 없습니다"),
@@ -73,6 +78,8 @@ public enum ErrorCode {
     USER_LINK_INVALID_URL(HttpStatus.BAD_REQUEST, "ULK004", "유효하지 않은 URL 형식입니다"),
     USER_LINK_WHY_TOO_LONG(HttpStatus.BAD_REQUEST, "ULK005", "이유는 500자를 초과할 수 없습니다"),
     USER_LINK_DUPLICATE(HttpStatus.CONFLICT, "ULK006", "이미 저장된 링크입니다"),
+    USER_LINK_REFERENCE_ID_REQUIRED(HttpStatus.BAD_REQUEST, "ULK007", "REFERENCE 타입 조회 시 referenceId는 필수입니다"),
+
 
     // Category
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CAT001", "카테고리를 찾을 수 없습니다"),

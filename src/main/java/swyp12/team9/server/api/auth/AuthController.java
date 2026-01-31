@@ -23,17 +23,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class AuthController {
 
-//    @Operation(summary = "로그인", description = "username, password로 로그인하여 JWT 토큰 발급")
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "로그인 성공",
-//                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
-//            @ApiResponse(responseCode = "401", description = "인증 실패 (잘못된 username 또는 password)")
-//    })
-//    @PostMapping("/auth/login")
-//    public void login(@RequestBody LoginRequest request) {
-//        // 실제 로직 없음 - LoginFilter가 처리
-//        // Swagger 문서화 목적
-//    }
+    @Operation(summary = "로그인", description = "username, password로 로그인하여 JWT 토큰 발급") // todo 박현제: 삭제 예정
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "로그인 성공",
+                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (잘못된 username 또는 password)")
+    })
+    @PostMapping("/auth/login")
+    public void login(@RequestBody LoginRequest request) {
+        // 실제 로직 없음 - LoginFilter가 처리
+        // Swagger 문서화 목적
+    }
 
     @Operation(summary = "로그아웃", description = "Refresh 토큰을 무효화하여 로그아웃 처리")
     @ApiResponses({
