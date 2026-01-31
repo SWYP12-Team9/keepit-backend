@@ -2,6 +2,7 @@ package swyp12.team9.server.global.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.validation.BindException;
@@ -51,6 +52,16 @@ public class GlobalExceptionHandler {
     protected ApiResponse<Void> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         log.error("[MethodArgumentTypeMismatchException] {}", e.getMessage());
         return ApiResponse.error(ErrorCode.INVALID_TYPE_VALUE);
+    }
+
+    /**
+     * 잘못된 JSON 형식 (JSON parse error)
+     * - 클라이언트가 JSON 바디를 잘못 보냈을 때
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    protected ApiResponse<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        log.error("[HttpMessageNotReadableException] 잘못된 JSON 형식입니다: {}", e.getMessage());
+        return ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE);
     }
 
     /**
