@@ -8,13 +8,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import org.springframework.web.bind.annotation.*;
-import swyp12.team9.server.api.userlink.dto.CreateUserLinkRequest;
-import swyp12.team9.server.api.userlink.dto.UpdateUserLinkRequest;
-import swyp12.team9.server.api.userlink.dto.UserLinkResponse;
-import swyp12.team9.server.api.userlink.dto.UserLinkType;
+import swyp12.team9.server.api.userlink.dto.request.UserLinkCreateRequest;
+import swyp12.team9.server.api.userlink.dto.request.UserLinkUpdateRequest;
+import swyp12.team9.server.api.userlink.dto.response.UserLinkListResponse;
+import swyp12.team9.server.api.userlink.dto.response.UserLinkResponse;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.util.PaginationUtils;
 
@@ -42,7 +40,7 @@ public interface UserLinkApi {
     })
     @PostMapping
     swyp12.team9.server.global.common.dto.ApiResponse<UserLinkResponse> createUserLink(
-            @Valid @RequestBody CreateUserLinkRequest request,
+            @Valid @RequestBody UserLinkCreateRequest request,
             @CurrentUserId Long userId
     );
 
@@ -84,7 +82,7 @@ public interface UserLinkApi {
     swyp12.team9.server.global.common.dto.ApiResponse<UserLinkResponse> updateUserLink(
             @Parameter(description = "사용자 링크 ID", required = true, example = "1")
             @PathVariable Long userLinkId,
-            @Valid @RequestBody UpdateUserLinkRequest request,
+            @Valid @RequestBody UserLinkUpdateRequest request,
             @CurrentUserId Long userId
     );
 
@@ -124,32 +122,30 @@ public interface UserLinkApi {
             @CurrentUserId Long userId
     );
 
-    // ========== 사용자 링크 목록 조회 (통합 API) ==========
-
+    // 사용자 링크 목록 조회
     @Operation(
-            summary = "링크 게시물 목록 조회",
+            summary = "링크 게시물 목록 조회(전체/카테고리별)",
             description = """
-                    링크 목록을 무한스크롤로 조회합니다.
-
-                    **type 파라미터:**
-                    - `ALL`: 내 전체 링크 (공개 + 비공개) - 로그인 필요
-                    - `PUBLIC`: 공개 링크만 - 로그인 불필요
-                    - `PRIVATE`: 내 비공개 링크만 - 로그인 필요
+                    사용자의 링크 목록을 레퍼런스별로 커서 기반 페이징으로 조회합니다.
+                    - referenceId가 있으면: 해당 레퍼런스에 속한 링크만 조회
+                    - referenceId가 없으면: 전체 링크 조회
                     """
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "목록 조회 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 필요 (ALL, PRIVATE 타입)"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "401", description = "인증 필요"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (소유자 아님)"),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
     @GetMapping
-    swyp12.team9.server.global.common.dto.ApiResponse<PaginationUtils.Cursor.PageResponse<UserLinkResponse>> getUserLinks(
-            @Parameter(description = "조회 타입 (ALL: 전체, PUBLIC: 공개, PRIVATE: 비공개)", example = "ALL")
-            @RequestParam(defaultValue = "ALL") UserLinkType type,
+    swyp12.team9.server.global.common.dto.ApiResponse<PaginationUtils.Cursor.PageResponse<UserLinkListResponse>> getUserLinks(
+            @Parameter(description = "레퍼런스 ID (선택, 지정하지 않으면 전체 링크 조회)", example = "1")
+            @RequestParam(required = false) Long referenceId,
             @Parameter(description = "커서 (첫 요청 시 null)", example = "10")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size,
-            @CurrentUserId(required = false) Long userId
+            @RequestParam(defaultValue = "20") int size,
+            @CurrentUserId Long userId
     );
 }

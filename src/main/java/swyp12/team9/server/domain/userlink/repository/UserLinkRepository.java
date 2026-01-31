@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
+public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserLinkRepositoryCustom {
 
     // ========== 기본 조회 ==========
     /**
@@ -27,71 +27,9 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
      */
     boolean existsByUserIdAndLinkId(Long userId, Long linkId);
 
-    /**
-     * 공개 UserLink 목록 조회
-     */
+    // TODO: 변경 필요 -> isPublic은 레퍼런스에서 확인해야함
+    List<UserLink> findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(List<Long> linkIds);
+    List<UserLink> findByIsPublicTrueOrderByIdDesc(Pageable pageable);
     List<UserLink> findByIsPublicTrue();
 
-    /**
-     * 사용자 ID와 공개 여부로 조회
-     */
-    List<UserLink> findByUserIdAndIsPublic(Long userId, Boolean isPublic);
-
-    // ========== 커서 페이징: 내 UserLink 전체 ==========
-    /**
-     * 사용자 UserLink 커서 페이징 (첫 페이지)
-     */
-    List<UserLink> findByUserIdOrderByIdDesc(Long userId, Pageable pageable);
-
-    /**
-     * 사용자 UserLink 커서 페이징 (다음 페이지)
-     */
-    List<UserLink> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long cursor, Pageable pageable);
-
-    // ========== 커서 페이징: 공개 UserLink ==========
-    /**
-     * 공개 UserLink 커서 페이징 (첫 페이지)
-     */
-    List<UserLink> findByIsPublicTrueOrderByIdDesc(Pageable pageable);
-
-    /**
-     * 공개 UserLink 커서 페이징 (다음 페이지)
-     */
-    List<UserLink> findByIsPublicTrueAndIdLessThanOrderByIdDesc(Long cursor, Pageable pageable);
-
-    // ========== 커서 페이징: 비공개 UserLink ==========
-    /**
-     * 특정 사용자의 비공개 UserLink 커서 페이징 (첫 페이지)
-     */
-    List<UserLink> findByUserIdAndIsPublicFalseOrderByIdDesc(Long userId, Pageable pageable);
-
-    /**
-     * 특정 사용자의 비공개 UserLink 커서 페이징 (다음 페이지)
-     */
-    List<UserLink> findByUserIdAndIsPublicFalseAndIdLessThanOrderByIdDesc(
-            Long userId, Long cursor, Pageable pageable);
-
-    // ========== 읽음 상태별 조회 ==========
-    /**
-     * 사용자의 읽지 않은 UserLink 커서 페이징 (첫 페이지)
-     */
-    List<UserLink> findByUserIdAndStatusOrderByIdDesc(
-            Long userId, swyp12.team9.server.domain.userlink.model.LinkStatus status, Pageable pageable);
-
-    /**
-     * 사용자의 읽지 않은 UserLink 커서 페이징 (다음 페이지)
-     */
-    List<UserLink> findByUserIdAndStatusAndIdLessThanOrderByIdDesc(
-            Long userId, swyp12.team9.server.domain.userlink.model.LinkStatus status, Long cursor, Pageable pageable);
-
-    // ========== 추천 시스템용 ==========
-    /**
-     * 특정 Link의 공개 UserLink 중 가장 먼저 저장한 것 조회 (첫 발견자)
-     */
-    Optional<UserLink> findFirstByLink_IdAndIsPublicTrueOrderByCreatedAtAsc(Long linkId);
-
-    /**
-     * 여러 Link ID들에 대해 공개 UserLink 목록 조회 (첫 발견자들을 배치로 찾기 위함)
-     */
-    List<UserLink> findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(List<Long> linkIds);
 }
