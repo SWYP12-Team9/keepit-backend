@@ -1,8 +1,11 @@
 package swyp12.team9.server.domain.recommendation.service;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,20 +60,28 @@ public class RecommendationService {
 
             List<Document> results = vectorStore.similaritySearch(searchRequest);
 
-            // 3. Link ID 추출 및 필터링 (내 링크 제외, 중복 제거)
-            List<Long> filteredLinkIds = results.stream()
-                    .map(doc -> getLongFromMetadata(doc.getMetadata(), "linkId"))
-                    .filter(id -> id != null && !myLinkIds.contains(id))
-                    .distinct()
+            // 3. 가장 유사도가 높은 UserLink ID 추출 (링크 중복 제거)
+            Set<Long> seenLinkIds = new HashSet<>();
+            List<Long> filteredUserLinkIds = results.stream()
+                    .filter(doc -> {
+                        Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
+                        if (linkId == null || myLinkIds.contains(linkId) || seenLinkIds.contains(linkId)) {
+                            return false;
+                        }
+                        seenLinkIds.add(linkId);
+                        return true;
+                    })
+                    .map(doc -> getLongFromMetadata(doc.getMetadata(), "userLinkId"))
+                    .filter(Objects::nonNull)
                     .limit(size)
                     .collect(Collectors.toList());
 
-            if (filteredLinkIds.isEmpty()) {
+            if (filteredUserLinkIds.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 4. 첫 발견자 정보 배치 조회 및 응답 생성
-            return buildResponsesFromLinkIds(filteredLinkIds, keyword);
+            // 4. 선택된 UserLink 정보를 바탕으로 응답 생성
+            return buildResponsesFromUserLinkIds(filteredUserLinkIds, keyword);
 
         } catch (Exception e) {
             log.error("Elasticsearch 키워드 검색 실패: {}", e.getMessage());
@@ -103,20 +114,28 @@ public class RecommendationService {
 
             List<Document> results = vectorStore.similaritySearch(searchRequest);
 
-            // 3. Link ID 추출 및 필터링 (내 링크 제외, 중복 제거)
-            List<Long> filteredLinkIds = results.stream()
-                    .map(doc -> getLongFromMetadata(doc.getMetadata(), "linkId"))
-                    .filter(id -> id != null && !myLinkIds.contains(id))
-                    .distinct()
+            // 3. 가장 유사도가 높은 UserLink ID 추출 (링크 중복 제거)
+            Set<Long> seenLinkIds = new HashSet<>();
+            List<Long> filteredUserLinkIds = results.stream()
+                    .filter(doc -> {
+                        Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
+                        if (linkId == null || myLinkIds.contains(linkId) || seenLinkIds.contains(linkId)) {
+                            return false;
+                        }
+                        seenLinkIds.add(linkId);
+                        return true;
+                    })
+                    .map(doc -> getLongFromMetadata(doc.getMetadata(), "userLinkId"))
+                    .filter(Objects::nonNull)
                     .limit(size)
                     .collect(Collectors.toList());
 
-            if (filteredLinkIds.isEmpty()) {
+            if (filteredUserLinkIds.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 4. 첫 발견자 정보 배치 조회 및 응답 생성
-            return buildResponsesFromLinkIds(filteredLinkIds, category);
+            // 4. 선택된 UserLink 정보를 바탕으로 응답 생성
+            return buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
 
         } catch (Exception e) {
             log.error("Elasticsearch 유사도 검색 실패: {}", e.getMessage());
@@ -125,34 +144,20 @@ public class RecommendationService {
     }
 
     /**
-     * Link ID 목록으로부터 응답 객체 생성 (첫 발견자 정보 포함)
+     * UserLink ID 목록으로부터 응답 객체 생성 (유사도가 가장 높은 사용자 정보 포함)
      */
-    private List<RecommendationResponse> buildResponsesFromLinkIds(List<Long> linkIds, String keyword) {
-        Map<Long, UserLink> firstUserLinkMap = getFirstUserLinkMap(linkIds);
+    private List<RecommendationResponse> buildResponsesFromUserLinkIds(List<Long> userLinkIds, String keyword) {
+        List<UserLink> userLinks = userLinkRepository.findAllById(userLinkIds);
         
-        return linkIds.stream()
-                .map(linkId -> {
-                    UserLink firstUserLink = firstUserLinkMap.get(linkId);
-                    if (firstUserLink == null) return null;
-                    return RecommendationResponse.from(firstUserLink.getLink(), firstUserLink, keyword);
-                })
-                .filter(response -> response != null)
+        // findAllById는 순서를 보장하지 않으므로, 요청한 ID 순서대로 재정렬
+        Map<Long, UserLink> userLinkMap = userLinks.stream()
+                .collect(Collectors.toMap(UserLink::getId, ul -> ul));
+
+        return userLinkIds.stream()
+                .map(userLinkMap::get)
+                .filter(Objects::nonNull)
+                .map(ul -> RecommendationResponse.from(ul.getLink(), ul, keyword))
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Link ID 목록을 받아 각 Link의 '첫 발견자'(가장 먼저 공개 저장한 UserLink) Map 반환
-     */
-    private Map<Long, UserLink> getFirstUserLinkMap(List<Long> linkIds) {
-        List<UserLink> allPublicUserLinks = userLinkRepository
-                .findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(linkIds);
-
-        // createdAt 기준 오름차순 정렬되어 있으므로, putIfAbsent를 쓰면 가장 먼저 생성된 것만 남음
-        Map<Long, UserLink> firstUserLinkMap = new java.util.HashMap<>();
-        for (UserLink ul : allPublicUserLinks) {
-            firstUserLinkMap.putIfAbsent(ul.getLink().getId(), ul);
-        }
-        return firstUserLinkMap;
     }
 
     private Long getLongFromMetadata(java.util.Map<String, Object> metadata, String key) {
