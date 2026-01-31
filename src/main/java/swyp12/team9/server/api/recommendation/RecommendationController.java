@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
+import swyp12.team9.server.domain.link.exception.InvalidCategoryException;
 import swyp12.team9.server.domain.link.model.LinkCategory;
 import swyp12.team9.server.domain.recommendation.service.LinkIndexingService;
 import swyp12.team9.server.domain.recommendation.service.RecommendationService;
@@ -52,7 +53,7 @@ public class RecommendationController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
         LinkCategory.fromDisplayName(category)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 카테고리입니다."));
+                .orElseThrow(InvalidCategoryException::new);
 
         List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(category,
                 size);
