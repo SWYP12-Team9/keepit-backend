@@ -10,17 +10,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
+import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileUpdateResponse;
+import swyp12.team9.server.api.user.dto.response.UserResponse;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 
 /**
@@ -31,23 +29,23 @@ import swyp12.team9.server.global.annotation.CurrentUserId;
 public interface UserApi {
 
     // ==================== 회원가입/로그인 관련 ====================
-//    @Operation(
-//            summary = "회원가입",
-//            description = "새로운 사용자 등록 (자체 로그인)"
-//    )
-//    @ApiResponses(value = {
-//            @ApiResponse(
-//                    responseCode = "201",
-//                    description = "회원가입 성공",
-//                    content = @Content(schema = @Schema(implementation = UserResponse.class))
-//            ),
-//            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-//            @ApiResponse(responseCode = "409", description = "이메일 또는 아이디 중복")
-//    })
-//    @PostMapping(value = "/signup", consumes = MediaType.APPLICATION_JSON_VALUE)
-//    swyp12.team9.server.global.common.dto.ApiResponse<UserResponse> signup(
-//            @Validated(UserRequest.addGroup.class) @RequestBody UserRequest request
-//    );
+    @Operation(
+            summary = "회원가입",
+            description = "새로운 사용자 등록 (자체 로그인)"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "회원가입 성공",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "409", description = "이메일 또는 아이디 중복")
+    })
+    @PostMapping(value = "/signup", consumes = MediaType.APPLICATION_JSON_VALUE)
+    swyp12.team9.server.global.common.dto.ApiResponse<UserResponse> signup(
+            @Validated(UserRequest.addGroup.class) @RequestBody UserRequest request
+    );
 
     // ==================== 프로필 관련 ====================
 
