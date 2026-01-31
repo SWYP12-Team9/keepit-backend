@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp12.team9.server.api.reference.dto.ReferenceCursor;
 import swyp12.team9.server.api.reference.dto.ReferenceSortType;
 import swyp12.team9.server.api.reference.dto.ReferenceType;
 import swyp12.team9.server.api.reference.dto.request.ReferenceCreateRequest;
@@ -85,22 +86,30 @@ public class ReferenceService {
      *
      * @param userId 현재 사용자 ID (null 가능)
      * @param type   조회 타입 (ALL: 전체, PUBLIC: 공개, PRIVATE: 비공개)
-     * @param sortBy 정렬 타입 (CREATED_DESC: 최신 생성순, LINK_COUNT_DESC: 링크 많은 순)
+     * @param sortBy 정렬 타입 (CREATED_DESC: 최신순, CREATED_ASC: 오래된순, LINK_COUNT_DESC: 링크많은순, LINK_COUNT_ASC: 링크적은순)
      * @param cursor 페이지 커서
      * @param size   페이지 크기
      */
-    public PageResponse<ReferenceListResponse> getReferences(Long userId, ReferenceType type, ReferenceSortType sortBy, String cursor, int size) {
+  public PageResponse<ReferenceListResponse> getReferences(Long userId,
+            ReferenceType type,
+            ReferenceSortType sortBy,
+            String cursor,
+            int size
+    ) {
+        ReferenceCursor referenceCursor = ReferenceCursor.from(cursor, sortBy);
 
-        Long cursorId = (cursor == null) ? null : Long.parseLong(cursor);
+        List<ReferenceListResponse> results = referenceRepository.findAllWithLinkCount(
+                userId, type, sortBy, referenceCursor, size
+        );
 
-        // 폴더 목록 조회
-        List<ReferenceListResponse> results = referenceRepository.findAllWithLinkCount(userId, type, sortBy, cursorId, size);
-
-        return buildPageResponse(results, size);
+        return buildPageResponse(results, size, sortBy);
     }
 
-    private PageResponse<ReferenceListResponse> buildPageResponse(List<ReferenceListResponse> results, int size) {
-
+    private PageResponse<ReferenceListResponse> buildPageResponse(
+            List<ReferenceListResponse> results,
+            int size,
+            ReferenceSortType sortBy
+    ) {
         if (results.isEmpty()) {
             return PageResponse.empty();
         }
@@ -108,9 +117,17 @@ public class ReferenceService {
         boolean hasNext = results.size() > size;
         List<ReferenceListResponse> content = hasNext ? results.subList(0, size) : results;
 
-        String nextCursor = String.valueOf(content.get(content.size() - 1).id());
+        ReferenceListResponse last = content.get(content.size() - 1);
+        String nextCursor = buildNextCursor(last, sortBy);
 
         return PageResponse.of(content, nextCursor, hasNext);
+    }
+
+    private String buildNextCursor(ReferenceListResponse last, ReferenceSortType sortBy) {
+        if (sortBy == ReferenceSortType.LINK_COUNT_DESC || sortBy == ReferenceSortType.LINK_COUNT_ASC) {
+            return last.id() + ":" + last.linkCount();
+        }
+        return String.valueOf(last.id());
     }
 
     // 레퍼런스 수정

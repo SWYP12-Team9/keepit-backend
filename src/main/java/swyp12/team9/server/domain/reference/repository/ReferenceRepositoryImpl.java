@@ -5,6 +5,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import swyp12.team9.server.api.reference.dto.ReferenceCursor;
 import swyp12.team9.server.api.reference.dto.ReferenceSortType;
 import swyp12.team9.server.api.reference.dto.ReferenceType;
 import swyp12.team9.server.api.reference.dto.response.ReferenceListResponse;
@@ -26,8 +27,14 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
      * - ALL 타입일 경우만 미지정 폴더 포함
      */
     @Override
-    public List<ReferenceListResponse> findAllWithLinkCount(Long userId, ReferenceType type, ReferenceSortType sortBy, Long cursorId, int size) {
-        return queryFactory
+    public List<ReferenceListResponse> findAllWithLinkCount(
+            Long userId,
+            ReferenceType type,
+            ReferenceSortType sortBy,
+            ReferenceCursor cursor,
+            int size
+    ) {
+        var query = queryFactory
                 .select(Projections.constructor(ReferenceListResponse.class,
                         reference.id,
                         reference.title,
@@ -41,36 +48,20 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
                 .where(
                         userIdEq(userId),
                         eqType(type),
-                        ltCursorId(cursorId),
-                        includeDefaultFolder(type)
+                        includeDefaultFolder(type),
+                        cursorCondition(sortBy, cursor)
                 )
-                .groupBy(reference.id, reference.title, reference.colorCode, reference.isDefault)
-                .orderBy(getOrderSpecifier(sortBy))
-                .limit(size + 1)
-                .fetch();
-    }
+                .groupBy(reference.id, reference.title, reference.colorCode, reference.isDefault, reference.createdAt);
 
-    /**
-     * 미지정 폴더의 UserLink 개수 조회
-     * - isDefault가 true인 Reference에 속한 UserLink 개수
-     */
-    @Override
-    public Long countUnspecifiedLinks(Long userId) {
-        // userId가 null이면 카운트할 대상이 없으므로 0L 반환
-        if (userId == null) {
-            return 0L;
+        // LINK_COUNT 정렬 시 HAVING으로 처리
+        if (isLinkCountSort(sortBy) && cursor != null && cursor.linkCount() != null) {
+            query.having(linkCountHaving(sortBy, cursor));
         }
 
-        return queryFactory
-                .select(referenceUserLink.userLink.countDistinct())
-                .from(referenceUserLink)
-                .join(referenceUserLink.reference, reference)
-                .join(referenceUserLink.userLink, userLink)
-                .where(
-                        reference.user.id.eq(userId),
-                        reference.isDefault.isTrue()
-                )
-                .fetchOne();
+        return query
+                .orderBy(getOrderSpecifier(sortBy), reference.id.desc())
+                .limit(size + 1)
+                .fetch();
     }
 
     private BooleanExpression userIdEq(Long userId) {
@@ -83,8 +74,38 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
         return null;
     }
 
-    private BooleanExpression ltCursorId(Long cursorId) {
-        return cursorId != null ? reference.id.lt(cursorId) : null;
+    /**
+     * 커서 조건 (CREATED 정렬용)
+     * - LINK_COUNT 정렬은 HAVING에서 처리
+     */
+    private BooleanExpression cursorCondition(ReferenceSortType sortBy, ReferenceCursor cursor) {
+        if (cursor == null) return null;
+
+        return switch (sortBy) {
+            case CREATED_DESC -> reference.id.lt(cursor.id());
+            case CREATED_ASC -> reference.id.gt(cursor.id());
+            case LINK_COUNT_DESC, LINK_COUNT_ASC -> null; // HAVING에서 처리
+        };
+    }
+
+    /**
+     * LINK_COUNT 정렬용 HAVING 조건
+     * - linkCount가 같을 경우 id로 추가 비교
+     */
+    private BooleanExpression linkCountHaving(ReferenceSortType sortBy, ReferenceCursor cursor) {
+        if (cursor == null || cursor.linkCount() == null) return null;
+
+        var count = referenceUserLink.userLink.countDistinct();
+
+        return switch (sortBy) {
+            case LINK_COUNT_DESC ->
+                    count.lt(cursor.linkCount())
+                            .or(count.eq(cursor.linkCount()).and(reference.id.lt(cursor.id())));
+            case LINK_COUNT_ASC ->
+                    count.gt(cursor.linkCount())
+                            .or(count.eq(cursor.linkCount()).and(reference.id.lt(cursor.id())));
+            default -> null;
+        };
     }
 
     /**
@@ -92,19 +113,26 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
      */
     private BooleanExpression includeDefaultFolder(ReferenceType type) {
         if (type == ReferenceType.ALL) {
-            return null; // ALL 타입이면 미지정 폴더 포함
+            return null;
         }
-        return reference.isDefault.isFalse(); // 다른 타입이면 미지정 폴더 제외
+        return reference.isDefault.isFalse();
     }
 
     /**
      * 정렬 조건 반환
+     * - CREATED: id 기준 정렬 (생성순 = id순)
+     * - LINK_COUNT: linkCount 기준 정렬
      */
     private OrderSpecifier<?> getOrderSpecifier(ReferenceSortType sortBy) {
-        if (sortBy == ReferenceSortType.LINK_COUNT_DESC) {
-            return referenceUserLink.userLink.countDistinct().desc();
-        }
-        // 기본값: CREATED_DESC (ID 내림차순)
-        return reference.id.desc();
+        return switch (sortBy) {
+            case CREATED_DESC -> reference.id.desc();
+            case CREATED_ASC -> reference.id.asc();
+            case LINK_COUNT_DESC -> referenceUserLink.userLink.countDistinct().desc();
+            case LINK_COUNT_ASC -> referenceUserLink.userLink.countDistinct().asc();
+        };
+    }
+
+    private boolean isLinkCountSort(ReferenceSortType sortBy) {
+        return sortBy == ReferenceSortType.LINK_COUNT_DESC || sortBy == ReferenceSortType.LINK_COUNT_ASC;
     }
 }

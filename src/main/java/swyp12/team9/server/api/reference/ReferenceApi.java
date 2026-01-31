@@ -112,15 +112,18 @@ public interface ReferenceApi {
             summary = "레퍼런스 목록 조회",
             description = """
                     레퍼런스 목록을 커서 기반 페이징으로 조회합니다.
+                    미지정 폴더일 경우 isDefault = true 로 표시됩니다.
 
                     **type 파라미터:**
-                    - `ALL`: 내 전체 레퍼런스 (공개 + 비공개)
-                    - `PUBLIC`: 내 공개 레퍼런스만
-                    - `PRIVATE`: 내 비공개 레퍼런스만
+                    - `all`: 내 전체 레퍼런스 (공개 + 비공개 + 미지정 폴더)
+                    - `public`: 내 공개 레퍼런스만
+                    - `private`: 내 비공개 레퍼런스만
 
                     **sortBy 파라미터:**
-                    - `CREATED_DESC`: 최신 생성순 (기본값)
-                    - `LINK_COUNT_DESC`: 링크 개수 많은 순
+                    - `latest`: 최신 생성순 (기본값)
+                    - `oldest`: 오래된 생성순
+                    - `link-count-desc`: 링크 개수 많은 순
+                    - `link-count-asc`: 링크 개수 적은 순
                     """
     )
     @ApiResponses(value = {
@@ -131,9 +134,9 @@ public interface ReferenceApi {
     })
     @GetMapping
     swyp12.team9.server.global.common.dto.ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceListResponse>> getReferences(
-            @Parameter(description = "조회 타입 (ALL: 전체, PUBLIC: 공개, PRIVATE: 비공개)", example = "ALL")
+            @Parameter(description = "조회 타입 (all: 전체, public: 공개, private: 비공개)", example = "all")
             @RequestParam(defaultValue = "ALL") ReferenceType type,
-            @Parameter(description = "정렬 타입 (CREATED_DESC: 최신 생성순, LINK_COUNT_DESC: 링크 많은 순)", example = "CREATED_DESC")
+            @Parameter(description = "정렬 타입 (latest: 최신순, oldest: 오래된순, link-count-desc: 링크많은순, link-count-asc: 링크적은순)", example = "latest")
             @RequestParam(defaultValue = "CREATED_DESC") ReferenceSortType sortBy,
             @Parameter(description = "커서 (첫 요청 시 null)", example = "10")
             @RequestParam(required = false) String cursor,
