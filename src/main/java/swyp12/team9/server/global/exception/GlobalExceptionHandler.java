@@ -171,9 +171,10 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalStateException.class)
     protected ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
-        log.error("[IllegalStateException] {}", e.getMessage());
+        String errorMessage = e.getMessage() != null ? e.getMessage() : "알 수 없는 상태 오류";
+        log.error("[IllegalStateException] {}", errorMessage);
 
-        if (e.getMessage().contains("인증이 필요합니다")) {
+        if (errorMessage.contains("인증이 필요합니다")) {
             ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
             return ResponseEntity
                     .status(errorCode.getHttpStatus())
