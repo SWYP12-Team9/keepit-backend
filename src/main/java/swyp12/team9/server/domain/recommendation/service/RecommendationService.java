@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,26 +47,26 @@ public class RecommendationService {
      */
     public List<RecommendationResponse> searchByKeyword(Long userId, String keyword, int size) {
         try {
-            // 1. 내가 저장한 링크 ID 목록 조회 (단일 쿼리로 최적화)
-            List<Long> myLinkIds = userId != null 
-                ? userLinkRepository.findLinkIdsByUserId(userId) 
-                : Collections.emptyList();
-
-            // 2. Elasticsearch 검색 (필터링 여유를 고려해 넉넉하게 조회)
-            int searchLimit = myLinkIds.isEmpty() ? size : Math.min(size * 5, 100);
-            SearchRequest searchRequest = SearchRequest.builder()
+            // 1. Elasticsearch 검색 요청 구성 (필터 적용)
+            SearchRequest.Builder requestBuilder = SearchRequest.builder()
                     .query(keyword)
-                    .topK(searchLimit)
-                    .build();
+                    .topK(size);
 
-            List<Document> results = vectorStore.similaritySearch(searchRequest);
+            // 로그인한 사용자인 경우, 본인의 링크는 제외하도록 Pre-filtering 적용
+            if (userId != null) {
+                requestBuilder.filterExpression(new FilterExpressionBuilder()
+                        .ne("userId", userId)
+                        .build());
+            }
 
-            // 3. 가장 유사도가 높은 UserLink ID 추출 (링크 중복 제거)
+            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
+
+            // 2. 검색 결과로부터 중복 없는 Link ID 기준 UserLink ID 추출
             Set<Long> seenLinkIds = new HashSet<>();
             List<Long> filteredUserLinkIds = results.stream()
                     .filter(doc -> {
                         Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
-                        if (linkId == null || myLinkIds.contains(linkId) || seenLinkIds.contains(linkId)) {
+                        if (linkId == null || seenLinkIds.contains(linkId)) {
                             return false;
                         }
                         seenLinkIds.add(linkId);
@@ -73,14 +74,13 @@ public class RecommendationService {
                     })
                     .map(doc -> getLongFromMetadata(doc.getMetadata(), "userLinkId"))
                     .filter(Objects::nonNull)
-                    .limit(size)
                     .collect(Collectors.toList());
 
             if (filteredUserLinkIds.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 4. 선택된 UserLink 정보를 바탕으로 응답 생성
+            // 3. 선택된 UserLink 정보를 바탕으로 응답 생성
             return buildResponsesFromUserLinkIds(filteredUserLinkIds, keyword);
 
         } catch (Exception e) {
@@ -91,7 +91,7 @@ public class RecommendationService {
 
     /**
      * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
-     * - 현재 사용자가 이미 저장한 링크는 제외
+     * - 현재 사용자가 이미 저장한 링크는 제외 (Pre-filtering)
      *
      * @param userId   현재 로그인한 사용자 ID (null 가능)
      * @param category 검색어 (카테고리명 등)
@@ -100,26 +100,26 @@ public class RecommendationService {
      */
     public List<RecommendationResponse> getRecommendationsByCategory(Long userId, String category, int size) {
         try {
-            // 1. 내가 저장한 링크 ID 목록 조회 (단일 쿼리로 최적화)
-            List<Long> myLinkIds = userId != null 
-                ? userLinkRepository.findLinkIdsByUserId(userId) 
-                : Collections.emptyList();
-
-            // 2. Elasticsearch 검색 (필터링 여유를 고려해 넉넉하게 조회)
-            int searchLimit = myLinkIds.isEmpty() ? size : Math.min(size * 5, 100);
-            SearchRequest searchRequest = SearchRequest.builder()
+            // 1. Elasticsearch 검색 요청 구성 (필터 적용)
+            SearchRequest.Builder requestBuilder = SearchRequest.builder()
                     .query(category)
-                    .topK(searchLimit)
-                    .build();
+                    .topK(size);
 
-            List<Document> results = vectorStore.similaritySearch(searchRequest);
+            // 로그인한 사용자인 경우, 본인의 링크는 제외하도록 Pre-filtering 적용
+            if (userId != null) {
+                requestBuilder.filterExpression(new FilterExpressionBuilder()
+                        .ne("userId", userId)
+                        .build());
+            }
 
-            // 3. 가장 유사도가 높은 UserLink ID 추출 (링크 중복 제거)
+            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
+
+            // 2. 검색 결과로부터 중복 없는 Link ID 기준 UserLink ID 추출
             Set<Long> seenLinkIds = new HashSet<>();
             List<Long> filteredUserLinkIds = results.stream()
                     .filter(doc -> {
                         Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
-                        if (linkId == null || myLinkIds.contains(linkId) || seenLinkIds.contains(linkId)) {
+                        if (linkId == null || seenLinkIds.contains(linkId)) {
                             return false;
                         }
                         seenLinkIds.add(linkId);
@@ -127,14 +127,13 @@ public class RecommendationService {
                     })
                     .map(doc -> getLongFromMetadata(doc.getMetadata(), "userLinkId"))
                     .filter(Objects::nonNull)
-                    .limit(size)
                     .collect(Collectors.toList());
 
             if (filteredUserLinkIds.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 4. 선택된 UserLink 정보를 바탕으로 응답 생성
+            // 3. 선택된 UserLink 정보를 바탕으로 응답 생성
             return buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
 
         } catch (Exception e) {
@@ -184,19 +183,26 @@ public class RecommendationService {
         PageRequest pageRequest = PageRequest.of(0, Math.min(size * 5, 100));
         List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrueOrderByIdDesc(pageRequest);
 
-        // 3. 내 링크 제외 및 중복 제거된 Link ID 목록 추출
-        List<Long> filteredLinkIds = publicUserLinks.stream()
-                .map(ul -> ul.getLink().getId())
-                .filter(id -> !myLinkIds.contains(id))
-                .distinct()
+        // 3. 내 링크 제외 및 중복 제거된 UserLink ID 목록 추출
+        Set<Long> seenLinkIds = new HashSet<>();
+        List<Long> filteredUserLinkIds = publicUserLinks.stream()
+                .filter(ul -> {
+                    Long linkId = ul.getLink().getId();
+                    if (myLinkIds.contains(linkId) || seenLinkIds.contains(linkId)) {
+                        return false;
+                    }
+                    seenLinkIds.add(linkId);
+                    return true;
+                })
+                .map(UserLink::getId)
                 .limit(size)
                 .collect(Collectors.toList());
 
-        if (filteredLinkIds.isEmpty()) {
+        if (filteredUserLinkIds.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 4. 첫 발견자 정보 배치 조회 및 응답 생성
-        return buildResponsesFromLinkIds(filteredLinkIds, keyword);
+        // 4. 응답 생성
+        return buildResponsesFromUserLinkIds(filteredUserLinkIds, keyword);
     }
 }
