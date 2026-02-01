@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -50,7 +51,7 @@ public class RecommendationController {
     public ApiResponse<List<RecommendationResponse>> searchByKeyword(
             @CurrentUserId(required = false) Long userId,
             @Parameter(description = "검색 키워드", example = "프론트엔드 성능 최적화")
-            @RequestParam @NotBlank String keyword,
+            @RequestParam @NotBlank @Size(min = 1, max = 50) String keyword,
             @Parameter(description = "가져올 결과 수", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {

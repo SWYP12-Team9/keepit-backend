@@ -102,4 +102,18 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
      */
     @Query("SELECT ul.link.id FROM UserLink ul WHERE ul.user.id = :userId")
     List<Long> findLinkIdsByUserId(@Param("userId") Long userId);
+
+    /**
+     * 키워드 기반 공개 UserLink 검색 (Fallback 용)
+     * - Link의 title, aiSummary 또는 UserLink의 why, memo에 키워드 포함 여부 확인
+     */
+    @Query("SELECT ul FROM UserLink ul " +
+           "JOIN FETCH ul.link l " +
+           "WHERE ul.isPublic = true " +
+           "AND (l.title LIKE %:keyword% " +
+           "OR l.aiSummary LIKE %:keyword% " +
+           "OR ul.why LIKE %:keyword% " +
+           "OR ul.memo LIKE %:keyword%) " +
+           "ORDER BY ul.id DESC")
+    List<UserLink> findByKeywordAndIsPublicTrue(@Param("keyword") String keyword, Pageable pageable);
 }

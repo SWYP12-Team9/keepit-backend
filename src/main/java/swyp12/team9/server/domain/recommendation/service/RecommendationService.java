@@ -179,9 +179,9 @@ public class RecommendationService {
             ? userLinkRepository.findLinkIdsByUserId(userId) 
             : Collections.emptyList();
 
-        // 2. 공개된 UserLink 조회 (필터링 고려해 넉넉하게)
+        // 2. 공개된 UserLink 조회 (키워드 검색 포함, 필터링 고려해 넉넉하게)
         PageRequest pageRequest = PageRequest.of(0, Math.min(size * 5, 100));
-        List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrueOrderByIdDesc(pageRequest);
+        List<UserLink> publicUserLinks = userLinkRepository.findByKeywordAndIsPublicTrue(keyword, pageRequest);
 
         // 3. 내 링크 제외 및 중복 제거된 UserLink ID 목록 추출
         Set<Long> seenLinkIds = new HashSet<>();

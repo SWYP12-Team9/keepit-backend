@@ -106,8 +106,9 @@ public class LinkIndexingService {
                 vectorStore.add(List.of(document));
                 log.info("UserLink 색인 완료 - ID: {}", userLinkId);
             } else {
-                // 비공개로 전환되었거나 유효하지 않으면 삭제 (필요시 구현)
-                log.info("UserLink 색인 생략 (비공개 또는 유효하지 않음) - ID: {}", userLinkId);
+                // 비공개 전환 시 기존 문서 삭제
+                vectorStore.delete(List.of("ul-" + userLinkId));
+                log.info("UserLink 색인 삭제 (비공개 또는 유효하지 않음) - ID: {}", userLinkId);
             }
         });
     }
