@@ -4,15 +4,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.exception.ErrorCode;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 인증 API (Swagger 문서화 용도) 실제 로직은 Spring Security 필터에서 처리됩니다. - 로그인: LoginFilter - 로그아웃: LogoutFilter +
@@ -39,7 +34,7 @@ public class AuthController {
 
     @Operation(summary = "로그아웃", description = "Refresh 토큰을 무효화하여 로그아웃 처리")
     @ApiSpec(
-            status = HttpStatus.NO_CONTENT,
+            status = HttpStatus.OK,
             errors = {
                     ErrorCode.INVALID_TOKEN
             }
