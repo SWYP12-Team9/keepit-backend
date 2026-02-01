@@ -98,7 +98,7 @@ spring:
   #            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
   #            user-name-attribute: sub
   #google: 생략 가능
-  # Sring Security가 이미 알고있는 provider들
+  # Spring Security가 이미 알고있는 provider들
   # google, facebook, github
   # 그래서 따로 google은 추가안해도 된다.
 
@@ -141,6 +141,9 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+  health:
+    elasticsearch:
+      enabled: false
 
 # NCP Object Storage 설정
 cloud:
