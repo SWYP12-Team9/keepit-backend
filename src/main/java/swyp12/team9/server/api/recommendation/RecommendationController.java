@@ -36,7 +36,7 @@ public class RecommendationController {
 
     @Operation(
             summary = "카테고리 목록 조회",
-            description = "탐색 탭에서 사용할 카테고리 목록을 반환합니다."
+            description = "탐색 탭에서 사용할 카테고리 목록을 반환합니다. (총 8개 카테고리)"
     )
     @GetMapping("/categories")
     public ApiResponse<List<String>> getCategories() {
@@ -45,7 +45,13 @@ public class RecommendationController {
 
     @Operation(
             summary = "키워드 검색",
-            description = "검색 키워드를 벡터 유사도 검색하여 관련성 높은 순서로 공개된 링크를 가져옵니다."
+            description = """
+                    검색 키워드를 벡터 유사도 검색하여 관련성 높은 순서로 공개된 링크를 가져옵니다. (키워드는 1~50자 제한)
+                    - Elasticsearch 벡터 검색 사용 (OpenAI 임베딩)
+                    - 로그인한 사용자의 링크는 자동 제외
+                    - 동일 링크는 한 번만 노출
+                    - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
+                    """
     )
     @GetMapping("/search")
     public ApiResponse<List<RecommendationResponse>> searchByKeyword(
@@ -61,7 +67,14 @@ public class RecommendationController {
 
     @Operation(
             summary = "카테고리별 추천 콘텐츠 조회",
-            description = "카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다. '기타' 카테고리는 지원하지 않습니다."
+            description = """
+                    카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다.
+                    - Elasticsearch 벡터 검색 사용 (OpenAI 임베딩)
+                    - '기타' 카테고리는 지원하지 않음 (예외 발생)
+                    - 로그인한 사용자의 링크는 자동 제외
+                    - 동일 링크는 한 번만 노출
+                    - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
+                    """
     )
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
@@ -86,7 +99,12 @@ public class RecommendationController {
 
     @Operation(
             summary = "[관리자] 전체 링크 색인",
-            description = "DB의 모든 링크를 Elasticsearch에 색인합니다. (title, description, aiSummary 합쳐서 벡터화)"
+            description = """
+                    DB의 모든 공개 링크를 Elasticsearch에 색인합니다.
+                    - 색인 대상: is_public=true인 UserLink
+                    - title, aiSummary, why, memo를 통합하여 벡터화
+                    - OpenAI API를 통해 임베딩 생성
+                    """
     )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index")
@@ -97,7 +115,10 @@ public class RecommendationController {
 
     @Operation(
             summary = "[관리자] 단일 링크 색인",
-            description = "특정 링크를 Elasticsearch에 색인합니다."
+            description = """
+                    특정 링크를 참조하는 모든 공개 UserLink를 Elasticsearch에 색인합니다.
+                    - 링크 정보 수정 시 재색인용
+                    """
     )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index/link")

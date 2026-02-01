@@ -30,12 +30,12 @@ public class LinkIndexingService {
     /**
      * 공개된 링크만 Elasticsearch에 색인
      * - user_links 테이블에서 is_public = true인 링크만 대상
-     * - 동일 Link를 여러 사용자가 공개한 경우 중복 제거
-     * - title과 aiSummary가 둘 다 있는 링크만 색인 (예외처리)
+     * - title과 aiSummary가 둘 다 있는 링크만 색인 (유효성 검증)
+     * - 검색 대상: title, aiSummary, why, memo 통합
      */
     @Transactional(readOnly = true)
     public void indexAllLinks() {
-        // 공개된 UserLink 전체 조회
+        // 1. 공개 설정된 UserLink 전체 조회
         List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrue();
         
         if (publicUserLinks.isEmpty()) {
@@ -43,7 +43,7 @@ public class LinkIndexingService {
             return;
         }
 
-        // title과 aiSummary가 있는 Link를 가진 UserLink만 필터링
+        // 2. title과 aiSummary가 모두 있는 UserLink만 필터링 (검색 품질 보장)
         List<UserLink> validUserLinks = publicUserLinks.stream()
                 .filter(ul -> hasValidContent(ul.getLink()))
                 .toList();
@@ -58,6 +58,7 @@ public class LinkIndexingService {
             return;
         }
 
+        // 3. Document 객체로 변환하여 Elasticsearch에 벌크 색인
         List<Document> documents = validUserLinks.stream()
                 .map(this::createDocument)
                 .collect(Collectors.toList());
@@ -68,9 +69,13 @@ public class LinkIndexingService {
 
     /**
      * 특정 링크를 가진 모든 공개 UserLink를 Elasticsearch에 색인
+     * - 신규 링크 추가 시 또는 링크 정보 수정 시 호출
+     * 
+     * @param linkId 색인할 링크 ID
      */
     @Transactional(readOnly = true)
     public void indexLink(Long linkId) {
+        // 1. 해당 링크를 참조하는 모든 공개 UserLink 조회
         List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrue()
                 .stream()
                 .filter(ul -> ul.getLink().getId().equals(linkId))
@@ -81,6 +86,7 @@ public class LinkIndexingService {
             return;
         }
 
+        // 2. 유효한 내용이 있는 UserLink만 색인 (title, aiSummary 필수)
         List<Document> documents = publicUserLinks.stream()
                 .filter(ul -> hasValidContent(ul.getLink()))
                 .map(this::createDocument)
@@ -91,22 +97,28 @@ public class LinkIndexingService {
             return;
         }
 
+        // 3. Elasticsearch에 색인 (upsert 동작)
         vectorStore.add(documents);
         log.info("Link ID {} 에 대한 {} 개의 UserLink 색인 완료", linkId, documents.size());
     }
 
     /**
-     * 단일 UserLink를 Elasticsearch에 색인 (why, memo 수정 시 호출용)
+     * 단일 UserLink를 Elasticsearch에 색인 또는 삭제
+     * - UserLink의 why, memo 수정 시 호출
+     * - 공개 상태 변경 시 색인 추가/삭제 처리
+     * 
+     * @param userLinkId 색인/삭제할 UserLink ID
      */
     @Transactional(readOnly = true)
     public void indexUserLink(Long userLinkId) {
         userLinkRepository.findById(userLinkId).ifPresent(ul -> {
+            // 공개 상태이고 유효한 내용이 있으면 인덱싱(추가/업데이트)
             if (Boolean.TRUE.equals(ul.getIsPublic()) && hasValidContent(ul.getLink())) {
                 Document document = createDocument(ul);
                 vectorStore.add(List.of(document));
                 log.info("UserLink 색인 완료 - ID: {}", userLinkId);
             } else {
-                // 비공개 전환 시 기존 문서 삭제
+                // 비공개로 전환되었거나 유효하지 않으면 Elasticsearch에서 삭제하여 검색 결과에서 제외
                 vectorStore.delete(List.of("ul-" + userLinkId));
                 log.info("UserLink 색인 삭제 (비공개 또는 유효하지 않음) - ID: {}", userLinkId);
             }
@@ -115,6 +127,10 @@ public class LinkIndexingService {
 
     /**
      * Link의 title과 aiSummary 유효성 검증
+     * - 두 필드 모두 필수 (검색 품질 보장)
+     * 
+     * @param link 검증할 Link 엔티티
+     * @return 유효 여부
      */
     private boolean hasValidContent(Link link) {
         return link.getTitle() != null && !link.getTitle().trim().isEmpty()
@@ -122,30 +138,38 @@ public class LinkIndexingService {
     }
 
     /**
-     * UserLink를 Document로 변환
-     * - 제목 + AI 요약 결합 (검색 대상)
-     * - 메타데이터: userId, linkId, userLinkId, url, title, aiSummary, thumbnailUrl 등
+     * UserLink를 Elasticsearch Document로 변환
+     * - 검색 대상(content): title + aiSummary + why + memo 통합
+     * - 메타데이터: userId, linkId, userLinkId, url, title 등 (응답 생성 시 사용)
+     * - Document ID: "ul-{userLinkId}" 형식으로 고유 식별
+     * 
+     * @param userLink 변환할 UserLink 엔티티
+     * @return Elasticsearch Document 객체
      */
     private Document createDocument(UserLink userLink) {
         Link link = userLink.getLink();
         
-        // 검색 대상: 제목 + AI요약 + why + memo 결합
+        // 1. 검색 대상 텍스트 구성
+        // - Link의 공통 정보(title, aiSummary)와 사용자별 정보(why, memo)를 통합
+        // - 벡터 임베딩 시 이 텍스트가 OpenAI API로 전송됨
         StringBuilder contentBuilder = new StringBuilder();
         contentBuilder.append(link.getTitle()).append(" ")
                      .append(link.getAiSummary());
         
+        // 사용자가 작성한 why(이유) 포함
         if (userLink.getWhy() != null && !userLink.getWhy().trim().isEmpty()) {
             contentBuilder.append(" ").append(userLink.getWhy());
         }
+        // 사용자가 작성한 memo(메모) 포함
         if (userLink.getMemo() != null && !userLink.getMemo().trim().isEmpty()) {
             contentBuilder.append(" ").append(userLink.getMemo());
         }
         
         String content = contentBuilder.toString();
         
-        // 메타데이터 설정
+        // 2. 메타데이터 설정 (검색 결과에서 응답 생성 시 사용)
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put("userId", userLink.getUser().getId());
+        metadata.put("userId", userLink.getUser().getId());  // Pre-filtering용
         metadata.put("linkId", link.getId());
         metadata.put("userLinkId", userLink.getId());
         metadata.put("url", link.getUrl());
@@ -155,7 +179,8 @@ public class LinkIndexingService {
         metadata.put("memo", userLink.getMemo() != null ? userLink.getMemo() : "");
         metadata.put("thumbnailUrl", link.getPreviewImageUrl() != null ? link.getPreviewImageUrl() : "");
 
-        // Document ID는 ul-{user_link_id} 형식으로 저장
+        // 3. Document 생성 (ID는 "ul-{userLinkId}" 형식)
+        // - 동일 ID로 재색인 시 upsert(업데이트) 동작
         return new Document("ul-" + userLink.getId(), content, metadata);
     }
 }

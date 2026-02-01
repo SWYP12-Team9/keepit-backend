@@ -13,6 +13,7 @@ public enum UserStatus {
     private final String title;
     private final String description;
 
+    // Lombok @RequiredArgsConstructor 미동작 방지를 위한 명시적 생성자 추가
     UserStatus(String title, String description) {
         this.title = title;
         this.description = description;
