@@ -122,12 +122,13 @@ public class LinkIndexingService {
 
     /**
      * UserLink를 Document로 변환
-     * - 제목 + AI 요약 + why + memo 결합
+     * - 제목 + AI 요약 결합 (검색 대상)
+     * - 메타데이터: userId, linkId, userLinkId, url, title, aiSummary, thumbnailUrl 등
      */
     private Document createDocument(UserLink userLink) {
         Link link = userLink.getLink();
         
-        // 검색 대상: 제목 + AI요약 + why + memo
+        // 검색 대상: 제목 + AI요약 + why + memo 결합
         StringBuilder contentBuilder = new StringBuilder();
         contentBuilder.append(link.getTitle()).append(" ")
                      .append(link.getAiSummary());
@@ -143,6 +144,7 @@ public class LinkIndexingService {
         
         // 메타데이터 설정
         Map<String, Object> metadata = new HashMap<>();
+        metadata.put("userId", userLink.getUser().getId());
         metadata.put("linkId", link.getId());
         metadata.put("userLinkId", userLink.getId());
         metadata.put("url", link.getUrl());

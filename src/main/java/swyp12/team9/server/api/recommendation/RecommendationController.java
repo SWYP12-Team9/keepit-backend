@@ -60,18 +60,23 @@ public class RecommendationController {
 
     @Operation(
             summary = "카테고리별 추천 콘텐츠 조회",
-            description = "카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다."
+            description = "카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다. '기타' 카테고리는 지원하지 않습니다."
     )
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
             @CurrentUserId(required = false) Long userId,
-            @Parameter(description = "카테고리명 (경제/시사, 뷰티/패션 등)", example = "경제/시사")
+            @Parameter(description = "카테고리명 (경제/시사, 뷰티/패션 등, '기타' 제외)", example = "경제/시사")
             @RequestParam @NotBlank String category,
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
-        LinkCategory.fromDisplayName(category)
+        LinkCategory linkCategory = LinkCategory.fromDisplayName(category)
                 .orElseThrow(InvalidCategoryException::new);
+        
+        // '기타' 카테고리는 추천 검색에서 제외 (오류 처리)
+        if (linkCategory == LinkCategory.ETC) {
+            throw new InvalidCategoryException("'기타' 카테고리는 추천 검색에 사용할 수 없습니다.");
+        }
 
         List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(userId, category,
                 size);
