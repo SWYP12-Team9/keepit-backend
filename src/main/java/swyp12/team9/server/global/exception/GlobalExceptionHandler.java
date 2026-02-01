@@ -57,6 +57,32 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @RequestParam, @PathVariable 검증 실패
+     * - @Validated가 붙은 클래스에서 발생
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    protected ResponseEntity<ErrorResponse> handleConstraintViolationException(
+            jakarta.validation.ConstraintViolationException e) {
+
+        log.error("[ConstraintViolationException] {}", e.getMessage());
+
+        java.util.List<ErrorResponse.FieldErrorResponse> errors = e.getConstraintViolations().stream()
+                .map(violation -> {
+                    String fieldPath = violation.getPropertyPath().toString();
+                    String fieldName = fieldPath.substring(fieldPath.lastIndexOf('.') + 1);
+
+                    return ErrorResponse.FieldErrorResponse.
+                            of(fieldName, violation.getMessage());
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode, errors));
+    }
+
+    /**
      * 파라미터 타입 불일치
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
