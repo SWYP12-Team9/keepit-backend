@@ -99,23 +99,12 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
 
     /**
      * 특정 사용자의 Link ID 목록만 조회 (중복 추천 방지용)
-     * - 추천 결과에서 이미 저장한 링크를 제외하기 위해 사용
-     * 
-     * @param userId 조회할 사용자 ID
-     * @return 해당 사용자가 저장한 모든 Link ID 목록
      */
     @Query("SELECT ul.link.id FROM UserLink ul WHERE ul.user.id = :userId")
     List<Long> findLinkIdsByUserId(@Param("userId") Long userId);
 
     /**
      * 키워드 기반 공개 UserLink 검색 (Elasticsearch Fallback용)
-     * - Elasticsearch 장애 시 DB에서 직접 검색
-     * - Link의 title, aiSummary 또는 UserLink의 why, memo에 키워드 포함 여부 확인
-     * - LIKE 검색으로 부분 일치 지원
-     * 
-     * @param keyword 검색 키워드
-     * @param pageable 페이징 정보 (정렬: id DESC)
-     * @return 키워드를 포함하는 공개 UserLink 목록
      */
     @Query("SELECT ul FROM UserLink ul " +
            "JOIN FETCH ul.link l " +
