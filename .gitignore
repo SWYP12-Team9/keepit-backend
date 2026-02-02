@@ -61,5 +61,4 @@ logs/
 ### Local Configuration ###
 src/main/resources/application-local.yaml
 README-LOCAL.md
-build.gradle
 
