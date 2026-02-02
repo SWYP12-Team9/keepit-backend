@@ -5,7 +5,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.exception.ErrorCode;
 
@@ -34,7 +39,7 @@ public class AuthController {
 
     @Operation(summary = "로그아웃", description = "Refresh 토큰을 무효화하여 로그아웃 처리")
     @ApiSpec(
-            status = HttpStatus.OK,
+            status = HttpStatus.NO_CONTENT,
             errors = {
                     ErrorCode.INVALID_TOKEN
             }
@@ -49,14 +54,14 @@ public class AuthController {
             summary = "소셜 로그인",
             description = """
                     소셜 로그인 페이지로 리다이렉트합니다.
-
+                    
                     **지원 provider:** naver, google, kakao
-
+                    
                     **흐름:**
                     1. 이 URL로 접근하면 소셜 로그인 페이지로 리다이렉트
                     2. 사용자가 소셜 로그인 완료
                     3. 콜백 URL로 리다이렉트되며 JWT 토큰 발급
-
+                    
                     **예시 URL:**
                     - 네이버: `/api/v1/oauth2/authorization/naver`
                     - 구글: `/api/v1/oauth2/authorization/google`

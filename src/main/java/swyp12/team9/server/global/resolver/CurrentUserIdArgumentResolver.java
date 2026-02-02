@@ -11,6 +11,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import swyp12.team9.server.global.security.CustomUserDetails;
 import swyp12.team9.server.global.annotation.CurrentUserId;
+import swyp12.team9.server.domain.auth.exception.UnauthorizedException;
 
 /**
  * @CurrentUserId 어노테이션을 처리하는 ArgumentResolver
@@ -47,7 +48,7 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
 
             if (required) {
                 // required=true: 예외 발생
-                throw new IllegalStateException("인증이 필요합니다.");
+                throw new UnauthorizedException("인증이 필요합니다.");
             } else {
                 // required=false: null 반환
                 return null;
@@ -63,7 +64,7 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
 
         // CustomUserDetails가 아닌 경우
         if (required) {
-            throw new IllegalStateException("사용자 정보를 찾을 수 없습니다.");
+            throw new UnauthorizedException("사용자 정보를 찾을 수 없습니다.");
         }
 
         return null;
