@@ -8,8 +8,5 @@ public class UserLinkAccessDeniedException extends BusinessException {
     public UserLinkAccessDeniedException() {
         super(ErrorCode.USER_LINK_ACCESS_DENIED);
     }
-
-    public UserLinkAccessDeniedException(String message) {
-        super(ErrorCode.USER_LINK_ACCESS_DENIED, message);
-    }
+    
 }

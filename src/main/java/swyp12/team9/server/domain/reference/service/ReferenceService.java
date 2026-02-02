@@ -1,5 +1,6 @@
 package swyp12.team9.server.domain.reference.service;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,8 +13,8 @@ import swyp12.team9.server.api.reference.dto.request.ReferenceUpdateRequest;
 import swyp12.team9.server.api.reference.dto.response.ReferenceListResponse;
 import swyp12.team9.server.api.reference.dto.response.ReferenceResponse;
 import swyp12.team9.server.domain.auth.exception.UnauthorizedException;
-import swyp12.team9.server.domain.reference.exception.ReferenceTitleDuplicateException;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
+import swyp12.team9.server.domain.reference.exception.ReferenceTitleDuplicateException;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
@@ -21,8 +22,6 @@ import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.global.util.PaginationUtils.Cursor.PageResponse;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -67,9 +66,7 @@ public class ReferenceService {
     }
 
     /**
-     * 레퍼런스 단건 조회
-     * - 공개 레퍼런스: 누구나 조회 가능
-     * - 비공개 레퍼런스: 소유자만 조회 가능
+     * 레퍼런스 단건 조회 - 공개 레퍼런스: 누구나 조회 가능 - 비공개 레퍼런스: 소유자만 조회 가능
      */
     public ReferenceResponse getReference(Long userId, Long referenceId) {
 
@@ -90,11 +87,11 @@ public class ReferenceService {
      * @param cursor 페이지 커서
      * @param size   페이지 크기
      */
-  public PageResponse<ReferenceListResponse> getReferences(Long userId,
-            ReferenceType type,
-            ReferenceSortType sortBy,
-            String cursor,
-            int size
+    public PageResponse<ReferenceListResponse> getReferences(Long userId,
+                                                             ReferenceType type,
+                                                             ReferenceSortType sortBy,
+                                                             String cursor,
+                                                             int size
     ) {
         ReferenceCursor referenceCursor = ReferenceCursor.from(cursor, sortBy);
 
@@ -149,8 +146,7 @@ public class ReferenceService {
     }
 
     /**
-     * 레퍼런스 삭제
-     * - 기본 미지정 폴더는 삭제 불가
+     * 레퍼런스 삭제 - 기본 미지정 폴더는 삭제 불가
      */
     @Transactional
     public void deleteReference(Long userId, Long referenceId) {
@@ -183,6 +179,36 @@ public class ReferenceService {
                 });
     }
 
+    /**
+     * 레퍼런스 생성 (엔티티 반환) - 다른 서비스에서 레퍼런스 생성 후 엔티티가 필요할 때 사용 - 예: UserLink 생성 시 새 레퍼런스 폴더를 함께 생성하는 경우
+     *
+     * @param userId    사용자 ID
+     * @param title     레퍼런스 제목
+     * @param colorCode 색상 코드 (null 가능)
+     * @return 생성된 Reference 엔티티
+     */
+    @Transactional
+    public Reference createReferenceEntity(Long userId, String title, String colorCode) {
+        User user = getUserById(userId);
+
+        validateDuplicateTitle(userId, title);
+
+        Reference reference = Reference.create(
+                user,
+                title,
+                null,  // description은 null로 설정
+                true, // 기본 : 공개
+                colorCode
+        );
+
+        Reference savedReference = referenceRepository.save(reference);
+
+        log.info("레퍼런스 생성 완료 (엔티티 반환) - userId: {}, referenceId: {}, title: {}",
+                userId, savedReference.getId(), title);
+
+        return savedReference;
+    }
+
     // 사용자 조회 메서드
     private User getUserById(Long userId) {
 
@@ -197,7 +223,7 @@ public class ReferenceService {
     // 레퍼런스 조회 메서드
     private Reference getReferenceById(Long referenceId) {
         return referenceRepository.findById(referenceId)
-                .orElseThrow(() -> new ReferenceNotFoundException("레퍼런스를 찾을 수 없습니다. ID: " + referenceId));
+                .orElseThrow(ReferenceNotFoundException::new);
     }
 
     private void validateReferenceAccess(Reference reference, Long userId) {

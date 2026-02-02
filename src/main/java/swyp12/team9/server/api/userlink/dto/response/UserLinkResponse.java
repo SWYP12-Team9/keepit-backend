@@ -6,9 +6,6 @@ import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Builder
 @Schema(description = "사용자 링크 응답 객체")
 public record UserLinkResponse(
@@ -16,8 +13,8 @@ public record UserLinkResponse(
         @Schema(description = "사용자 링크 ID", example = "1")
         Long id,
 
-        @Schema(description = "레퍼런스 정보 목록")
-        List<ReferenceInfo> references,
+        @Schema(description = "레퍼런스 정보")
+        ReferenceInfo reference,
 
         @Schema(description = "링크 제목", example = "디자인 패턴 가이드")
         String title,
@@ -43,17 +40,17 @@ public record UserLinkResponse(
 
     /**
      * UserLink 엔티티와 Reference 목록으로부터 응답 생성
-     * @param userLink UserLink 엔티티
-     * @param references Reference 목록
+     *
+     * @param userLink  UserLink 엔티티
+     * @param reference Reference 엔티티
      */
-    public static UserLinkResponse from(UserLink userLink, List<Reference> references) {
-        List<ReferenceInfo> referenceInfos = references.stream()
-                .map(ReferenceInfo::from)
-                .collect(Collectors.toList());
+    public static UserLinkResponse from(UserLink userLink, Reference reference) {
+
+        ReferenceInfo newReference = ReferenceInfo.from(reference);
 
         return UserLinkResponse.builder()
                 .id(userLink.getId())
-                .references(referenceInfos)
+                .reference(newReference)
                 .title(userLink.getLink().getTitle())
                 .url(userLink.getLink().getUrl())
                 .aiSummary(userLink.getLink().getAiSummary())
@@ -66,12 +63,13 @@ public record UserLinkResponse(
 
     /**
      * UserLink 엔티티로부터 응답 생성 (Reference 없음)
+     *
      * @param userLink UserLink 엔티티
      */
     public static UserLinkResponse from(UserLink userLink) {
         return UserLinkResponse.builder()
                 .id(userLink.getId())
-                .references(List.of())
+                .reference(null)
                 .title(userLink.getLink().getTitle())
                 .url(userLink.getLink().getUrl())
                 .aiSummary(userLink.getLink().getAiSummary())

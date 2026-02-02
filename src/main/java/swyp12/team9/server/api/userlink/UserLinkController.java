@@ -4,7 +4,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.api.userlink.dto.request.UserLinkCreateRequest;
 import swyp12.team9.server.api.userlink.dto.request.UserLinkUpdateRequest;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkListResponse;
@@ -40,7 +44,7 @@ public class UserLinkController implements UserLinkApi {
             @CurrentUserId(required = false) Long userId) {
 
         UserLinkResponse response = userLinkService.getUserLink(userId, userLinkId);
-        return ApiResponse.ok(response);
+        return ApiResponse.ok(response, "링크를 조회했습니다.");
     }
 
     // 사용자 링크 수정
@@ -62,16 +66,6 @@ public class UserLinkController implements UserLinkApi {
 
         userLinkService.deleteUserLink(userId, userLinkId);
         return ApiResponse.noContent();
-    }
-
-    // 사용자 링크 읽음 처리
-    @Override
-    public ApiResponse<UserLinkResponse> markAsRead(
-            @PathVariable Long userLinkId,
-            @CurrentUserId Long userId) {
-
-        UserLinkResponse response = userLinkService.markAsRead(userId, userLinkId);
-        return ApiResponse.ok(response, "링크를 읽음 처리했습니다.");
     }
 
     // 사용자 링크 목록 조회 (레퍼런스별)

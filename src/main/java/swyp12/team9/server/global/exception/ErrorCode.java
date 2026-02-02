@@ -45,6 +45,7 @@ public enum ErrorCode {
     REFERENCE_TITLE_DUPLICATE(HttpStatus.CONFLICT, "REF003", "이미 존재하는 레퍼런스 제목입니다"),
     REFERENCE_DEFAULT_NOT_MODIFIABLE(HttpStatus.BAD_REQUEST, "REF004", "기본 레퍼런스는 수정/삭제할 수 없습니다"),
     REFERENCE_DEFAULT_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "REF005", "기본 미지정 폴더는 삭제할 수 없습니다"),
+    REFERENCE_SELECTION_DUPLICATE(HttpStatus.BAD_REQUEST, "REF006", "폴더 지정 옵션은 하나만 선택할 수 있습니다"),
 
     // Image
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "IMG001", "이미지 업로드에 실패했습니다"),

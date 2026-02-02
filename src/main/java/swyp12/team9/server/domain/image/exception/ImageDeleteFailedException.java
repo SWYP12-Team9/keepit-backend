@@ -9,7 +9,4 @@ public class ImageDeleteFailedException extends BusinessException {
         super(ErrorCode.IMAGE_DELETE_FAILED);
     }
 
-    public ImageDeleteFailedException(String message) {
-        super(ErrorCode.IMAGE_DELETE_FAILED, message);
-    }
 }
