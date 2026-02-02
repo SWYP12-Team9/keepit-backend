@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,8 +22,10 @@ import swyp12.team9.server.domain.link.exception.InvalidCategoryException;
 import swyp12.team9.server.domain.link.model.LinkCategory;
 import swyp12.team9.server.domain.recommendation.service.LinkIndexingService;
 import swyp12.team9.server.domain.recommendation.service.RecommendationService;
+import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
+import swyp12.team9.server.global.exception.ErrorCode;
 
 @Tag(name = "Recommendation", description = "추천 콘텐츠 API (Elasticsearch 벡터 검색)")
 @Validated
@@ -37,6 +40,10 @@ public class RecommendationController {
     @Operation(
             summary = "카테고리 목록 조회",
             description = "탐색 탭에서 사용할 카테고리 목록을 반환합니다. (총 8개 카테고리)"
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {}
     )
     @GetMapping("/categories")
     public ApiResponse<List<String>> getCategories() {
@@ -76,6 +83,12 @@ public class RecommendationController {
                     - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
                     """
     )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR
+            }
+    )
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
             @CurrentUserId(required = false) Long userId,
@@ -106,6 +119,13 @@ public class RecommendationController {
                     - OpenAI API를 통해 임베딩 생성
                     """
     )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.ACCESS_DENIED
+            }
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index")
     public ApiResponse<String> indexAllLinks() {
@@ -119,6 +139,14 @@ public class RecommendationController {
                     특정 링크를 참조하는 모든 공개 UserLink를 Elasticsearch에 색인합니다.
                     - 링크 정보 수정 시 재색인용
                     """
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.ACCESS_DENIED,
+                    ErrorCode.LINK_NOT_FOUND
+            }
     )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index/link")

@@ -52,19 +52,18 @@ public class UserLink extends BaseEntity {
     private LocalDateTime lastOpenedAt;
 
     @Builder
-    public UserLink(User user, Link link, String why, Boolean isPublic, String memo) {
+    public UserLink(User user, Link link, String why, String memo) {
         this.user = user;
         this.link = link;
         this.status = LinkStatus.UNREAD;
         this.why = why;
-        this.isPublic = isPublic;
         this.memo = memo;
         this.viewCount = 0L;
+        this.isPublic = false;
     }
 
-    public void updateUserLink(String why, Boolean isPublic, String memo) {
+    public void updateUserLink(String why, String memo) {
         this.why = why;
-        this.isPublic = isPublic;
         this.memo = memo;
     }
 
@@ -82,16 +81,9 @@ public class UserLink extends BaseEntity {
         this.lastOpenedAt = LocalDateTime.now();
     }
 
-    public void updatePublicStatus(Boolean isPublic) {
-        this.isPublic = isPublic;
-    }
-
-    /**
-     * 소유자 검증
-     */
     public void validateOwner(Long userId) {
         if (!this.user.getId().equals(userId)) {
-            throw new UserLinkAccessDeniedException("해당 링크에 대한 권한이 없습니다.");
+            throw new UserLinkAccessDeniedException();
         }
     }
 }

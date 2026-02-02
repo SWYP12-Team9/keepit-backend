@@ -1,11 +1,10 @@
-package swyp12.team9.server.api.reference.dto;
+package swyp12.team9.server.api.reference.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "레퍼런스 수정 요청 객체")
-public record UpdateReferenceRequest(
+public record ReferenceUpdateRequest(
 
         @Schema(
                 description = "레퍼런스 제목",
@@ -27,7 +26,15 @@ public record UpdateReferenceRequest(
                 example = "true",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
-        Boolean isPublic
+        Boolean isPublic,
+
+        @Schema(
+                description = "레퍼런스 색상 코드(생략 시 기존값 유지)",
+                example = "#FF5733",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        @Size(max = 7, message = "색상 코드는 7자를 초과할 수 없습니다.")
+        String colorCode
 
 ) {
 }

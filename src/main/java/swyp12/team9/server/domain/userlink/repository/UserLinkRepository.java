@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserLinkRepository extends JpaRepository<UserLink, Long> {
+public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserLinkRepositoryCustom {
 
     // ========== 기본 조회 ==========
     /**

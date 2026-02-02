@@ -1,7 +1,10 @@
 package swyp12.team9.server.global.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.validation.BindException;
@@ -10,7 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import swyp12.team9.server.global.common.dto.ApiResponse;
+import swyp12.team9.server.global.common.dto.ErrorResponse;
 
 @Slf4j
 @RestControllerAdvice
@@ -21,54 +24,111 @@ public class GlobalExceptionHandler {
      * - 가장 먼저 잡아야 하는 커스텀 예외
      */
     @ExceptionHandler(BusinessException.class)
-    protected ApiResponse<Void> handleBusinessException(BusinessException e) {
+    protected ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
         log.error("[BusinessException] {}", e.getMessage());
-        return ApiResponse.error(e.getErrorCode());
+        ErrorCode errorCode = e.getErrorCode();
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
     /**
      * @Valid 검증 실패 (@RequestBody)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    protected ApiResponse<Void> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.error("[MethodArgumentNotValidException] {}", e.getMessage());
-        return ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE, e.getBindingResult());
+        ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode, e.getBindingResult()));
     }
 
     /**
      * @Validated 검증 실패 (@ModelAttribute)
      */
     @ExceptionHandler(BindException.class)
-    protected ApiResponse<Void> handleBindException(BindException e) {
+    protected ResponseEntity<ErrorResponse> handleBindException(BindException e) {
         log.error("[BindException] {}", e.getMessage());
-        return ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE, e.getBindingResult());
+        ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode, e.getBindingResult()));
+    }
+
+    /**
+     * @RequestParam, @PathVariable 검증 실패
+     * - @Validated가 붙은 클래스에서 발생
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    protected ResponseEntity<ErrorResponse> handleConstraintViolationException(
+            jakarta.validation.ConstraintViolationException e) {
+
+        log.error("[ConstraintViolationException] {}", e.getMessage());
+
+        java.util.List<ErrorResponse.FieldErrorResponse> errors = e.getConstraintViolations().stream()
+                .map(violation -> {
+                    String fieldPath = violation.getPropertyPath().toString();
+                    String fieldName = fieldPath.substring(fieldPath.lastIndexOf('.') + 1);
+
+                    return ErrorResponse.FieldErrorResponse.
+                            of(fieldName, violation.getMessage());
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode, errors));
     }
 
     /**
      * 파라미터 타입 불일치
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    protected ApiResponse<Void> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+    protected ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         log.error("[MethodArgumentTypeMismatchException] {}", e.getMessage());
-        return ApiResponse.error(ErrorCode.INVALID_TYPE_VALUE);
+        ErrorCode errorCode = ErrorCode.INVALID_TYPE_VALUE;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
+    }
+
+    /**
+     * 잘못된 JSON 형식 (JSON parse error)
+     * - 클라이언트가 JSON 바디를 잘못 보냈을 때
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    protected ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        log.error("[HttpMessageNotReadableException] 잘못된 JSON 형식입니다: {}", e.getMessage());
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
     /**
      * 지원하지 않는 HTTP Method 호출
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    protected ApiResponse<Void> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+    protected ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
         log.error("[HttpRequestMethodNotSupportedException] {}", e.getMessage());
-        return ApiResponse.error(ErrorCode.METHOD_NOT_ALLOWED);
+        ErrorCode errorCode = ErrorCode.METHOD_NOT_ALLOWED;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
     /**
      * Spring Security - 접근 권한 없음
      */
     @ExceptionHandler(AccessDeniedException.class)
-    public ApiResponse<Void> handleAccessDeniedException(AccessDeniedException e) {
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException e) {
         log.error("[AccessDeniedException] {}", e.getMessage());
-        return ApiResponse.error(ErrorCode.HANDLE_ACCESS_DENIED);
+        ErrorCode errorCode = ErrorCode.ACCESS_DENIED;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
     /**
@@ -79,10 +139,13 @@ public class GlobalExceptionHandler {
      * - CHECK 제약조건 위반
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    protected ApiResponse<Void> handleDataIntegrityViolationException(
+    protected ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
             DataIntegrityViolationException e) {
         log.error("[DataIntegrityViolationException] DB 제약조건 위반", e);
-        return ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE);
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
     /**
@@ -93,10 +156,13 @@ public class GlobalExceptionHandler {
      * - Redirect URI 불일치
      */
     @ExceptionHandler(OAuth2AuthenticationException.class)
-    protected ApiResponse<Void> handleOAuth2AuthenticationException(
+    protected ResponseEntity<ErrorResponse> handleOAuth2AuthenticationException(
             OAuth2AuthenticationException e) {
         log.error("[OAuth2AuthenticationException] OAuth 인증 실패: {}", e.getMessage());
-        return ApiResponse.error(ErrorCode.OAUTH_AUTHENTICATION_FAILED);
+        ErrorCode errorCode = ErrorCode.OAUTH_AUTHENTICATION_FAILED;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
 
@@ -104,14 +170,21 @@ public class GlobalExceptionHandler {
      * @CurrentUserId 인증 실패
      */
     @ExceptionHandler(IllegalStateException.class)
-    protected ApiResponse<Void> handleIllegalStateException(IllegalStateException e) {
-        log.error("[IllegalStateException] {}", e.getMessage());
+    protected ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
+        String errorMessage = e.getMessage() != null ? e.getMessage() : "알 수 없는 상태 오류";
+        log.error("[IllegalStateException] {}", errorMessage);
 
-        if (e.getMessage().contains("인증이 필요합니다")) {
-            return ApiResponse.error(ErrorCode.UNAUTHORIZED);
+        if (errorMessage.contains("인증이 필요합니다")) {
+            ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
+            return ResponseEntity
+                    .status(errorCode.getHttpStatus())
+                    .body(ErrorResponse.of(errorCode));
         }
 
-        return ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR);
+        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
     /**
@@ -119,9 +192,12 @@ public class GlobalExceptionHandler {
      * - RuntimeException 핸들러 제거하고 Exception만 유지
      */
     @ExceptionHandler(Exception.class)
-    protected ApiResponse<Void> handleException(Exception e) {
+    protected ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("[Exception]", e);
-        return ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR);
+        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
     }
 
 }

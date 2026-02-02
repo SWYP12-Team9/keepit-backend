@@ -1,4 +1,4 @@
-package swyp12.team9.server.api.reference.dto;
+package swyp12.team9.server.api.reference.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "레퍼런스 생성 요청 객체")
-public record CreateReferenceRequest(
+public record ReferenceCreateRequest(
 
         @Schema(
                 description = "레퍼런스 제목",
@@ -23,7 +23,11 @@ public record CreateReferenceRequest(
 
         @Schema(description = "레퍼런스 공개여부", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "공개여부는 필수입니다.")
-        Boolean isPublic
+        Boolean isPublic,
+
+        @Schema(description = "레퍼런스 색상 코드", example = "#FF5733")
+        @Size(max = 7, message = "색상 코드는 7자를 초과할 수 없습니다.")
+        String colorCode
 ) {
 
 }

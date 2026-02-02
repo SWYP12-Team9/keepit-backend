@@ -2,17 +2,12 @@ package swyp12.team9.server.api.auth;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import swyp12.team9.server.global.annotation.ApiSpec;
+import swyp12.team9.server.global.exception.ErrorCode;
 
 /**
  * 인증 API (Swagger 문서화 용도) 실제 로직은 Spring Security 필터에서 처리됩니다. - 로그인: LoginFilter - 로그아웃: LogoutFilter +
@@ -23,24 +18,27 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class AuthController {
 
-//    @Operation(summary = "로그인", description = "username, password로 로그인하여 JWT 토큰 발급")
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "로그인 성공",
-//                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
-//            @ApiResponse(responseCode = "401", description = "인증 실패 (잘못된 username 또는 password)")
-//    })
-//    @PostMapping("/auth/login")
-//    public void login(@RequestBody LoginRequest request) {
-//        // 실제 로직 없음 - LoginFilter가 처리
-//        // Swagger 문서화 목적
-//    }
+    @Operation(summary = "로그인", description = "username, password로 로그인하여 JWT 토큰 발급") // todo 박현제: 삭제 예정
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.INVALID_PASSWORD
+            }
+    )
+    @PostMapping("/auth/login")
+    public void login(@RequestBody LoginRequest request) {
+        // 실제 로직 없음 - LoginFilter가 처리
+        // Swagger 문서화 목적
+    }
 
     @Operation(summary = "로그아웃", description = "Refresh 토큰을 무효화하여 로그아웃 처리")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "로그아웃 성공",
-                    content = @Content(schema = @Schema(implementation = LogoutResponse.class))),
-            @ApiResponse(responseCode = "400", description = "유효하지 않은 Refresh 토큰")
-    })
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.INVALID_TOKEN
+            }
+    )
     @PostMapping("/auth/logout")
     public void logout(@RequestBody LogoutRequest request) {
         // 실제 로직 없음 - LogoutFilter + RefreshTokenLogoutHandler가 처리
@@ -51,25 +49,27 @@ public class AuthController {
             summary = "소셜 로그인",
             description = """
                     소셜 로그인 페이지로 리다이렉트합니다.
-                    
+
                     **지원 provider:** naver, google, kakao
-                    
+
                     **흐름:**
                     1. 이 URL로 접근하면 소셜 로그인 페이지로 리다이렉트
                     2. 사용자가 소셜 로그인 완료
                     3. 콜백 URL로 리다이렉트되며 JWT 토큰 발급
-                    
+
                     **예시 URL:**
                     - 네이버: `/api/v1/oauth2/authorization/naver`
                     - 구글: `/api/v1/oauth2/authorization/google`
                     - 카카오: `/api/v1/oauth2/authorization/kakao`
                     """
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "302", description = "소셜 로그인 페이지로 리다이렉트"),
-            @ApiResponse(responseCode = "200", description = "로그인 성공 (콜백 후 JWT 토큰 발급)",
-                    content = @Content(schema = @Schema(implementation = LoginResponse.class)))
-    })
+    @ApiSpec(
+            status = HttpStatus.FOUND,
+            errors = {
+                    ErrorCode.OAUTH_AUTHENTICATION_FAILED,
+                    ErrorCode.OAUTH_REDIRECT_MISMATCH
+            }
+    )
     @GetMapping("/oauth2/authorization/{provider}")
     public void socialLogin(
             @Parameter(description = "소셜 로그인 제공자", example = "kakao", schema = @Schema(allowableValues = {"naver",

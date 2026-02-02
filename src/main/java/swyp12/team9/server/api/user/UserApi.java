@@ -2,26 +2,24 @@ package swyp12.team9.server.api.user;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
+import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileUpdateResponse;
+import swyp12.team9.server.api.user.dto.response.UserResponse;
+import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.annotation.CurrentUserId;
+import swyp12.team9.server.global.common.dto.ApiResponse;
+import swyp12.team9.server.global.exception.ErrorCode;
 
 /**
  * User API 인터페이스 사용자 관리 관련 API 스펙을 정의합니다.
@@ -31,23 +29,22 @@ import swyp12.team9.server.global.annotation.CurrentUserId;
 public interface UserApi {
 
     // ==================== 회원가입/로그인 관련 ====================
-//    @Operation(
-//            summary = "회원가입",
-//            description = "새로운 사용자 등록 (자체 로그인)"
-//    )
-//    @ApiResponses(value = {
-//            @ApiResponse(
-//                    responseCode = "201",
-//                    description = "회원가입 성공",
-//                    content = @Content(schema = @Schema(implementation = UserResponse.class))
-//            ),
-//            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-//            @ApiResponse(responseCode = "409", description = "이메일 또는 아이디 중복")
-//    })
-//    @PostMapping(value = "/signup", consumes = MediaType.APPLICATION_JSON_VALUE)
-//    swyp12.team9.server.global.common.dto.ApiResponse<UserResponse> signup(
-//            @Validated(UserRequest.addGroup.class) @RequestBody UserRequest request
-//    );
+    @Operation(
+            summary = "회원가입",
+            description = "새로운 사용자 등록 (자체 로그인)"
+    )
+    @ApiSpec(
+            status = HttpStatus.CREATED,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR,
+                    ErrorCode.EMAIL_DUPLICATION,
+                    ErrorCode.USERNAME_DUPLICATE
+            }
+    )
+    @PostMapping(value = "/signup", consumes = MediaType.APPLICATION_JSON_VALUE)
+    ApiResponse<UserResponse> signup(
+            @Validated(UserRequest.addGroup.class) @RequestBody UserRequest request
+    );
 
     // ==================== 프로필 관련 ====================
 
@@ -56,18 +53,21 @@ public interface UserApi {
             description = "소셜 로그인 후 최초 프로필 정보 입력 (닉네임 필수, 나머지 선택)"
     )
     @SecurityRequirement(name = "AccessToken")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "프로필 완성 성공",
-                    content = @Content(schema = @Schema(implementation = ProfileCompleteResponse.class))
-            ),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 (이미 완성된 프로필 등)"),
-            @ApiResponse(responseCode = "401", description = "인증 실패"),
-            @ApiResponse(responseCode = "409", description = "닉네임 중복")
-    })
+    @ApiSpec(
+            status = HttpStatus.CREATED,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR,
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_NOT_FOUND,
+                    ErrorCode.PROFILE_ALREADY_COMPLETED,
+                    ErrorCode.NICKNAME_DUPLICATE,
+                    ErrorCode.IMAGE_UPLOAD_FAILED,
+                    ErrorCode.INVALID_IMAGE_FORMAT,
+                    ErrorCode.IMAGE_SIZE_EXCEED
+            }
+    )
     @PostMapping(value = "/profile/complete", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    swyp12.team9.server.global.common.dto.ApiResponse<ProfileCompleteResponse> completeProfile(
+    ApiResponse<ProfileCompleteResponse> completeProfile(
             @Parameter(hidden = true) @CurrentUserId Long userId,
             @Parameter(description = "프로필 정보 (JSON)", required = true)
             @Valid @RequestPart("profile") ProfileCompleteRequest request,
@@ -82,16 +82,15 @@ public interface UserApi {
             description = "로그인한 사용자의 프로필 조회"
     )
     @SecurityRequirement(name = "AccessToken")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = ProfileResponse.class))
-            ),
-            @ApiResponse(responseCode = "401", description = "인증 실패")
-    })
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_NOT_FOUND
+            }
+    )
     @GetMapping("/info")
-    swyp12.team9.server.global.common.dto.ApiResponse<ProfileResponse> getProfileInfo(
+    ApiResponse<ProfileResponse> getProfileInfo(
             @Parameter(hidden = true) @CurrentUserId Long userId
     );
 
@@ -100,18 +99,20 @@ public interface UserApi {
             description = "프로필 정보 및 이미지 수정"
     )
     @SecurityRequirement(name = "AccessToken")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "프로필 수정 성공",
-                    content = @Content(schema = @Schema(implementation = ProfileCompleteResponse.class))
-            ),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "401", description = "인증 실패"),
-            @ApiResponse(responseCode = "409", description = "닉네임 중복")
-    })
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR,
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_NOT_FOUND,
+                    ErrorCode.NICKNAME_DUPLICATE,
+                    ErrorCode.IMAGE_UPLOAD_FAILED,
+                    ErrorCode.INVALID_IMAGE_FORMAT,
+                    ErrorCode.IMAGE_SIZE_EXCEED
+            }
+    )
     @PatchMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    swyp12.team9.server.global.common.dto.ApiResponse<ProfileUpdateResponse> updateProfile(
+    ApiResponse<ProfileUpdateResponse> updateProfile(
             @Parameter(hidden = true) @CurrentUserId Long userId,
             @Parameter(description = "프로필 정보 (JSON)", required = true)
             @Valid @RequestPart("profile") ProfileCompleteRequest request,
@@ -126,12 +127,16 @@ public interface UserApi {
             description = "프로필 이미지만 삭제"
     )
     @SecurityRequirement(name = "AccessToken")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "삭제 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 실패")
-    })
+    @ApiSpec(
+            status = org.springframework.http.HttpStatus.NO_CONTENT,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_NOT_FOUND,
+                    ErrorCode.IMAGE_DELETE_FAILED
+            }
+    )
     @DeleteMapping("/profile/image")
-    swyp12.team9.server.global.common.dto.ApiResponse<Void> deleteProfileImage(
+    ApiResponse<Void> deleteProfileImage(
             @Parameter(hidden = true) @CurrentUserId Long userId
     );
 
@@ -140,12 +145,16 @@ public interface UserApi {
             description = "배경 이미지만 삭제"
     )
     @SecurityRequirement(name = "AccessToken")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "삭제 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 실패")
-    })
+    @ApiSpec(
+            status = HttpStatus.NO_CONTENT,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_NOT_FOUND,
+                    ErrorCode.IMAGE_DELETE_FAILED
+            }
+    )
     @DeleteMapping("/profile/background")
-    swyp12.team9.server.global.common.dto.ApiResponse<Void> deleteBackgroundImage(
+    ApiResponse<Void> deleteBackgroundImage(
             @Parameter(hidden = true) @CurrentUserId Long userId
     );
 
@@ -154,12 +163,15 @@ public interface UserApi {
             description = "로그인한 사용자의 계정 삭제"
     )
     @SecurityRequirement(name = "AccessToken")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "탈퇴 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 실패")
-    })
+    @ApiSpec(
+            status = HttpStatus.NO_CONTENT,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_NOT_FOUND
+            }
+    )
     @DeleteMapping
-    swyp12.team9.server.global.common.dto.ApiResponse<Void> deleteUser(
+    ApiResponse<Void> deleteUser(
             @Parameter(hidden = true) @CurrentUserId Long userId
     );
 }

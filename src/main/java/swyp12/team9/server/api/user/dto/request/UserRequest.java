@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.model.UserRole;
+import swyp12.team9.server.domain.user.model.UserStatus;
 
 @Schema(description = "사용자 요청 DTO")
 @Getter
@@ -38,6 +39,7 @@ public class UserRequest {
                 .password(encodedPassword) // 비밀번호 암호화
                 .isLock(false)
                 .isSocial(false)
+                .status(UserStatus.ACTIVE)
                 .roleType(UserRole.USER) // 우선 일반 유저로 가입
                 .nickname(nickname)
                 .email(email)
