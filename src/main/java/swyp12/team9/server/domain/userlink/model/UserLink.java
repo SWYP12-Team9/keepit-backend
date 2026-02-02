@@ -49,9 +49,6 @@ public class UserLink extends BaseEntity {
     @Column(name = "why", length = 500)
     private String why;
 
-    @Column(name = "is_public", nullable = false)
-    private Boolean isPublic;
-
     @Column(name = "memo", columnDefinition = "TEXT")
     private String memo;
 
@@ -72,7 +69,6 @@ public class UserLink extends BaseEntity {
         this.why = why;
         this.memo = memo;
         this.viewCount = 0L;
-        this.isPublic = false;
     }
 
     public void updateUserLink(String why, String memo) {
