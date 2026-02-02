@@ -67,10 +67,6 @@ public class Reference extends BaseEntity {
     }
 
     public static Reference create(User user, String title, String description, Boolean isPublic, String colorCode) {
-
-        validateTitle(title);
-        validateDescription(description);
-
         return Reference.builder()
                 .user(user)
                 .title(title)
@@ -96,15 +92,12 @@ public class Reference extends BaseEntity {
      * Reference 정보 수정 (개별 파라미터 사용)
      */
     public void update(String title, String description, Boolean isPublic, String colorCode) {
-
         // null이면 기존 값 유지
         if (title != null) {
-            validateTitle(title);
             this.title = title;
         }
 
         if (description != null) {
-            validateDescription(description);
             this.description = description;
         }
 
@@ -132,24 +125,6 @@ public class Reference extends BaseEntity {
     public void validateDeletable() {
         if (Boolean.TRUE.equals(this.isDefault)) {
             throw new ReferenceValidationException(ErrorCode.REFERENCE_DEFAULT_CANNOT_DELETE);
-        }
-    }
-
-    // 제목 검증
-    private static void validateTitle(String title) {
-
-        if (title == null || title.trim().isEmpty()) {
-            throw new ReferenceValidationException(ErrorCode.REFERENCE_TITLE_REQUIRED);
-        }
-        if (title.length() > 200) {
-        throw new ReferenceValidationException(ErrorCode.REFERENCE_TITLE_TOO_LONG);
-        }
-    }
-
-    // 설명 검증
-    private static void validateDescription(String description) {
-        if (description != null && description.length() > 500) {
-            throw new ReferenceValidationException(ErrorCode.REFERENCE_DESCRIPTION_TOO_LONG);
         }
     }
 }
