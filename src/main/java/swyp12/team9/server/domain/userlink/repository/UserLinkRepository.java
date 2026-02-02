@@ -31,8 +31,35 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
 
     /**
      * 공개 UserLink 목록 조회
+     * @deprecated UserLink의 isPublic 필드 삭제 예정. findAllByReferenceIsPublicTrue() 사용할 것
      */
+    @Deprecated
     List<UserLink> findByIsPublicTrue();
+
+    /**
+     * Reference가 공개된 UserLink 목록 조회
+     * - Reference 테이블의 is_public = true인 UserLink만 조회
+     * - ReferenceUserLink를 통해 연결된 Reference의 공개 여부로 판단
+     */
+    @Query("SELECT ul FROM UserLink ul " +
+           "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
+           "JOIN Reference r ON rul.reference.id = r.id " +
+           "WHERE r.isPublic = true")
+    List<UserLink> findAllByReferenceIsPublicTrue();
+
+    /**
+     * 특정 UserLink가 공개된 Reference에 속하는지 확인
+     * - 해당 UserLink와 연결된 Reference의 isPublic 값을 반환
+     * 
+     * @param userLinkId UserLink ID
+     * @return Reference가 공개되어 있으면 true, 아니면 false (연결이 없으면 false)
+     */
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+           "FROM UserLink ul " +
+           "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
+           "JOIN Reference r ON rul.reference.id = r.id " +
+           "WHERE ul.id = :userLinkId AND r.isPublic = true")
+    boolean isUserLinkInPublicReference(@Param("userLinkId") Long userLinkId);
 
     /**
      * 사용자 ID와 공개 여부로 조회
@@ -105,10 +132,13 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
 
     /**
      * 키워드 기반 공개 UserLink 검색 (Elasticsearch Fallback용)
+     * - Reference의 isPublic = true인 UserLink만 검색
      */
     @Query("SELECT ul FROM UserLink ul " +
            "JOIN FETCH ul.link l " +
-           "WHERE ul.isPublic = true " +
+           "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
+           "JOIN Reference r ON rul.reference.id = r.id " +
+           "WHERE r.isPublic = true " +
            "AND (l.title LIKE %:keyword% " +
            "OR l.aiSummary LIKE %:keyword% " +
            "OR ul.why LIKE %:keyword% " +

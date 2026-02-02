@@ -29,14 +29,14 @@ public class LinkIndexingService {
 
     /**
      * 공개된 링크만 Elasticsearch에 색인
-     * - user_links 테이블에서 is_public = true인 링크만 대상
+     * - Reference의 is_public = true인 UserLink만 대상
      * - title과 aiSummary가 둘 다 있는 링크만 색인 (유효성 검증)
      * - 검색 대상: title, aiSummary, why, memo 통합
      */
     @Transactional(readOnly = true)
     public void indexAllLinks() {
-        // 1. 공개 설정된 UserLink 전체 조회
-        List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrue();
+        // 1. Reference가 공개 설정된 UserLink 전체 조회
+        List<UserLink> publicUserLinks = userLinkRepository.findAllByReferenceIsPublicTrue();
         
         if (publicUserLinks.isEmpty()) {
             log.info("색인할 공개 UserLink가 없습니다.");
@@ -75,8 +75,8 @@ public class LinkIndexingService {
      */
     @Transactional(readOnly = true)
     public void indexLink(Long linkId) {
-        // 1. 해당 링크를 참조하는 모든 공개 UserLink 조회
-        List<UserLink> publicUserLinks = userLinkRepository.findByIsPublicTrue()
+        // 1. 해당 링크를 참조하는 모든 공개 UserLink 조회 (Reference 기준)
+        List<UserLink> publicUserLinks = userLinkRepository.findAllByReferenceIsPublicTrue()
                 .stream()
                 .filter(ul -> ul.getLink().getId().equals(linkId))
                 .toList();
@@ -105,22 +105,23 @@ public class LinkIndexingService {
     /**
      * 단일 UserLink를 Elasticsearch에 색인 또는 삭제
      * - UserLink의 why, memo 수정 시 호출
-     * - 공개 상태 변경 시 색인 추가/삭제 처리
+     * - Reference의 공개 상태 변경 시 색인 추가/삭제 처리
      * 
      * @param userLinkId 색인/삭제할 UserLink ID
      */
     @Transactional(readOnly = true)
     public void indexUserLink(Long userLinkId) {
         userLinkRepository.findById(userLinkId).ifPresent(ul -> {
-            // 공개 상태이고 유효한 내용이 있으면 인덱싱(추가/업데이트)
-            if (Boolean.TRUE.equals(ul.getIsPublic()) && hasValidContent(ul.getLink())) {
+            // Reference가 공개 상태이고 유효한 내용이 있으면 인덱싱(추가/업데이트)
+            boolean isPublic = userLinkRepository.isUserLinkInPublicReference(userLinkId);
+            if (isPublic && hasValidContent(ul.getLink())) {
                 Document document = createDocument(ul);
                 vectorStore.add(List.of(document));
                 log.info("UserLink 색인 완료 - ID: {}", userLinkId);
             } else {
-                // 비공개로 전환되었거나 유효하지 않으면 Elasticsearch에서 삭제하여 검색 결과에서 제외
+                // Reference가 비공개이거나 유효하지 않으면 Elasticsearch에서 삭제하여 검색 결과에서 제외
                 vectorStore.delete(List.of("ul-" + userLinkId));
-                log.info("UserLink 색인 삭제 (비공개 또는 유효하지 않음) - ID: {}", userLinkId);
+                log.info("UserLink 색인 삭제 (Reference 비공개 또는 유효하지 않음) - ID: {}", userLinkId);
             }
         });
     }
