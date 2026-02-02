@@ -54,13 +54,6 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
            "WHERE ul.id = :userLinkId AND r.isPublic = true")
     boolean isUserLinkInPublicReference(@Param("userLinkId") Long userLinkId);
 
-    /**
-     * 사용자 ID와 공개 여부로 조회
-     * @deprecated UserLink의 isPublic 필드 삭제 예정. Reference의 isPublic 사용 권장
-     */
-    @Deprecated
-    List<UserLink> findByUserIdAndIsPublic(Long userId, Boolean isPublic);
-
     // ========== 커서 페이징: 내 UserLink 전체 ==========
     /**
      * 사용자 UserLink 커서 페이징 (첫 페이지)
@@ -71,37 +64,6 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
      * 사용자 UserLink 커서 페이징 (다음 페이지)
      */
     List<UserLink> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long cursor, Pageable pageable);
-
-    // ========== 커서 페이징: 공개 UserLink ==========
-    /**
-     * 공개 UserLink 커서 페이징 (첫 페이지)
-     * @deprecated UserLink의 isPublic 필드 삭제 예정. Reference의 isPublic 사용 권장
-     */
-    @Deprecated
-    List<UserLink> findByIsPublicTrueOrderByIdDesc(Pageable pageable);
-
-    /**
-     * 공개 UserLink 커서 페이징 (다음 페이지)
-     * @deprecated UserLink의 isPublic 필드 삭제 예정. Reference의 isPublic 사용 권장
-     */
-    @Deprecated
-    List<UserLink> findByIsPublicTrueAndIdLessThanOrderByIdDesc(Long cursor, Pageable pageable);
-
-    // ========== 커서 페이징: 비공개 UserLink ==========
-    /**
-     * 특정 사용자의 비공개 UserLink 커서 페이징 (첫 페이지)
-     * @deprecated UserLink의 isPublic 필드 삭제 예정. Reference의 isPublic 사용 권장
-     */
-    @Deprecated
-    List<UserLink> findByUserIdAndIsPublicFalseOrderByIdDesc(Long userId, Pageable pageable);
-
-    /**
-     * 특정 사용자의 비공개 UserLink 커서 페이징 (다음 페이지)
-     * @deprecated UserLink의 isPublic 필드 삭제 예정. Reference의 isPublic 사용 권장
-     */
-    @Deprecated
-    List<UserLink> findByUserIdAndIsPublicFalseAndIdLessThanOrderByIdDesc(
-            Long userId, Long cursor, Pageable pageable);
 
     // ========== 읽음 상태별 조회 ==========
     /**
@@ -117,20 +79,6 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
             Long userId, swyp12.team9.server.domain.userlink.model.LinkStatus status, Long cursor, Pageable pageable);
 
     // ========== 추천 시스템용 ==========
-    /**
-     * 특정 Link의 공개 UserLink 중 가장 먼저 저장한 것 조회 (첫 발견자)
-     * @deprecated UserLink의 isPublic 필드 삭제 예정. Reference의 isPublic 사용 권장
-     */
-    @Deprecated
-    Optional<UserLink> findFirstByLink_IdAndIsPublicTrueOrderByCreatedAtAsc(Long linkId);
-
-    /**
-     * 여러 Link ID들에 대해 공개 UserLink 목록 조회 (첫 발견자들을 배치로 찾기 위함)
-     * @deprecated UserLink의 isPublic 필드 삭제 예정. Reference의 isPublic 사용 권장
-     */
-    @Deprecated
-    List<UserLink> findByLink_IdInAndIsPublicTrueOrderByCreatedAtAsc(List<Long> linkIds);
-
     /**
      * 특정 사용자의 Link ID 목록만 조회 (중복 추천 방지용)
      */
