@@ -128,25 +128,6 @@ public interface UserLinkApi {
             @CurrentUserId Long userId
     );
 
-    @Operation(
-            summary = "링크 게시물 열람(읽음) 처리",
-            description = "링크 게시물을 열람 상태로 변경하고 조회수를 증가시킵니다."
-    )
-    @ApiSpec(
-            status = HttpStatus.OK,
-            errors = {
-                    ErrorCode.UNAUTHORIZED,
-                    ErrorCode.USER_LINK_NOT_FOUND,
-                    ErrorCode.USER_LINK_ACCESS_DENIED
-            }
-    )
-    @PostMapping("/{userLinkId}/read")
-    ApiResponse<UserLinkResponse> markAsRead(
-            @Parameter(description = "사용자 링크 ID", required = true, example = "1")
-            @PathVariable Long userLinkId,
-            @CurrentUserId Long userId
-    );
-
     // 사용자 링크 목록 조회
     @Operation(
             summary = "링크 게시물 목록 조회(전체/카테고리별)",

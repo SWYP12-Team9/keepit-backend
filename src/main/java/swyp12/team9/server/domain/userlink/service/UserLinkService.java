@@ -133,8 +133,8 @@ public class UserLinkService {
         }
         userLink.validateOwner(userId);
 
-        // 조회수 증가
-        userLink.incrementViewCount();
+        // 읽음 처리(조회수 증가)
+        userLink.markAsRead();
         log.debug("조회수 증가 - userLinkId: {}, viewCount: {}", userLinkId, userLink.getViewCount());
 
         // UserLink에 연결된 Reference 조회 (단일)
@@ -212,28 +212,6 @@ public class UserLinkService {
         log.info("사용자 링크 삭제 완료 - userId: {}, userLinkId: {}", userId, userLinkId);
     }
 
-    /**
-     * 사용자 링크 읽음 처리
-     */
-    @Transactional
-    public UserLinkResponse markAsRead(Long userId, Long userLinkId) {
-        UserLink userLink = getUserLinkById(userLinkId);
-
-        // 소유자 검증
-        userLink.validateOwner(userId);
-
-        userLink.markAsRead();
-
-        // UserLink에 연결된 Reference 조회 (단일)
-        Reference reference = referenceUserLinkRepository.findByUserLinkId(userLinkId).stream()
-                .map(ReferenceUserLink::getReference)
-                .findFirst()
-                .orElse(null);
-
-        log.info("사용자 링크 읽음 처리 완료 - userId: {}, userLinkId: {}", userId, userLinkId);
-
-        return UserLinkResponse.from(userLink, reference);
-    }
 
     /**
      * 사용자 링크 목록 조회 (커서 페이징)
