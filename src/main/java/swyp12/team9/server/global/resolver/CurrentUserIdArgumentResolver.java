@@ -47,7 +47,7 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
 
             if (required) {
                 // required=true: 예외 발생
-                throw new UnauthorizedException("인증이 필요합니다.");
+                throw new UnauthorizedException();
             } else {
                 // required=false: null 반환
                 return null;
@@ -63,7 +63,7 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
 
         // CustomUserDetails가 아닌 경우
         if (required) {
-            throw new UserNotFoundException("사용자 정보를 찾을 수 없습니다.");
+            throw new UserNotFoundException();
         }
 
         return null;
