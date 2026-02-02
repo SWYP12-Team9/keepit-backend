@@ -28,6 +28,8 @@ import swyp12.team9.server.domain.jwt.service.JwtService;
 import swyp12.team9.server.domain.user.model.UserRole;
 import swyp12.team9.server.global.filter.JwtFilter;
 import swyp12.team9.server.global.filter.LoginFilter;
+import swyp12.team9.server.global.handler.CustomAccessDeniedHandler;
+import swyp12.team9.server.global.handler.CustomAuthenticationEntryPoint;
 import swyp12.team9.server.global.handler.RefreshTokenLogoutHandler;
 
 import java.util.Arrays;
@@ -42,6 +44,8 @@ public class SecurityConfig {
     private final AuthenticationSuccessHandler loginSuccessHandler;
     private final AuthenticationSuccessHandler socialSuccessHandler;
     private final JwtService jwtService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOrigins;
@@ -50,11 +54,15 @@ public class SecurityConfig {
             AuthenticationConfiguration authenticationConfiguration,
             @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
             @Qualifier("SocialSuccessHandler") AuthenticationSuccessHandler socialSuccessHandler,
-            JwtService jwtService) {
+            JwtService jwtService,
+            CustomAuthenticationEntryPoint authenticationEntryPoint,
+            CustomAccessDeniedHandler accessDeniedHandler) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.loginSuccessHandler = loginSuccessHandler;
         this.socialSuccessHandler = socialSuccessHandler;
         this.jwtService = jwtService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     // CORS 설정
@@ -176,25 +184,11 @@ public class SecurityConfig {
                             response.getWriter().write("{\"message\": \"로그아웃 성공\"}");
                         }));
 
-        // 예외 처리 (JSON 응답)
+        // 예외 처리 (ErrorCode 기반 JSON 응답)
         http
                 .exceptionHandling(e -> e
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write(
-                                    "{\"status\": 401, \"message\": \"인증이 필요합니다.\"}"
-                            );
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write(
-                                    "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"
-                            );
-                        })
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 );
 
         // 커스텀 필터 추가

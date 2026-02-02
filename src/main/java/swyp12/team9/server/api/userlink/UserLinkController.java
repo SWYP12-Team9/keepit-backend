@@ -3,6 +3,7 @@ package swyp12.team9.server.api.userlink;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import swyp12.team9.server.api.userlink.dto.request.UserLinkCreateRequest;
 import swyp12.team9.server.api.userlink.dto.request.UserLinkUpdateRequest;
@@ -14,6 +15,7 @@ import swyp12.team9.server.global.common.dto.ApiResponse;
 import swyp12.team9.server.global.util.PaginationUtils;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/v1/user-links")
 @RequiredArgsConstructor
