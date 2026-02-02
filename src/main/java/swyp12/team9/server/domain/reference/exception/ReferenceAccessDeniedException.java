@@ -5,8 +5,8 @@ import swyp12.team9.server.global.exception.ErrorCode;
 
 public class ReferenceAccessDeniedException extends BusinessException {
 
-    public ReferenceAccessDeniedException() { super(ErrorCode.REFERENCE_ACCESS_DENIED);}
-
-    public ReferenceAccessDeniedException(String message) { super(ErrorCode.REFERENCE_ACCESS_DENIED, message); }
+    public ReferenceAccessDeniedException() {
+        super(ErrorCode.REFERENCE_ACCESS_DENIED);
+    }
 
 }

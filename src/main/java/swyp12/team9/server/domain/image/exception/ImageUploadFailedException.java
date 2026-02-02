@@ -9,7 +9,4 @@ public class ImageUploadFailedException extends BusinessException {
         super(ErrorCode.IMAGE_UPLOAD_FAILED);
     }
 
-    public ImageUploadFailedException(String message) {
-        super(ErrorCode.IMAGE_UPLOAD_FAILED, message);
-    }
 }

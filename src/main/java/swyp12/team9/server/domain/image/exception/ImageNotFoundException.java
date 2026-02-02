@@ -9,7 +9,4 @@ public class ImageNotFoundException extends BusinessException {
         super(ErrorCode.IMAGE_NOT_FOUND);
     }
 
-    public ImageNotFoundException(String message) {
-        super(ErrorCode.IMAGE_NOT_FOUND, message);
-    }
 }

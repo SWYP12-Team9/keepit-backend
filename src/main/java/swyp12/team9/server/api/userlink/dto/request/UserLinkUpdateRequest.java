@@ -3,8 +3,6 @@ package swyp12.team9.server.api.userlink.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 
-import java.util.List;
-
 @Schema(description = "사용자 링크 수정 요청 객체")
 public record UserLinkUpdateRequest(
 
@@ -24,10 +22,17 @@ public record UserLinkUpdateRequest(
         String memo,
 
         @Schema(
-                description = "레퍼런스 폴더 ID 목록 (생략 시 기존값 유지, null 또는 빈 배열이면 미지정 폴더로 이동)",
-                example = "[1, 2, 3]",
+                description = "레퍼런스 폴더 ID (생략 시 기존값 유지, moveToDefault와 상호 배타적)",
+                example = "1",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
-        List<Long> referenceIds
+        Long referenceId,
+
+        @Schema(
+                description = "미지정 폴더로 이동 여부 (true면 미지정 폴더로 이동, referenceId와 상호 배타적)",
+                example = "false",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        Boolean moveToDefault
 ) {
 }
