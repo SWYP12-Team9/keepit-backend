@@ -1,13 +1,26 @@
 package swyp12.team9.server.domain.userlink.model;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedException;
 import swyp12.team9.server.global.common.entity.BaseEntity;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_links")
@@ -74,11 +87,6 @@ public class UserLink extends BaseEntity {
         }
         this.lastOpenedAt = LocalDateTime.now();
         this.viewCount++;
-    }
-
-    public void incrementViewCount() {
-        this.viewCount++;
-        this.lastOpenedAt = LocalDateTime.now();
     }
 
     public void validateOwner(Long userId) {

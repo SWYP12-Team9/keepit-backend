@@ -167,27 +167,6 @@ public class GlobalExceptionHandler {
 
 
     /**
-     * @CurrentUserId 인증 실패
-     */
-    @ExceptionHandler(IllegalStateException.class)
-    protected ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
-        String errorMessage = e.getMessage() != null ? e.getMessage() : "알 수 없는 상태 오류";
-        log.error("[IllegalStateException] {}", errorMessage);
-
-        if (errorMessage.contains("인증이 필요합니다")) {
-            ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
-            return ResponseEntity
-                    .status(errorCode.getHttpStatus())
-                    .body(ErrorResponse.of(errorCode));
-        }
-
-        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
-        return ResponseEntity
-                .status(errorCode.getHttpStatus())
-                .body(ErrorResponse.of(errorCode));
-    }
-
-    /**
      * 최종 안전망 - 예상하지 못한 모든 예외
      * - RuntimeException 핸들러 제거하고 Exception만 유지
      */

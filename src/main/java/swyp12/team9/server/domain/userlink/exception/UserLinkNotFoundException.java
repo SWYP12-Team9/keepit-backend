@@ -9,7 +9,4 @@ public class UserLinkNotFoundException extends BusinessException {
         super(ErrorCode.USER_LINK_NOT_FOUND);
     }
 
-    public UserLinkNotFoundException(String message) {
-        super(ErrorCode.USER_LINK_NOT_FOUND, message);
-    }
 }
