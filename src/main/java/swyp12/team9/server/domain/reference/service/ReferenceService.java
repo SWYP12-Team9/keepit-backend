@@ -183,6 +183,38 @@ public class ReferenceService {
                 });
     }
 
+    /**
+     * 레퍼런스 생성 (엔티티 반환)
+     * - 다른 서비스에서 레퍼런스 생성 후 엔티티가 필요할 때 사용
+     * - 예: UserLink 생성 시 새 레퍼런스 폴더를 함께 생성하는 경우
+     *
+     * @param userId 사용자 ID
+     * @param title 레퍼런스 제목
+     * @param colorCode 색상 코드 (null 가능)
+     * @return 생성된 Reference 엔티티
+     */
+    @Transactional
+    public Reference createReferenceEntity(Long userId, String title, String colorCode) {
+        User user = getUserById(userId);
+
+        validateDuplicateTitle(userId, title);
+
+        Reference reference = Reference.create(
+                user,
+                title,
+                null,  // description은 null로 설정
+                true, // 기본 : 공개
+                colorCode
+        );
+
+        Reference savedReference = referenceRepository.save(reference);
+
+        log.info("레퍼런스 생성 완료 (엔티티 반환) - userId: {}, referenceId: {}, title: {}",
+                userId, savedReference.getId(), title);
+
+        return savedReference;
+    }
+
     // 사용자 조회 메서드
     private User getUserById(Long userId) {
 
