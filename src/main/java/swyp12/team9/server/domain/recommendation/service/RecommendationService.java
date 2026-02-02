@@ -96,6 +96,20 @@ public class RecommendationService {
     }
 
     /**
+     * 최신 공개 링크 목록 조회 ('기타' 카테고리용)
+     * - 카테고리가 명확하지 않은 다양한 주제의 링크를 최신순으로 제공
+     * - 현재 사용자가 이미 저장한 링크는 제외
+     *
+     * @param userId 현재 로그인한 사용자 ID (null 가능)
+     * @param size   가져올 링크 수
+     * @return 최신 공개 링크 목록
+     */
+    public List<RecommendationResponse> getRecentPublicLinks(Long userId, int size) {
+        // 빈 키워드로 fallback 메서드를 활용 (최신순 정렬)
+        return fallbackGetRecentLinks(userId, "", size);
+    }
+
+    /**
      * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
      * - 현재 사용자가 이미 저장한 링크는 제외 (Pre-filtering)
      * - Elasticsearch 장애 시 DB fallback 처리

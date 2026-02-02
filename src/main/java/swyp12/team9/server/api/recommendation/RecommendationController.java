@@ -100,13 +100,14 @@ public class RecommendationController {
         LinkCategory linkCategory = LinkCategory.fromDisplayName(category)
                 .orElseThrow(InvalidCategoryException::new);
         
-        // '기타' 카테고리는 추천 검색에서 제외 (오류 처리)
+        // '기타' 카테고리는 최신 공개 링크로 처리 (벡터 검색 대신 최신순)
+        List<RecommendationResponse> recommendations;
         if (linkCategory == LinkCategory.ETC) {
-            throw new InvalidCategoryException("'기타' 카테고리는 추천 검색에 사용할 수 없습니다.");
+            recommendations = recommendationService.getRecentPublicLinks(userId, size);
+        } else {
+            recommendations = recommendationService.getRecommendationsByCategory(userId, category, size);
         }
-
-        List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(userId, category,
-                size);
+        
         return ApiResponse.ok(recommendations);
     }
 
