@@ -60,6 +60,12 @@ public class RecommendationController {
                     - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
                     """
     )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR
+            }
+    )
     @GetMapping("/search")
     public ApiResponse<List<RecommendationResponse>> searchByKeyword(
             @CurrentUserId(required = false) Long userId,
@@ -86,7 +92,8 @@ public class RecommendationController {
     @ApiSpec(
             status = HttpStatus.OK,
             errors = {
-                    ErrorCode.VALIDATION_ERROR
+                    ErrorCode.VALIDATION_ERROR,
+                    ErrorCode.INVALID_CATEGORY
             }
     )
     @GetMapping
