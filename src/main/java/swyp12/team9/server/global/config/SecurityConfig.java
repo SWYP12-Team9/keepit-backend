@@ -179,8 +179,6 @@ public class SecurityConfig {
                         .addLogoutHandler(new RefreshTokenLogoutHandler(jwtService))
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_NO_CONTENT);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
                         }));
 
         // 예외 처리 (ErrorCode 기반 JSON 응답)
