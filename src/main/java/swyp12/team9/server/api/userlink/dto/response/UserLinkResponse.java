@@ -13,8 +13,8 @@ public record UserLinkResponse(
         @Schema(description = "사용자 링크 ID", example = "1")
         Long id,
 
-        @Schema(description = "레퍼런스 정보 목록")
-        ReferenceInfo referenceInfo,
+        @Schema(description = "레퍼런스 정보")
+        ReferenceInfo reference,
 
         @Schema(description = "링크 제목", example = "디자인 패턴 가이드")
         String title,
@@ -46,11 +46,11 @@ public record UserLinkResponse(
      */
     public static UserLinkResponse from(UserLink userLink, Reference reference) {
 
-        ReferenceInfo referenceInfo = ReferenceInfo.from(reference);
+        ReferenceInfo newReference = ReferenceInfo.from(reference);
 
         return UserLinkResponse.builder()
                 .id(userLink.getId())
-                .referenceInfo(referenceInfo)
+                .reference(newReference)
                 .title(userLink.getLink().getTitle())
                 .url(userLink.getLink().getUrl())
                 .aiSummary(userLink.getLink().getAiSummary())
@@ -69,7 +69,7 @@ public record UserLinkResponse(
     public static UserLinkResponse from(UserLink userLink) {
         return UserLinkResponse.builder()
                 .id(userLink.getId())
-                .referenceInfo(null)
+                .reference(null)
                 .title(userLink.getLink().getTitle())
                 .url(userLink.getLink().getUrl())
                 .aiSummary(userLink.getLink().getAiSummary())

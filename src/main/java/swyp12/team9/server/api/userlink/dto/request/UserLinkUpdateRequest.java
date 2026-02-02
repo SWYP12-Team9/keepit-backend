@@ -22,7 +22,7 @@ public record UserLinkUpdateRequest(
         String memo,
 
         @Schema(
-                description = "레퍼런스 폴더 ID (생략 시 기존값 유지, 빈 문자열이면 미지정 폴더로 이동)",
+                description = "레퍼런스 폴더 ID (생략 시 기존값 유지, null이면 미지정 폴더로 이동)",
                 example = "1",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
