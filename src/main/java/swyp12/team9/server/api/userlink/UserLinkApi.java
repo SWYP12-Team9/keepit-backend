@@ -31,7 +31,6 @@ import swyp12.team9.server.global.util.PaginationUtils;
 @Tag(name = "UserLink", description = "사용자 링크 관리 API")
 @RequestMapping("/api/v1/user-links")
 public interface UserLinkApi {
-
     @Operation(
             summary = "링크 게시물 생성",
             description = """
@@ -57,6 +56,7 @@ public interface UserLinkApi {
                     ErrorCode.USER_NOT_FOUND,
                     ErrorCode.REFERENCE_NOT_FOUND,
                     ErrorCode.REFERENCE_TITLE_DUPLICATE,
+                    ErrorCode.REFERENCE_SELECTION_DUPLICATE,
                     ErrorCode.LINK_INVALID_URL,
                     ErrorCode.USER_LINK_DUPLICATE,
                     ErrorCode.LINK_SCRAPING_SERVER_ERROR,
@@ -68,6 +68,7 @@ public interface UserLinkApi {
             @Valid @RequestBody UserLinkCreateRequest request,
             @CurrentUserId Long userId
     );
+
 
     @Operation(
             summary = "링크 게시물 단건 조회",
@@ -89,7 +90,16 @@ public interface UserLinkApi {
 
     @Operation(
             summary = "링크 게시물 수정",
-            description = "링크 정보를 부분 수정합니다. 전달된 필드만 수정되며, 소유자만 수정 가능합니다."
+            description = """
+                    링크 정보를 부분 수정합니다. 전달된 필드만 수정되며, 소유자만 수정 가능합니다.
+
+                    **레퍼런스 폴더 변경 방법**
+                    1. 특정 폴더로 이동: `referenceId`에 폴더 ID 전달
+                    2. 미지정 폴더로 이동: `moveToDefault`를 true로 설정
+                    3. 기존 폴더 유지: 둘 다 생략
+
+                    ⚠️ `referenceId`와 `moveToDefault`는 동시에 사용할 수 없습니다.
+                    """
     )
     @ApiSpec(
             status = HttpStatus.OK,
@@ -98,7 +108,8 @@ public interface UserLinkApi {
                     ErrorCode.UNAUTHORIZED,
                     ErrorCode.USER_LINK_NOT_FOUND,
                     ErrorCode.USER_LINK_ACCESS_DENIED,
-                    ErrorCode.REFERENCE_NOT_FOUND
+                    ErrorCode.REFERENCE_NOT_FOUND,
+                    ErrorCode.REFERENCE_SELECTION_DUPLICATE
             }
     )
     @PatchMapping("/{userLinkId}")

@@ -22,10 +22,17 @@ public record UserLinkUpdateRequest(
         String memo,
 
         @Schema(
-                description = "레퍼런스 폴더 ID (생략 시 기존값 유지, null이면 미지정 폴더로 이동)",
+                description = "레퍼런스 폴더 ID (생략 시 기존값 유지, moveToDefault와 상호 배타적)",
                 example = "1",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
-        Long referenceId
+        Long referenceId,
+
+        @Schema(
+                description = "미지정 폴더로 이동 여부 (true면 미지정 폴더로 이동, referenceId와 상호 배타적)",
+                example = "false",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        Boolean moveToDefault
 ) {
 }

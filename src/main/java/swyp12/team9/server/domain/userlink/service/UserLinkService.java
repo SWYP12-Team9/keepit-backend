@@ -45,8 +45,8 @@ public class UserLinkService {
     private final ReferenceService referenceService;
 
     /**
-     * 사용자 링크 생성 - 중복 체크를 먼저 수행한 후 Link 생성 - LinkService를 통해 Link 스크래핑 로직 처리 - referenceId와 newReference는 상호 배타적 (둘 중
-     * 하나만 선택) - 둘 다 null이면 기본 미지정 폴더에 자동 분류
+     * 사용자 링크 생성 - 중복 체크를 먼저 수행한 후 Link 생성 - LinkService를 통해 Link 스크래핑 로직 처리 referenceId와 newReference는 둘 중 하나만 선택 둘 다
+     * null이면 기본 미지정 폴더에 자동 분류
      */
     @Transactional
     public UserLinkResponse createUserLink(Long userId, UserLinkCreateRequest request) {
@@ -87,7 +87,7 @@ public class UserLinkService {
 
         UserLink savedUserLink = userLinkRepository.save(userLink);
 
-        // ReferenceUserLink 생성 (상호 배타적: 기존 폴더 OR 새 폴더 OR 미지정)
+        // ReferenceUserLink 생성 (기존 폴더 OR 새 폴더 OR 미지정)
         Reference reference;
 
         if (hasReferenceId) {
@@ -148,7 +148,10 @@ public class UserLinkService {
     }
 
     /**
-     * 사용자 링크 수정 - referenceId가 제공되면 기존 ReferenceUserLink를 삭제하고 새로 생성
+     * 사용자 링크 수정
+     * - referenceId가 제공되면 해당 폴더로 이동
+     * - moveToDefault가 true면 미지정 폴더로 이동
+     * - 둘 다 없으면 기존 폴더 유지
      */
     @Transactional
     public UserLinkResponse updateUserLink(Long userId, Long userLinkId, UserLinkUpdateRequest request) {
@@ -157,31 +160,46 @@ public class UserLinkService {
         // 소유자 검증
         userLink.validateOwner(userId);
 
+        // referenceId와 moveToDefault 동시 사용 검증
+        if (request.referenceId() != null && Boolean.TRUE.equals(request.moveToDefault())) {
+            throw new ReferenceSelectionDuplicateException();
+        }
+
         // 수정 (null이면 기존값 유지)
         userLink.updateUserLink(
                 request.why() != null ? request.why() : userLink.getWhy(),
                 request.memo() != null ? request.memo() : userLink.getMemo()
         );
 
-        // Reference 처리 (referenceId가 제공된 경우에만)
+        // Reference 처리
         Reference reference;
-        if (request.referenceId() != null) {
-            // 기존 ReferenceUserLink 삭제
+        if (Boolean.TRUE.equals(request.moveToDefault())) {
+            // 1. 미지정 폴더로 이동
             referenceUserLinkRepository.deleteByUserLinkId(userLinkId);
 
-            // 새로운 Reference 결정
-            // referenceId로 Reference 조회 및 검증
+            reference = referenceService.getOrCreateDefaultReference(userId);
+
+            ReferenceUserLink referenceUserLink = ReferenceUserLink.builder()
+                    .reference(reference)
+                    .userLink(userLink)
+                    .build();
+            referenceUserLinkRepository.save(referenceUserLink);
+
+            log.info("사용자 링크 미지정 폴더로 이동 - userId: {}, userLinkId: {}", userId, userLinkId);
+        } else if (request.referenceId() != null) {
+            // 2. 지정된 폴더로 이동
+            referenceUserLinkRepository.deleteByUserLinkId(userLinkId);
+
             reference = getReferenceById(request.referenceId());
             reference.validateOwner(userId);
 
-            // ReferenceUserLink 엔티티 생성 및 저장
             ReferenceUserLink referenceUserLink = ReferenceUserLink.builder()
                     .reference(reference)
                     .userLink(userLink)
                     .build();
             referenceUserLinkRepository.save(referenceUserLink);
         } else {
-            // referenceId가 null이면 기존 Reference 유지
+            // 3. 기존 폴더 유지
             reference = referenceUserLinkRepository.findByUserLinkId(userLinkId).stream()
                     .map(ReferenceUserLink::getReference)
                     .findFirst()
