@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 @Getter
+@RequiredArgsConstructor
 public enum ErrorCode {
 
     // Common
@@ -74,13 +75,6 @@ public enum ErrorCode {
     private final HttpStatus httpStatus;
     private final String code;
     private final String message;
-
-    // Lombok @RequiredArgsConstructor 미동작 방지를 위한 명시적 생성자 추가
-    ErrorCode(HttpStatus httpStatus, String code, String message) {
-        this.httpStatus = httpStatus;
-        this.code = code;
-        this.message = message;
-    }
 
     public int getStatus() {
         return httpStatus.value();
