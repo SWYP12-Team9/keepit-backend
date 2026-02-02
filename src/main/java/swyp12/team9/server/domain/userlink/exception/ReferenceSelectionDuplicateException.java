@@ -9,7 +9,4 @@ public class ReferenceSelectionDuplicateException extends BusinessException {
         super(ErrorCode.REFERENCE_SELECTION_DUPLICATE);
     }
 
-    public ReferenceSelectionDuplicateException(String message) {
-        super(ErrorCode.REFERENCE_SELECTION_DUPLICATE, message);
-    }
 }

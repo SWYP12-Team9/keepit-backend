@@ -9,7 +9,4 @@ public class ReferenceTitleDuplicateException extends BusinessException {
         super(ErrorCode.REFERENCE_TITLE_DUPLICATE);
     }
 
-    public ReferenceTitleDuplicateException(String message) {
-        super(ErrorCode.REFERENCE_TITLE_DUPLICATE, message);
-    }
 }

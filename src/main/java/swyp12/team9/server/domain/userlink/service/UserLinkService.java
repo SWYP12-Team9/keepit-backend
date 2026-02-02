@@ -57,7 +57,7 @@ public class UserLinkService {
         boolean hasNewReference = request.newReference() != null && request.newReference().title() != null;
 
         if (hasReferenceId && hasNewReference) {
-            throw new ReferenceSelectionDuplicateException("기존 폴더 선택과 새 폴더 생성은 동시에 사용할 수 없습니다.");
+            throw new ReferenceSelectionDuplicateException();
         }
 
         // URL로 기존 Link 조회
@@ -130,7 +130,7 @@ public class UserLinkService {
 
         // 소유자 검증
         if (userId == null) {
-            throw new UserLinkAccessDeniedException("링크 조회는 로그인이 필요합니다.");
+            throw new UserLinkAccessDeniedException();
         }
         userLink.validateOwner(userId);
 

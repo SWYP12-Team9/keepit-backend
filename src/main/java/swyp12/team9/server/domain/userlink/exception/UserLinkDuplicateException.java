@@ -9,7 +9,4 @@ public class UserLinkDuplicateException extends BusinessException {
         super(ErrorCode.USER_LINK_DUPLICATE);
     }
 
-    public UserLinkDuplicateException(String message) {
-        super(ErrorCode.USER_LINK_DUPLICATE, message);
-    }
 }
