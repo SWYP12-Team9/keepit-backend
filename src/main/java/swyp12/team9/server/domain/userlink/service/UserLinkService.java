@@ -22,6 +22,7 @@ import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLink
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
+import swyp12.team9.server.domain.userlink.exception.ReferenceSelectionDuplicateException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkDuplicateException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkNotFoundException;
@@ -56,7 +57,7 @@ public class UserLinkService {
         boolean hasNewReference = request.newReference() != null && request.newReference().title() != null;
 
         if (hasReferenceId && hasNewReference) {
-            throw new IllegalArgumentException("기존 폴더 선택과 새 폴더 생성은 동시에 사용할 수 없습니다.");
+            throw new ReferenceSelectionDuplicateException("기존 폴더 선택과 새 폴더 생성은 동시에 사용할 수 없습니다.");
         }
 
         // URL로 기존 Link 조회

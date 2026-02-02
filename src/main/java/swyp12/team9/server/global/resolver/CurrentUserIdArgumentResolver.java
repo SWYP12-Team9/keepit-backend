@@ -9,13 +9,13 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-import swyp12.team9.server.global.security.CustomUserDetails;
-import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.domain.auth.exception.UnauthorizedException;
+import swyp12.team9.server.domain.user.exception.UserNotFoundException;
+import swyp12.team9.server.global.annotation.CurrentUserId;
+import swyp12.team9.server.global.security.CustomUserDetails;
 
 /**
- * @CurrentUserId 어노테이션을 처리하는 ArgumentResolver
- * SecurityContext에서 CustomUserDetails를 가져와 userId를 추출
+ * @CurrentUserId 어노테이션을 처리하는 ArgumentResolver SecurityContext에서 CustomUserDetails를 가져와 userId를 추출
  */
 @Component
 public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResolver {
@@ -32,7 +32,6 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
                                   ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest,
                                   WebDataBinderFactory binderFactory) {
-
 
         // @CurrentUserId 어노테이션 가져오기
         CurrentUserId annotation = parameter.getParameterAnnotation(CurrentUserId.class);
@@ -64,7 +63,7 @@ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResol
 
         // CustomUserDetails가 아닌 경우
         if (required) {
-            throw new UnauthorizedException("사용자 정보를 찾을 수 없습니다.");
+            throw new UserNotFoundException("사용자 정보를 찾을 수 없습니다.");
         }
 
         return null;
