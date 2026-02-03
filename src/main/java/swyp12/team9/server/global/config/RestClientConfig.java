@@ -1,5 +1,6 @@
 package swyp12.team9.server.global.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -18,6 +19,7 @@ import swyp12.team9.server.domain.link.exception.LinkScrapingServerException;
 import swyp12.team9.server.global.interceptor.ScrapingClientInterceptor;
 
 @Configuration
+@Slf4j
 public class RestClientConfig {
 
     @Value("${scraping.api.base-url:http://localhost:8000}")
@@ -37,9 +39,11 @@ public class RestClientConfig {
                 .requestFactory(new BufferingClientHttpRequestFactory(factory))
                 .requestInterceptor(new ScrapingClientInterceptor())
                 .defaultStatusHandler(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    log.warn("스크래핑 API 4xx 에러 - URI: {}, Status: {}", request.getURI(), response.getStatusCode());
                     throw new LinkInvalidUrlException();
                 })
                 .defaultStatusHandler(HttpStatusCode::is5xxServerError, (request, response) -> {
+                    log.error("스크래핑 API 5xx 에러 - URI: {}, Status: {}", request.getURI(), response.getStatusCode());
                     throw new LinkScrapingServerException();
                 })
                 .build();
