@@ -135,7 +135,7 @@ class LinkServiceTest {
 
             // then
             Link capturedLink = linkCaptor.getValue();
-            assertThat(capturedLink.getUrl()).isEqualTo(scrapingResponse.getUrl());
+            assertThat(capturedLink.getUrl()).isEqualTo(url);
             assertThat(capturedLink.getTitle()).isEqualTo(scrapingResponse.getTitle());
             assertThat(capturedLink.getDescription()).isEqualTo(scrapingResponse.getDescription());
             assertThat(capturedLink.getFaviconUrl()).isEqualTo(scrapingResponse.getFaviconUrl());
