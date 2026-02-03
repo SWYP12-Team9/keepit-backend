@@ -2,6 +2,7 @@ package swyp12.team9.server.api.terms.dto;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import swyp12.team9.server.domain.terms.exception.InvalidTermsTypeException;
 
 import java.util.Locale;
 
@@ -20,12 +21,12 @@ public enum TermsType {
 
     public static TermsType from(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Terms type cannot be empty");
+            throw new InvalidTermsTypeException();
         }
         try {
             return TermsType.valueOf(value.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid terms type: " + value);
+            throw new InvalidTermsTypeException();
         }
     }
 }

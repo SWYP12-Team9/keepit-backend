@@ -67,7 +67,7 @@ public class TermsService {
             throw e;
         } catch (IOException e) {
             log.error("약관 파일 읽기 실패: {}", filePath, e);
-            throw new TermsFileReadException("약관 파일을 읽는 중 오류가 발생했습니다: " + fileName);
+            throw new TermsFileReadException();
         }
     }
 }
