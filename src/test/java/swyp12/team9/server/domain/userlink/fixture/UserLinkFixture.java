@@ -45,17 +45,30 @@ public class UserLinkFixture {
 
     /**
      * ID가 설정된 Link 생성 (테스트용)
+     * 단위 테스트에서 Mock Repository의 반환값으로 사용
      */
     public static Link createLinkWithId(Long id) {
-        return new Link(
-                id,
-                URL,
-                LINK_TITLE,
-                LINK_DESCRIPTION,
-                null,
-                null,
-                null
-        );
+        Link link = Link.builder()
+                .url(URL)
+                .title(LINK_TITLE)
+                .description(LINK_DESCRIPTION)
+                .build();
+        setId(link, id);
+        return link;
+    }
+
+    /**
+     * Reflection을 사용하여 Link 엔티티에 ID 설정
+     * JPA가 자동으로 생성하는 ID를 테스트에서 시뮬레이션하기 위해 사용
+     */
+    private static void setId(Link link, Long id) {
+        try {
+            java.lang.reflect.Field idField = Link.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(link, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 설정 실패", e);
+        }
     }
 
     /**

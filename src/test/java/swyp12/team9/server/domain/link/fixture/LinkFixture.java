@@ -8,7 +8,6 @@ public class LinkFixture {
     public static final String URL = "https://example.com";
     public static final String TITLE = "테스트 링크 제목";
     public static final String DESCRIPTION = "테스트 링크 설명";
-    public static final String PREVIEW_IMAGE_URL = "https://example.com/preview.jpg";
     public static final String FAVICON_URL = "https://example.com/favicon.ico";
     public static final String CONTENT = "링크 컨텐츠입니다.";
     public static final String AI_SUMMARY = "AI가 생성한 요약 내용입니다.";
@@ -28,17 +27,18 @@ public class LinkFixture {
 
     /**
      * ID가 설정된 Link 생성 (테스트용)
+     * 단위 테스트에서 Mock Repository의 반환값으로 사용
      */
     public static Link createLinkWithId(Long id) {
-        return new Link(
-                id,
-                URL,
-                TITLE,
-                DESCRIPTION,
-                PREVIEW_IMAGE_URL,
-                null,
-                CONTENT
-        );
+        Link link = Link.builder()
+                .url(URL)
+                .title(TITLE)
+                .description(DESCRIPTION)
+                .faviconUrl(FAVICON_URL)
+                .content(CONTENT)
+                .build();
+        setId(link, id);
+        return link;
     }
 
     /**
@@ -58,15 +58,29 @@ public class LinkFixture {
      * 커스텀 URL과 ID로 Link 생성
      */
     public static Link createLinkWithUrlAndId(Long id, String url) {
-        return new Link(
-                id,
-                url,
-                TITLE,
-                DESCRIPTION,
-                PREVIEW_IMAGE_URL,
-                null,
-                CONTENT
-        );
+        Link link = Link.builder()
+                .url(url)
+                .title(TITLE)
+                .description(DESCRIPTION)
+                .faviconUrl(FAVICON_URL)
+                .content(CONTENT)
+                .build();
+        setId(link, id);
+        return link;
+    }
+
+    /**
+     * Reflection을 사용하여 Link 엔티티에 ID 설정
+     * JPA가 자동으로 생성하는 ID를 테스트에서 시뮬레이션하기 위해 사용
+     */
+    private static void setId(Link link, Long id) {
+        try {
+            java.lang.reflect.Field idField = Link.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(link, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 설정 실패", e);
+        }
     }
 
     /**
@@ -87,7 +101,6 @@ public class LinkFixture {
                 TITLE,
                 DESCRIPTION,
                 FAVICON_URL,
-                PREVIEW_IMAGE_URL,
                 URL,
                 CONTENT
         );
@@ -102,7 +115,6 @@ public class LinkFixture {
                 TITLE,
                 DESCRIPTION,
                 FAVICON_URL,
-                PREVIEW_IMAGE_URL,
                 url,
                 CONTENT
         );
@@ -117,7 +129,6 @@ public class LinkFixture {
                 TITLE,
                 null,
                 FAVICON_URL,
-                PREVIEW_IMAGE_URL,
                 url,
                 null
         );
@@ -132,7 +143,6 @@ public class LinkFixture {
                 "",
                 DESCRIPTION,
                 FAVICON_URL,
-                PREVIEW_IMAGE_URL,
                 url,
                 CONTENT
         );
