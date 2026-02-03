@@ -21,6 +21,5 @@ public class ScrapingResponse {
 
     private String url;
 
-    @JsonProperty("content")
     private String content;
 }
