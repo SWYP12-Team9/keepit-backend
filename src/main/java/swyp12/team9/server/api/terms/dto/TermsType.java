@@ -2,8 +2,9 @@ package swyp12.team9.server.api.terms.dto;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import swyp12.team9.server.domain.terms.exception.InvalidTermsTypeException;
 
-import java.util.Locale;
+import java.util.Arrays;
 
 /**
  * 약관 타입
@@ -19,9 +20,9 @@ public enum TermsType {
     private final String fileName;
 
     public static TermsType from(String value) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Terms type cannot be empty");
-        }
-        return TermsType.valueOf(value.toUpperCase(Locale.ROOT));
+        return Arrays.stream(TermsType.values())
+                .filter(type -> type.name().equalsIgnoreCase(value))
+                .findFirst()
+                .orElseThrow(InvalidTermsTypeException::new);
     }
 }
