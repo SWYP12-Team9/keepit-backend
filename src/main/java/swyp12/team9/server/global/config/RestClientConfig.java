@@ -26,11 +26,6 @@ public class RestClientConfig {
     private String scrapingApiBaseUrl;
 
     @Bean
-    public RestClient restClient(RestClient.Builder builder) {
-        return builder.build();
-    }
-
-    @Bean
     public RestClient scrapingRestClient(RestClient.Builder builder, CloseableHttpClient httpClient) {
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
 
