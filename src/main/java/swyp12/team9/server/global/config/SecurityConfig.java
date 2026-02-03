@@ -1,6 +1,8 @@
 package swyp12.team9.server.global.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -28,10 +30,9 @@ import swyp12.team9.server.domain.jwt.service.JwtService;
 import swyp12.team9.server.domain.user.model.UserRole;
 import swyp12.team9.server.global.filter.JwtFilter;
 import swyp12.team9.server.global.filter.LoginFilter;
+import swyp12.team9.server.global.handler.CustomAccessDeniedHandler;
+import swyp12.team9.server.global.handler.CustomAuthenticationEntryPoint;
 import swyp12.team9.server.global.handler.RefreshTokenLogoutHandler;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -42,6 +43,8 @@ public class SecurityConfig {
     private final AuthenticationSuccessHandler loginSuccessHandler;
     private final AuthenticationSuccessHandler socialSuccessHandler;
     private final JwtService jwtService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOrigins;
@@ -50,11 +53,15 @@ public class SecurityConfig {
             AuthenticationConfiguration authenticationConfiguration,
             @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
             @Qualifier("SocialSuccessHandler") AuthenticationSuccessHandler socialSuccessHandler,
-            JwtService jwtService) {
+            JwtService jwtService,
+            CustomAuthenticationEntryPoint authenticationEntryPoint,
+            CustomAccessDeniedHandler accessDeniedHandler) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.loginSuccessHandler = loginSuccessHandler;
         this.socialSuccessHandler = socialSuccessHandler;
         this.jwtService = jwtService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     // CORS 설정
@@ -100,51 +107,52 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 필터 설정 (STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // 공개 엔드포인트
-                        .requestMatchers(
-                                "/api/health",
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**"
-                        ).permitAll()  // TODO: 인증 구현 후 수정 필요
+                                // 공개 엔드포인트
+                                .requestMatchers(
+                                        "/api/health",
+                                        "/actuator/**",
+                                        "/swagger-ui/**",
+                                        "/v3/api-docs/**",
+                                        "/swagger-resources/**"
+                                ).permitAll()  // TODO: 인증 구현 후 수정 필요
 
-                        // 인증 관련
-                        .requestMatchers("/api/v1/jwt/exchange", "/api/v1/jwt/refresh", "/api/v1/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/v1/users/exist",
-                                "/api/v1/users/signup",
-                                "/api/v1/auth/login"
-                        ).permitAll()
+                                // 인증 관련
+                                .requestMatchers("/api/v1/jwt/exchange", "/api/v1/jwt/refresh", "/api/v1/auth/logout")
+                                .permitAll()
+                                .requestMatchers(HttpMethod.POST,
+                                        "/api/v1/users/exist",
+                                        "/api/v1/users/signup",
+                                        "/api/v1/auth/login"
+                                ).permitAll()
 
-                        // OAuth2 소셜 로그인 관련 경로
-                        .requestMatchers("/api/v1/oauth2/**", "/api/v1/login/oauth2/code/**").permitAll()
+                                // OAuth2 소셜 로그인 관련 경로
+                                .requestMatchers("/api/v1/oauth2/**", "/api/v1/login/oauth2/code/**").permitAll()
 
-                        // 레퍼런스 조회 (익명 허용 - Service에서 type별 권한 체크)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/references").permitAll()
+                                // 레퍼런스 조회 (익명 허용 - Service에서 type별 권한 체크)
+                                .requestMatchers(HttpMethod.GET, "/api/v1/references/{referenceId}").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/v1/references").permitAll()
 
-                        // 사용자 링크 조회 (익명 허용 - Service에서 type별 권한 체크)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links/{userLinkId}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links").permitAll()
+                                // 사용자 링크 조회 (익명 허용 - Service에서 type별 권한 체크)
+                                .requestMatchers(HttpMethod.GET, "/api/v1/user-links/{userLinkId}").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links").permitAll()
 
-                        // 관리자 전용 API (가장 먼저 체크)
-                        .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
+                                // 관리자 전용 API (가장 먼저 체크)
+                                .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
 
-                        // API v1 전체 (인증 필요)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.GET, "/api/v1/**").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/**").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole(UserRole.USER.name())
+                                // API v1 전체 (인증 필요)
+                                .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.GET, "/api/v1/**").hasRole(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.PATCH, "/api/v1/**").hasRole(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole(UserRole.USER.name())
 
-                        // ========== User API ==========
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/*").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/*").hasRole(UserRole.USER.name())
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/*").hasRole(UserRole.USER.name())
+                                // ========== User API ==========
+                                .requestMatchers(HttpMethod.GET, "/api/v1/users/*").hasRole(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.PUT, "/api/v1/users/*").hasRole(UserRole.USER.name())
+                                .requestMatchers(HttpMethod.DELETE, "/api/v1/users/*").hasRole(UserRole.USER.name())
 
-                        // ========== 나머지 모든 요청 ==========
-                        .anyRequest().authenticated()
+                                // ========== 나머지 모든 요청 ==========
+                                .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)        // 기본 Form 기반 인증 필터들 disable
                 .httpBasic(AbstractHttpConfigurer::disable);       // 기본 Basic 인증 필터 disable
@@ -170,31 +178,14 @@ public class SecurityConfig {
                         .logoutUrl("/api/v1/auth/logout")
                         .addLogoutHandler(new RefreshTokenLogoutHandler(jwtService))
                         .logoutSuccessHandler((request, response, authentication) -> {
-                            response.setStatus(HttpServletResponse.SC_OK);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write("{\"message\": \"로그아웃 성공\"}");
+                            response.setStatus(HttpServletResponse.SC_NO_CONTENT);
                         }));
 
-        // 예외 처리 (JSON 응답)
+        // 예외 처리 (ErrorCode 기반 JSON 응답)
         http
                 .exceptionHandling(e -> e
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write(
-                                    "{\"status\": 401, \"message\": \"인증이 필요합니다.\"}"
-                            );
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write(
-                                    "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"
-                            );
-                        })
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 );
 
         // 커스텀 필터 추가
@@ -215,7 +206,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-
 
 // ✅ 올바른 순서
 //1. 공개 엔드포인트 (permitAll)

@@ -23,7 +23,7 @@ public record RecommendationResponse(
         String aiSummary,
 
         @Schema(description = "카테고리 정보")
-        CategoryInfo categoryInfo,
+        CategoryInfo category,
 
         @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
         UserInfo user

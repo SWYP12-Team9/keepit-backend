@@ -6,9 +6,10 @@ import org.springframework.stereotype.Repository;
 import swyp12.team9.server.domain.reference.model.Reference;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface ReferenceRepository extends JpaRepository<Reference, Long> {
+public interface ReferenceRepository extends JpaRepository<Reference, Long>, ReferenceRepositoryCustom {
 
     // ========== 기본 조회 ==========
     // 사용자 ID로 레퍼런스 목록 조회
@@ -19,6 +20,12 @@ public interface ReferenceRepository extends JpaRepository<Reference, Long> {
 
     // 사용자 ID와 공개 여부로 조회
     List<Reference> findByUserIdAndIsPublic(Long userId, Boolean isPublic);
+
+    // 사용자가 해당 제목의 레퍼런스를 이미 가지고 있는지 확인
+    boolean existsByUserIdAndTitle(Long userId, String title);
+
+    // 사용자의 기본 미지정 폴더 조회
+    Optional<Reference> findByUserIdAndIsDefaultTrue(Long userId);
 
     // ========== 커서 페이징: 내 레퍼런스 전체 ==========
     /**

@@ -6,8 +6,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,8 +22,10 @@ import swyp12.team9.server.domain.link.exception.InvalidCategoryException;
 import swyp12.team9.server.domain.link.model.LinkCategory;
 import swyp12.team9.server.domain.recommendation.service.LinkIndexingService;
 import swyp12.team9.server.domain.recommendation.service.RecommendationService;
+import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
+import swyp12.team9.server.global.exception.ErrorCode;
 
 @Tag(name = "Recommendation", description = "추천 콘텐츠 API (Elasticsearch 벡터 검색)")
 @Validated
@@ -35,7 +39,11 @@ public class RecommendationController {
 
     @Operation(
             summary = "카테고리 목록 조회",
-            description = "탐색 탭에서 사용할 카테고리 목록을 반환합니다."
+            description = "탐색 탭에서 사용할 카테고리 목록을 반환합니다. (총 8개 카테고리)"
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {}
     )
     @GetMapping("/categories")
     public ApiResponse<List<String>> getCategories() {
@@ -44,13 +52,25 @@ public class RecommendationController {
 
     @Operation(
             summary = "키워드 검색",
-            description = "검색 키워드를 벡터 유사도 검색하여 관련성 높은 순서로 공개된 링크를 가져옵니다."
+            description = """
+                    검색 키워드를 벡터 유사도 검색하여 관련성 높은 순서로 공개된 링크를 가져옵니다. (키워드는 1~50자 제한)
+                    - Elasticsearch 벡터 검색 사용 (OpenAI 임베딩)
+                    - 로그인한 사용자의 링크는 자동 제외
+                    - 동일 링크는 한 번만 노출
+                    - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
+                    """
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR
+            }
     )
     @GetMapping("/search")
     public ApiResponse<List<RecommendationResponse>> searchByKeyword(
             @CurrentUserId(required = false) Long userId,
             @Parameter(description = "검색 키워드", example = "프론트엔드 성능 최적화")
-            @RequestParam @NotBlank String keyword,
+            @RequestParam @NotBlank @Size(min = 1, max = 50) String keyword,
             @Parameter(description = "가져올 결과 수", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
@@ -60,7 +80,21 @@ public class RecommendationController {
 
     @Operation(
             summary = "카테고리별 추천 콘텐츠 조회",
-            description = "카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다. '기타' 카테고리는 지원하지 않습니다."
+            description = """
+                    카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다.
+                    - Elasticsearch 벡터 검색 사용 (OpenAI 임베딩)
+                    - '기타' 카테고리는 지원하지 않음 (예외 발생)
+                    - 로그인한 사용자의 링크는 자동 제외
+                    - 동일 링크는 한 번만 노출
+                    - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
+                    """
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR,
+                    ErrorCode.INVALID_CATEGORY
+            }
     )
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
@@ -73,19 +107,32 @@ public class RecommendationController {
         LinkCategory linkCategory = LinkCategory.fromDisplayName(category)
                 .orElseThrow(InvalidCategoryException::new);
         
-        // '기타' 카테고리는 추천 검색에서 제외 (오류 처리)
+        // '기타' 카테고리는 최신 공개 링크로 처리 (벡터 검색 대신 최신순)
+        List<RecommendationResponse> recommendations;
         if (linkCategory == LinkCategory.ETC) {
-            throw new InvalidCategoryException("'기타' 카테고리는 추천 검색에 사용할 수 없습니다.");
+            recommendations = recommendationService.getRecentPublicLinks(userId, size);
+        } else {
+            recommendations = recommendationService.getRecommendationsByCategory(userId, category, size);
         }
-
-        List<RecommendationResponse> recommendations = recommendationService.getRecommendationsByCategory(userId, category,
-                size);
+        
         return ApiResponse.ok(recommendations);
     }
 
     @Operation(
             summary = "[관리자] 전체 링크 색인",
-            description = "DB의 모든 링크를 Elasticsearch에 색인합니다. (title, description, aiSummary 합쳐서 벡터화)"
+            description = """
+                    DB의 모든 공개 링크를 Elasticsearch에 색인합니다.
+                    - 색인 대상: is_public=true인 UserLink
+                    - title, aiSummary, why, memo를 통합하여 벡터화
+                    - OpenAI API를 통해 임베딩 생성
+                    """
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.ACCESS_DENIED
+            }
     )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index")
@@ -96,7 +143,18 @@ public class RecommendationController {
 
     @Operation(
             summary = "[관리자] 단일 링크 색인",
-            description = "특정 링크를 Elasticsearch에 색인합니다."
+            description = """
+                    특정 링크를 참조하는 모든 공개 UserLink를 Elasticsearch에 색인합니다.
+                    - 링크 정보 수정 시 재색인용
+                    """
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.ACCESS_DENIED,
+                    ErrorCode.LINK_NOT_FOUND
+            }
     )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/index/link")

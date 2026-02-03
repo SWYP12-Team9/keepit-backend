@@ -1,31 +1,26 @@
 package swyp12.team9.server.global.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.BindingResult;
-import swyp12.team9.server.global.exception.ErrorCode;
-
-import java.util.List;
 
 @Getter
 @Builder(access = AccessLevel.PRIVATE)
+@Schema(description = "API 성공 응답")
 public class ApiResponse<T> {
 
+    @Schema(description = "HTTP 상태 코드", example = "HTTP 상태 코드 (ex: 200)")
     private final int status;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private final String code;
-
+    @Schema(description = "응답 메시지", example = "요청 성공")
     private final String message;
 
+    @Schema(description = "응답 데이터")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final T data;
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private final List<FieldErrorResponse> errors;
 
     // 200 OK
     public static <T> ApiResponse<T> ok(T data) {
@@ -84,42 +79,5 @@ public class ApiResponse<T> {
                 .message(message)
                 .data(pageResponse)
                 .build();
-    }
-
-    // ErrorCode 기반 에러
-    public static ApiResponse<Void> error(ErrorCode errorCode) {
-        return ApiResponse.<Void>builder()
-                .status(errorCode.getStatus())
-                .code(errorCode.getCode())
-                .message(errorCode.getMessage())
-                .build();
-    }
-
-    // ErrorCode + Validation 에러
-    public static ApiResponse<Void> error(ErrorCode errorCode, BindingResult bindingResult) {
-        return ApiResponse.<Void>builder()
-                .status(errorCode.getStatus())
-                .code(errorCode.getCode())
-                .message(errorCode.getMessage())
-                .errors(FieldErrorResponse.of(bindingResult))
-                .build();
-    }
-
-    @Getter
-    @Builder(access = AccessLevel.PRIVATE)
-    public static class FieldErrorResponse {
-        private final String field;
-        private final String value;
-        private final String reason;
-
-        public static List<FieldErrorResponse> of(BindingResult bindingResult) {
-            return bindingResult.getFieldErrors().stream()
-                    .map(error -> FieldErrorResponse.builder()
-                            .field(error.getField())
-                            .value(error.getRejectedValue() == null ? "" : error.getRejectedValue().toString())
-                            .reason(error.getDefaultMessage())
-                            .build())
-                    .toList();
-        }
     }
 }
