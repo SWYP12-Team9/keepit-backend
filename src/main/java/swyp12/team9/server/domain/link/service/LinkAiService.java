@@ -43,8 +43,8 @@ public class LinkAiService {
                 1. 3-5문장으로 핵심 내용만 요약
                 2. 핵심 키워드 포함
                 3. 존재하지 않는 정보를 지어내지 말 것
-                3. 이 링크가 왜 유용한지 설명
-                4. 한국어로 작성
+                4. 이 링크가 왜 유용한지 설명
+                5. 한국어로 작성
                 """;
 
         PromptTemplate promptTemplate = new PromptTemplate(promptText);
