@@ -50,7 +50,7 @@ public class LinkService {
      */
     private Link createLinkFromScrapingData(ScrapingResponse scrapingData, String url) {
         Link link = Link.create(
-                scrapingData.getUrl(),
+                url,
                 scrapingData.getTitle(),
                 scrapingData.getDescription(),
                 scrapingData.getFaviconUrl(),
