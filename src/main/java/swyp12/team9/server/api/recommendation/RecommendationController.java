@@ -27,7 +27,7 @@ import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 import swyp12.team9.server.global.exception.ErrorCode;
 
-@Tag(name = "Recommendation", description = "추천 콘텐츠 API (Elasticsearch 벡터 검색)")
+@Tag(name = "Recommendation", description = "추천 콘텐츠 API (Elasticsearch 벡터 검색) - 탐색 페이지")
 @Validated
 @RestController
 @RequestMapping("/api/v1/recommendations")
@@ -106,7 +106,7 @@ public class RecommendationController {
     ) {
         LinkCategory linkCategory = LinkCategory.fromDisplayName(category)
                 .orElseThrow(InvalidCategoryException::new);
-        
+
         // '기타' 카테고리는 최신 공개 링크로 처리 (벡터 검색 대신 최신순)
         List<RecommendationResponse> recommendations;
         if (linkCategory == LinkCategory.ETC) {
@@ -114,7 +114,7 @@ public class RecommendationController {
         } else {
             recommendations = recommendationService.getRecommendationsByCategory(userId, category, size);
         }
-        
+
         return ApiResponse.ok(recommendations);
     }
 
