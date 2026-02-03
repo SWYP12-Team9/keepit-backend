@@ -64,7 +64,7 @@ dependencies {
 	implementation 'software.amazon.awssdk:auth:2.20.26'
 
 	// Apache HttpComponents (RestClient용)
-	implementation 'org.apache.httpcomponents.client5:httpclient5:5.3'
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
 
 	// QueryDSL
 	implementation "com.querydsl:querydsl-jpa:${querydslVersion}:jakarta"
@@ -102,6 +102,7 @@ sourceSets {
 // QueryDSL 컴파일 시 Q 클래스 생성 디렉토리 설정
 tasks.withType(JavaCompile).configureEach {
 	options.generatedSourceOutputDirectory = file(generatedDir)
+	options.encoding = 'UTF-8'
 }
 
 // clean 시 생성된 Q 클래스 삭제
