@@ -22,8 +22,8 @@ public record RecommendationResponse(
         @Schema(description = "AI 요약", example = "이 글의 핵심 요약...")
         String aiSummary,
 
-        @Schema(description = "카테고리명", example = "경제/시사")
-        String category,
+        @Schema(description = "카테고리 정보")
+        CategoryInfo category,
 
         @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
         UserInfo user
@@ -34,7 +34,7 @@ public record RecommendationResponse(
                 link.getUrl(),
                 link.getTitle(),
                 link.getAiSummary(),
-                category,
+                CategoryInfo.from(category),
                 UserInfo.from(firstUserLink.getUser())
         );
     }

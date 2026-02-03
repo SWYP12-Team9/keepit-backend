@@ -67,6 +67,10 @@ public enum ErrorCode {
     USER_LINK_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ULK002", "사용자 링크에 접근할 수 없습니다"),
     USER_LINK_DUPLICATE(HttpStatus.CONFLICT, "ULK003", "이미 저장된 링크입니다"),
 
+    // Category
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CAT001", "카테고리를 찾을 수 없습니다"),
+    INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "CAT002", "유효하지 않은 카테고리입니다"),
+
     ;
 
     private final HttpStatus httpStatus;
