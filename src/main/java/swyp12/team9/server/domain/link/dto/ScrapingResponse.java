@@ -19,9 +19,6 @@ public class ScrapingResponse {
     @JsonProperty("favicon_url")
     private String faviconUrl;
 
-    @JsonProperty("thumbnail_url")
-    private String thumbnailUrl;
-
     private String url;
 
     @JsonProperty("content")
