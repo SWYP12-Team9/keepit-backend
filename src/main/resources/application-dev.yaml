@@ -124,10 +124,10 @@ logging:
 
 # Frontend URL 설정
 frontend:
-  url: ${FRONTEND_URL:http://localhost:3000}
+  url: ${FRONTEND_URL:http://localhost:5173}
 
 swagger:
-  server-url: ${SERVER_URL:http://localhost:3000}
+  server-url: ${SERVER_URL:http://localhost:8080}
 
 # CORS 설정
 cors:
