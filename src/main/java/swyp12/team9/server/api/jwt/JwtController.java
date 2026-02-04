@@ -36,7 +36,7 @@ public class JwtController {
                     ErrorCode.EXPIRED_TOKEN
             }
     )
-    @PostMapping(value = "/jwt/exchange", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/jwt/exchange")
     public JwtResponse jwtExchangeApi(
             HttpServletRequest request,
             HttpServletResponse response
