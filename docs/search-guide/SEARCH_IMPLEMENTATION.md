@@ -18,18 +18,18 @@ UserLink 검색 기능을 3단계로 구현합니다. 각 단계는 독립적으
 
 ## 단계별 비교
 
-| 항목            | 1단계 (QueryDSL) | 2단계 (Full-Text) | 3단계 (Elasticsearch) |
-|---------------|----------------|-----------------|---------------------|
-| **성능 (10만건)** | ~2초            | ~50ms           | ~50ms               |
-| **한글 형태소 분석** | ❌              | △ (ngram)       | ✅ (nori)            |
-| **오타 교정**     | ❌              | ❌               | ✅                   |
-| **자동완성**      | ❌              | ✅ (LIKE/Full-Text) | ✅ (ngram)          |
-| **동의어 검색**    | ❌              | ❌               | ✅                   |
-| **검색어 하이라이팅** | △ (직접 구현)      | △ (직접 구현)       | ✅                   |
-| **필드별 가중치**   | ❌              | ✅ (관련도 점수)     | ✅                   |
-| **추가 인프라**    | 없음             | 없음              | Elasticsearch       |
-| **구현 복잡도**    | 낮음             | 중간              | 높음                  |
-| **적합한 상황**    | MVP, 소규모       | 중규모             | 대규모, 고급 검색          |
+| 항목            | 1단계 (QueryDSL) | 2단계 (Full-Text)    | 3단계 (Elasticsearch) |
+|---------------|----------------|--------------------|---------------------|
+| **성능 (10만건)** | ~2초            | ~50ms              | ~50ms               |
+| **한글 형태소 분석** | ❌              | △ (ngram)          | ✅ (nori)            |
+| **오타 교정**     | ❌              | ❌                  | ✅                   |
+| **자동완성**      | ❌              | ✅ (LIKE/Full-Text) | ✅ (ngram)           |
+| **동의어 검색**    | ❌              | ❌                  | ✅                   |
+| **검색어 하이라이팅** | △ (직접 구현)      | △ (직접 구현)          | ✅                   |
+| **필드별 가중치**   | ❌              | ✅ (관련도 점수)         | ✅                   |
+| **추가 인프라**    | 없음             | 없음                 | Elasticsearch       |
+| **구현 복잡도**    | 낮음             | 중간                 | 높음                  |
+| **적합한 상황**    | MVP, 소규모       | 중규모                | 대규모, 고급 검색          |
 
 ---
 
@@ -68,16 +68,16 @@ public class UserLinkSearchRepositoryImpl implements UserLinkSearchRepositoryCus
     @Override
     public List<UserLink> searchMyLinks(Long userId, String keyword, String field, Long cursorId, int size) {
         return queryFactory
-            .selectFrom(userLink)
-            .join(userLink.link, link).fetchJoin()  // N+1 방지
-            .where(
-                userLink.user.id.eq(userId),
-                cursorCondition(cursorId),           // id < cursor
-                keywordCondition(keyword, field)     // 동적 필드 검색
-            )
-            .orderBy(userLink.id.desc())
-            .limit(size)
-            .fetch();
+                .selectFrom(userLink)
+                .join(userLink.link, link).fetchJoin()  // N+1 방지
+                .where(
+                        userLink.user.id.eq(userId),
+                        cursorCondition(cursorId),           // id < cursor
+                        keywordCondition(keyword, field)     // 동적 필드 검색
+                )
+                .orderBy(userLink.id.desc())
+                .limit(size)
+                .fetch();
     }
 
     // 커서 조건: id < cursorId
@@ -87,7 +87,8 @@ public class UserLinkSearchRepositoryImpl implements UserLinkSearchRepositoryCus
 
     // 동적 필드 검색 조건
     private BooleanExpression keywordCondition(String keyword, String field) {
-        if (keyword == null || keyword.isEmpty()) return null;
+        if (keyword == null || keyword.isEmpty())
+            return null;
         String lowerKeyword = keyword.toLowerCase();
 
         if (field != null && !field.isEmpty()) {
@@ -96,10 +97,10 @@ public class UserLinkSearchRepositoryImpl implements UserLinkSearchRepositoryCus
 
         // 전체 필드 OR 검색
         return containsIgnoreCase(userLink.why, lowerKeyword)
-            .or(containsIgnoreCase(userLink.memo, lowerKeyword))
-            .or(containsIgnoreCase(link.title, lowerKeyword))
-            .or(containsIgnoreCase(link.aiSummary, lowerKeyword))
-            .or(containsIgnoreCase(link.url, lowerKeyword));
+                .or(containsIgnoreCase(userLink.memo, lowerKeyword))
+                .or(containsIgnoreCase(link.title, lowerKeyword))
+                .or(containsIgnoreCase(link.aiSummary, lowerKeyword))
+                .or(containsIgnoreCase(link.url, lowerKeyword));
     }
 
     // 특정 필드 검색 (switch로 동적 선택)
@@ -137,7 +138,7 @@ GET /api/v1/user-links/search?keyword=Spring&field=title&size=20
 GET /api/v1/user-links/search?keyword=Spring&referenceId=1&size=20
 
 # 내 모든 레퍼런스 폴더 내 검색
-GET /api/v1/user-links/search/references?keyword=Spring&size=20
+GET /api/v1/user-links/search?keyword=Spring&size=20
 ```
 
 ---
@@ -157,11 +158,13 @@ ngram_token_size=2
 
 ```sql
 -- Full-Text Index 생성
-CREATE FULLTEXT INDEX ft_userlink_search
+CREATE
+FULLTEXT INDEX ft_userlink_search
     ON user_links (why, memo)
     WITH PARSER ngram;
 
-CREATE FULLTEXT INDEX ft_link_search
+CREATE
+FULLTEXT INDEX ft_link_search
     ON links (title, ai_summary, url)
     WITH PARSER ngram;
 ```
@@ -215,9 +218,9 @@ search:
 ```java
 // Boolean 검색어 예시
 "+Spring +Boot"      // Spring AND Boot
-"+Spring -Legacy"    // Spring 포함, Legacy 제외
-"\"Spring Boot\""    // 정확히 "Spring Boot"
-"Spring*"            // Spring으로 시작
+        "+Spring -Legacy"    // Spring 포함, Legacy 제외
+        "\"Spring Boot\""    // 정확히 "Spring Boot"
+        "Spring*"            // Spring으로 시작
 ```
 
 ### 자동완성 (Autocomplete)
@@ -229,64 +232,64 @@ search:
 ```java
 // 1. LIKE prefix 검색 (시작 부분 일치) - 가장 빠름
 @Query(value = """
-    SELECT DISTINCT l.title
-    FROM user_links ul
-    JOIN links l ON ul.link_id = l.link_id
-    WHERE ul.user_id = :userId
-    AND LOWER(l.title) LIKE LOWER(CONCAT(:prefix, '%'))
-    ORDER BY l.title
-    LIMIT 10
-    """, nativeQuery = true)
+        SELECT DISTINCT l.title
+        FROM user_links ul
+        JOIN links l ON ul.link_id = l.link_id
+        WHERE ul.user_id = :userId
+        AND LOWER(l.title) LIKE LOWER(CONCAT(:prefix, '%'))
+        ORDER BY l.title
+        LIMIT 10
+        """, nativeQuery = true)
 List<String> findTitlesByPrefix(Long userId, String prefix);
 
 // 2. LIKE 부분 문자열 검색 (어느 위치든 매칭)
 @Query(value = """
-    SELECT DISTINCT l.title
-    FROM user_links ul
-    JOIN links l ON ul.link_id = l.link_id
-    WHERE ul.user_id = :userId
-    AND LOWER(l.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    ORDER BY
-        CASE WHEN LOWER(l.title) LIKE LOWER(CONCAT(:keyword, '%')) THEN 0 ELSE 1 END,
-        l.title
-    LIMIT 10
-    """, nativeQuery = true)
+        SELECT DISTINCT l.title
+        FROM user_links ul
+        JOIN links l ON ul.link_id = l.link_id
+        WHERE ul.user_id = :userId
+        AND LOWER(l.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        ORDER BY
+            CASE WHEN LOWER(l.title) LIKE LOWER(CONCAT(:keyword, '%')) THEN 0 ELSE 1 END,
+            l.title
+        LIMIT 10
+        """, nativeQuery = true)
 List<String> findTitlesByKeyword(Long userId, String keyword);
 
 // 3. Full-Text Boolean Mode 검색 (형태소 분석 적용)
 @Query(value = """
-    SELECT DISTINCT l.title
-    FROM user_links ul
-    JOIN links l ON ul.link_id = l.link_id
-    WHERE ul.user_id = :userId
-    AND MATCH(l.title) AGAINST(CONCAT(:prefix, '*') IN BOOLEAN MODE)
-    ORDER BY MATCH(l.title) AGAINST(CONCAT(:prefix, '*') IN BOOLEAN MODE) DESC
-    LIMIT 10
-    """, nativeQuery = true)
+        SELECT DISTINCT l.title
+        FROM user_links ul
+        JOIN links l ON ul.link_id = l.link_id
+        WHERE ul.user_id = :userId
+        AND MATCH(l.title) AGAINST(CONCAT(:prefix, '*') IN BOOLEAN MODE)
+        ORDER BY MATCH(l.title) AGAINST(CONCAT(:prefix, '*') IN BOOLEAN MODE) DESC
+        LIMIT 10
+        """, nativeQuery = true)
 List<String> findTitlesByPrefixFullText(Long userId, String prefix);
 
 // 4. 도메인 자동완성
 @Query(value = """
-    SELECT DISTINCT
-        SUBSTRING_INDEX(SUBSTRING_INDEX(REPLACE(REPLACE(l.url, 'https://', ''), 'http://', ''), '/', 1), '?', 1) AS domain
-    FROM user_links ul
-    JOIN links l ON ul.link_id = l.link_id
-    WHERE ul.user_id = :userId
-    AND l.url LIKE CONCAT('%', :prefix, '%')
-    ORDER BY domain
-    LIMIT 10
-    """, nativeQuery = true)
+        SELECT DISTINCT
+            SUBSTRING_INDEX(SUBSTRING_INDEX(REPLACE(REPLACE(l.url, 'https://', ''), 'http://', ''), '/', 1), '?', 1) AS domain
+        FROM user_links ul
+        JOIN links l ON ul.link_id = l.link_id
+        WHERE ul.user_id = :userId
+        AND l.url LIKE CONCAT('%', :prefix, '%')
+        ORDER BY domain
+        LIMIT 10
+        """, nativeQuery = true)
 List<String> findDomainsByPrefix(Long userId, String prefix);
 ```
 
 **자동완성 방식 비교**
 
-| 방식 | 메서드 | 장점 | 단점 |
-|------|--------|------|------|
-| LIKE prefix | `findTitlesByPrefix` | 인덱스 활용, 가장 빠름 | 시작 부분만 매칭 |
-| LIKE contains | `findTitlesByKeyword` | 유연한 매칭 | 인덱스 미사용, 느림 |
-| Full-Text | `findTitlesByPrefixFullText` | 형태소 분석 적용 | 2글자 이상 필요 |
-| 도메인 | `findDomainsByPrefix` | URL에서 도메인 추출 | 정규화 필요 |
+| 방식            | 메서드                          | 장점            | 단점          |
+|---------------|------------------------------|---------------|-------------|
+| LIKE prefix   | `findTitlesByPrefix`         | 인덱스 활용, 가장 빠름 | 시작 부분만 매칭   |
+| LIKE contains | `findTitlesByKeyword`        | 유연한 매칭        | 인덱스 미사용, 느림 |
+| Full-Text     | `findTitlesByPrefixFullText` | 형태소 분석 적용     | 2글자 이상 필요   |
+| 도메인           | `findDomainsByPrefix`        | URL에서 도메인 추출  | 정규화 필요      |
 
 ---
 
@@ -435,20 +438,20 @@ public void reindexAll() {
 
 ### 검색 API
 
-| 메서드   | 엔드포인트                              | 설명                     | 인증       |
-|-------|------------------------------------|------------------------|----------|
-| `GET` | `/api/v1/user-links/search`        | 링크 검색 (홈/레퍼런스)         | Required |
-| `GET` | `/api/v1/user-links/search/references` | 내 모든 레퍼런스 폴더 내 검색 | Required |
+| 메서드   | 엔드포인트                       | 설명                | 인증       |
+|-------|-----------------------------|-------------------|----------|
+| `GET` | `/api/v1/user-links/search` | 링크 검색 (홈/레퍼런스)    | Required |
+| `GET` | `/api/v1/user-links/search` | 내 모든 레퍼런스 폴더 내 검색 | Required |
 
 ### 검색 Request Parameters
 
-| 파라미터       | 타입      | 필수 | 설명                                       |
-|------------|---------|----|------------------------------------------|
-| keyword    | String  | ✅  | 검색어 (2~50자)                              |
-| field      | String  | ❌  | 검색 필드 (why, memo, title, aiSummary, url) |
-| referenceId | Long   | ❌  | 레퍼런스 폴더 ID (지정 시 해당 폴더 내 검색)          |
-| cursor     | String  | ❌  | 커서 (첫 요청 시 null)                         |
-| size       | Integer | ❌  | 페이지 크기 (기본: 20, 최대: 50)                  |
+| 파라미터        | 타입      | 필수 | 설명                                       |
+|-------------|---------|----|------------------------------------------|
+| keyword     | String  | ✅  | 검색어 (2~50자)                              |
+| field       | String  | ❌  | 검색 필드 (why, memo, title, aiSummary, url) |
+| referenceId | Long    | ❌  | 레퍼런스 폴더 ID (지정 시 해당 폴더 내 검색)             |
+| cursor      | String  | ❌  | 커서 (첫 요청 시 null)                         |
+| size        | Integer | ❌  | 페이지 크기 (기본: 20, 최대: 50)                  |
 
 ### 검색 Response (커서 기반)
 
@@ -502,13 +505,13 @@ public void reindexAll() {
 
 ## QueryDSL vs Native Query 비교
 
-| 항목 | Native Query | QueryDSL |
-|------|-------------|----------|
-| 타입 안전성 | ❌ 문자열 기반 | ✅ 컴파일 타임 체크 |
-| 리팩토링 | ❌ 필드명 변경 시 수동 수정 | ✅ 자동 감지 |
-| 동적 쿼리 | ⚠️ CASE WHEN 필요 | ✅ switch/if 사용 |
-| N+1 방지 | ⚠️ 별도 쿼리 필요 | ✅ fetchJoin() 지원 |
-| 가독성 | ⚠️ SQL 문자열 | ✅ 메서드 체이닝 |
+| 항목     | Native Query     | QueryDSL         |
+|--------|------------------|------------------|
+| 타입 안전성 | ❌ 문자열 기반         | ✅ 컴파일 타임 체크      |
+| 리팩토링   | ❌ 필드명 변경 시 수동 수정 | ✅ 자동 감지          |
+| 동적 쿼리  | ⚠️ CASE WHEN 필요  | ✅ switch/if 사용   |
+| N+1 방지 | ⚠️ 별도 쿼리 필요      | ✅ fetchJoin() 지원 |
+| 가독성    | ⚠️ SQL 문자열       | ✅ 메서드 체이닝        |
 
 ---
 

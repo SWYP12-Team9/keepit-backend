@@ -3,28 +3,24 @@ package swyp12.team9.server.api.userlink.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
  * 링크 검색 요청 DTO (커서 기반 페이징)
- *
- * 검색 가능한 필드:
- * - why: 저장 이유
- * - memo: 메모
- * - title: 링크 제목
- * - aiSummary: AI 요약
- * - url: 링크 주소
+ * <p>
+ * 검색 가능한 필드: - why: 저장 이유 - memo: 메모 - title: 링크 제목 - aiSummary: AI 요약 - url: 링크 주소
  */
 @Schema(description = "링크 검색 요청")
 public record UserLinkSearchRequest(
 
         @Schema(
-                description = "검색 키워드 (2~100자)",
+                description = "검색 키워드 (2~50자)",
                 example = "Spring Boot",
                 minLength = 2,
-                maxLength = 100
+                maxLength = 50
         )
-        @Size(min = 2, max = 100, message = "검색어는 2~100자여야 합니다")
+        @Size(min = 2, max = 50, message = "검색어는 2~50자여야 합니다")
         String keyword,
 
         @Schema(
@@ -40,6 +36,9 @@ public record UserLinkSearchRequest(
                 example = "title",
                 allowableValues = {"why", "memo", "title", "aiSummary", "url"}
         )
+        @Pattern(regexp = "^(why|memo|title|aiSummary|url)$",
+                message = "검색 필드는 why, memo, title, aiSummary, url 중 하나여야 합니다"
+        )
         String field,
 
         @Schema(description = "커서 (첫 요청 시 null)", example = "10")
@@ -54,7 +53,9 @@ public record UserLinkSearchRequest(
      * 기본값이 적용된 생성자
      */
     public UserLinkSearchRequest {
-        if (size == null) size = 20;
+        if (size == null) {
+            size = 20;
+        }
     }
 
     /**
