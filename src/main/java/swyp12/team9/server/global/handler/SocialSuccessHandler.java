@@ -37,9 +37,9 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
 
     public SocialSuccessHandler(JwtService jwtService, UserRepository userRepository,
                                 @Value("${frontend.url}") String frontendUrl,
-                                @Value("${security.cookie.refresh.secure:false}") boolean refreshCookieSecure,
-                                @Value("${security.cookie.refresh.same-site:Lax}") String refreshCookieSameSite,
-                                @Value("${security.cookie.refresh.max-age-seconds:10}") int refreshCookieMaxAgeSeconds) {
+                                @Value("${spring.security.cookie.refresh.secure}") boolean refreshCookieSecure,
+                                @Value("${spring.security.cookie.refresh.same-site}") String refreshCookieSameSite,
+                                @Value("${spring.security.cookie.refresh.max-age-seconds}") int refreshCookieMaxAgeSeconds) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.frontendUrl = frontendUrl;
