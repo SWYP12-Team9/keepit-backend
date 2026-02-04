@@ -72,6 +72,10 @@ public enum ErrorCode {
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CAT001", "카테고리를 찾을 수 없습니다"),
     INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "CAT002", "유효하지 않은 카테고리입니다"),
 
+    // Terms
+    TERMS_NOT_FOUND(HttpStatus.NOT_FOUND, "TRM001", "약관을 찾을 수 없습니다"),
+    TERMS_FILE_READ_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "TRM002", "약관 파일을 읽는 중 오류가 발생했습니다"),
+
     ;
 
     private final HttpStatus httpStatus;
