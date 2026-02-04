@@ -41,9 +41,9 @@ spring:
     # HTTPS + 크로스사이트 쿠키 필요 시
     cookie:
       refresh:
-        secure: true
-        same-site: None
-        max-age-seconds: 10
+        secure: ${REFRESH_SECURE:true}
+        same-site: ${REFRESH_SAME_SITE:None}
+        max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:2592000} # 28일(토큰 TTL과 일치)
     oauth2:
       client:
         registration:
