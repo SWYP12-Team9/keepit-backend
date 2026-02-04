@@ -40,12 +40,13 @@ public class UserLinkSearchService {
      * @return 검색 결과 (커서 페이징)
      */
     public UserLinkSearchResponse searchMyLinks(Long userId, String keyword, String field, String cursor, int size) {
-        if (keyword == null || keyword.isEmpty()) {
+
+        String normalizedKeyword = (keyword == null) ? "" : keyword.trim();
+        if (normalizedKeyword.isEmpty()) {
             log.warn("검색어가 비어있습니다. userId: {}", userId);
             return UserLinkSearchResponse.empty();
         }
 
-        String normalizedKeyword = keyword.trim();
         Long cursorId = parseCursor(cursor);
 
         log.info("내 링크 검색 - userId: {}, keyword: {}, field: {}, cursor: {}",

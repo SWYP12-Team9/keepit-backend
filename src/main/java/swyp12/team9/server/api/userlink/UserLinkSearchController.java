@@ -1,6 +1,8 @@
 package swyp12.team9.server.api.userlink;
 
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,9 +30,7 @@ public class UserLinkSearchController implements UserLinkSearchApi {
     private final UserLinkSearchService userLinkSearchService;
 
     /**
-     * 링크 검색 (홈/레퍼런스)
-     * - referenceId가 있으면: 해당 레퍼런스 폴더 내 검색 (미지정 폴더도 referenceId로 검색)
-     * - referenceId가 없으면: 내 링크 전체에서 검색
+     * 링크 검색 (홈/레퍼런스) - referenceId가 있으면: 해당 레퍼런스 폴더 내 검색 (미지정 폴더도 referenceId로 검색) - referenceId가 없으면: 내 링크 전체에서 검색
      */
     @Override
     public ApiResponse<UserLinkSearchResponse> searchLinks(
@@ -39,7 +39,7 @@ public class UserLinkSearchController implements UserLinkSearchApi {
             @RequestParam(required = false) String field,
             @RequestParam(required = false) Long referenceId,
             @RequestParam(required = false) String cursor,
-            @RequestParam int size
+            @RequestParam @Min(1) @Max(50) int size
     ) {
         UserLinkSearchResponse response;
 
