@@ -39,12 +39,11 @@ spring:
 
   security:
     # HTTPS + 크로스사이트 쿠키 필요 시
-    security:
-      cookie:
-        refresh:
-          secure: ${REFRESH_SECURE:true}
-          same-site: ${REFRESH_SAME_SITE:None}
-          max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:60} # 30일 예시
+    cookie:
+      refresh:
+        secure: ${REFRESH_SECURE:true}
+        same-site: ${REFRESH_SAME_SITE:None}
+        max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:60} # 30일 예시
     oauth2:
       client:
         registration:
