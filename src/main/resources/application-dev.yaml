@@ -41,8 +41,8 @@ spring:
   security:
     cookie:
       refresh:
-        secure: false
-        same-site: Lax
+        secure: true
+        same-site: None
         max-age-seconds: 10
     oauth2:
       client:
@@ -165,4 +165,4 @@ image:
 # 스크래핑 API 설정
 scraping:
   api:
-    base-url: ${SCRAPING_API_BASE_URL:http://localhost:8000}
+    base-url: ${SCRAPING_API_BASE_URL:http://api.sor999.site:8000}
