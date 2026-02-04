@@ -13,6 +13,7 @@ import swyp12.team9.server.api.userlink.dto.response.UserLinkListResponse;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkResponse;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
+import swyp12.team9.server.domain.link.service.LinkService;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
@@ -38,7 +39,7 @@ public class UserLinkService {
 
     private final UserLinkRepository userLinkRepository;
     private final LinkRepository linkRepository;
-    //    private final LinkService linkService; TODO 박현제: 스크래핑 로직 추가 예정
+    private final LinkService linkService;
     private final UserRepository userRepository;
     private final ReferenceRepository referenceRepository;
     private final ReferenceUserLinkRepository referenceUserLinkRepository;
@@ -64,17 +65,13 @@ public class UserLinkService {
         Link link = linkRepository.findByUrl(request.url()).orElse(null);
 
         // Link가 이미 존재하는 경우, 중복 체크 먼저 수행
-        if (link != null) {
-            if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
-                throw new UserLinkDuplicateException();
-            }
-        } else {
-            // Link가 없는 경우에만 스크래핑하여 새로 생성
-            Link newLink = Link.builder() // TODO 박현제: 임시. 이후 스크래핑 데이터로 변경 예정
-                    .url(request.url())
-                    .build();
-            link = linkRepository.save(newLink);
-//            link = linkService.createLinkFromScraping(request.url());
+        if (link != null && userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
+            throw new UserLinkDuplicateException();
+        }
+
+        // 링크가 없으면 생성
+        if (link == null) {
+            link = linkRepository.save(linkService.createLink(request.url()));
         }
 
         // UserLink 생성

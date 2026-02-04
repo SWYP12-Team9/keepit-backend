@@ -25,17 +25,36 @@ public class Link extends BaseEntity {
     @Column(name = "description", length = 1000)
     private String description;
 
-    @Column(name = "preview_image_url", length = 1024)
-    private String previewImageUrl;
+    @Column(name = "favicon_url", length = 1024)
+    private String faviconUrl;
+
+    @Column(name = "content", columnDefinition = "TEXT")
+    private String content;
 
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
     @Builder
-    public Link(String url, String title, String description, String previewImageUrl) {
+    public Link(String url, String title, String description, String faviconUrl, String content, String aiSummary) {
         this.url = url;
         this.title = title;
         this.description = description;
-        this.previewImageUrl = previewImageUrl;
+        this.faviconUrl = faviconUrl;
+        this.content = content;
+        this.aiSummary = aiSummary;
+    }
+
+    public static Link create(String url, String title, String description, String faviconUrl, String content) {
+        return Link.builder()
+                .url(url)
+                .title(title)
+                .description(description)
+                .faviconUrl(faviconUrl)
+                .content(content)
+                .build();
+    }
+
+    public void updateAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
     }
 }
