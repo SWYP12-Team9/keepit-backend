@@ -122,6 +122,7 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.POST,
                                         "/api/v1/users/exist",
                                         "/api/v1/users/signup",
+                                        "/api/v1/users/profile/complete",
                                         "/api/v1/auth/login"
                                 ).permitAll()
 
@@ -135,6 +136,9 @@ public class SecurityConfig {
                                 // 사용자 링크 조회 (익명 허용 - Service에서 type별 권한 체크)
                                 .requestMatchers(HttpMethod.GET, "/api/v1/user-links/{userLinkId}").permitAll()
 //                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links").permitAll()
+
+                                // 약관 조회 (익명 허용)
+                                .requestMatchers(HttpMethod.GET, "/api/v1/terms/**").permitAll()
 
                                 // 관리자 전용 API (가장 먼저 체크)
                                 .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
