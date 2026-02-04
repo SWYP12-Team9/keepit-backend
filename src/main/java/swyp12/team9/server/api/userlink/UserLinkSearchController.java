@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkSearchResponse;
-import swyp12.team9.server.domain.userlink.service.search.UserLinkSearchService;
+import swyp12.team9.server.domain.userlink.service.UserLinkSearchService;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 
@@ -28,10 +28,7 @@ public class UserLinkSearchController implements UserLinkSearchApi {
     private final UserLinkSearchService userLinkSearchService;
 
     /**
-     * 링크 검색 (홈/레퍼런스)
-     * - isDefault=true: 미지정 폴더 내 검색
-     * - referenceId가 있으면: 해당 레퍼런스 폴더 내 검색
-     * - 둘 다 없으면: 내 링크 전체에서 검색
+     * 링크 검색 (홈/레퍼런스) - isDefault=true: 미지정 폴더 내 검색 - referenceId가 있으면: 해당 레퍼런스 폴더 내 검색 - 둘 다 없으면: 내 링크 전체에서 검색
      */
     @Override
     public ApiResponse<UserLinkSearchResponse> searchLinks(
@@ -63,53 +60,4 @@ public class UserLinkSearchController implements UserLinkSearchApi {
 
         return ApiResponse.ok(response);
     }
-
-    // 자동완성 API
-
-//    /**
-//     * 제목 자동완성
-//     * <p>
-//     * 사용자가 입력 중인 텍스트를 기반으로 제목을 자동완성합니다.
-//     */
-//    @Override
-//    public ApiResponse<AutocompleteResponse> autocompleteTitles(
-//            @Parameter(hidden = true) @CurrentUserId Long userId,
-//            @Parameter(description = "입력 중인 텍스트", required = true, example = "Spring")
-//            @RequestParam String query,
-//            @Parameter(description = "검색 모드 (prefix: 접두사 매칭, contains: 부분 문자열)", example = "prefix")
-//            @RequestParam(defaultValue = "prefix") String mode
-//    ) {
-//        log.debug("제목 자동완성 요청 - userId: {}, query: {}, mode: {}", userId, query, mode);
-//
-//        List<String> suggestions;
-//        if ("contains".equals(mode)) {
-//            suggestions = fullTextSearchService.autocompleteTitlesContaining(userId, query);
-//        } else {
-//            suggestions = fullTextSearchService.autocompleteTitles(userId, query);
-//        }
-//
-//        return ApiResponse.ok(
-//                AutocompleteResponse.ofTitles(suggestions, query)
-//        );
-//    }
-//
-//    /**
-//     * 도메인 자동완성
-//     * <p>
-//     * 저장된 링크의 도메인을 자동완성합니다.
-//     */
-//    @Override
-//    public ApiResponse<AutocompleteResponse> autocompleteDomains(
-//            @Parameter(hidden = true) @CurrentUserId Long userId,
-//            @Parameter(description = "입력 중인 도메인 텍스트", required = true, example = "github")
-//            @RequestParam String query
-//    ) {
-//        log.debug("도메인 자동완성 요청 - userId: {}, query: {}", userId, query);
-//
-//        List<String> suggestions = fullTextSearchService.autocompleteDomains(userId, query);
-//
-//        return ApiResponse.ok(
-//                AutocompleteResponse.ofDomains(suggestions, query)
-//        );
-//    }
 }

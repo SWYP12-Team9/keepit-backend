@@ -48,7 +48,7 @@ public record UserLinkSearchResponse(
 
         // 다음 커서는 마지막 아이템의 ID
         String nextCursor = hasNext && !resultList.isEmpty()
-                ? String.valueOf(resultList.get(resultList.size() - 1).getId())
+                ? String.valueOf(resultList.getLast().getId())
                 : null;
 
         return UserLinkSearchResponse.builder()
@@ -100,9 +100,6 @@ public record UserLinkSearchResponse(
             @Schema(description = "메모", example = "핵심 내용 정리 필요")
             String memo,
 
-            @Schema(description = "썸네일 이미지 URL", example = "https://example.com/thumb.jpg")
-            String thumbnailUrl,
-
             @Schema(description = "조회수", example = "10")
             Long viewCount,
 
@@ -128,7 +125,6 @@ public record UserLinkSearchResponse(
                     .aiSummary(userLink.getLink().getAiSummary())
                     .why(userLink.getWhy())
                     .memo(userLink.getMemo())
-                    .thumbnailUrl(userLink.getLink().getFaviconUrl())
                     .viewCount(userLink.getViewCount())
                     .matchedFields(matchedFields)
                     .build();

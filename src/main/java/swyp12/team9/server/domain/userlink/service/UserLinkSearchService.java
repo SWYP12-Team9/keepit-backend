@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.userlink.service.search;
+package swyp12.team9.server.domain.userlink.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +10,7 @@ import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.userlink.model.UserLink;
-import swyp12.team9.server.domain.userlink.repository.search.UserLinkSearchRepository;
+import swyp12.team9.server.domain.userlink.repository.UserLinkSearchRepository;
 
 /**
  * 링크 검색 서비스 (커서 기반 페이징)

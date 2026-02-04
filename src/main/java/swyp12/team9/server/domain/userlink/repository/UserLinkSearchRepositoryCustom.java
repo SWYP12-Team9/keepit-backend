@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.userlink.repository.search;
+package swyp12.team9.server.domain.userlink.repository;
 
 import java.util.List;
 import swyp12.team9.server.domain.userlink.model.UserLink;

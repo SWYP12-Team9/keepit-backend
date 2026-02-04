@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.userlink.repository.search;
+package swyp12.team9.server.domain.userlink.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
