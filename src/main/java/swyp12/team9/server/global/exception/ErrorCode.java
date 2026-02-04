@@ -32,6 +32,7 @@ public enum ErrorCode {
     NICKNAME_DUPLICATE(HttpStatus.CONFLICT, "USR004", "이미 사용 중인 닉네임입니다"),
     PROFILE_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "USR005", "이미 프로필이 완성된 사용자입니다"),
     USERNAME_DUPLICATE(HttpStatus.CONFLICT, "USR006", "이미 사용 중인 아이디입니다"),
+    PROFILE_NOT_COMPLETED(HttpStatus.FORBIDDEN, "USR007", "프로필 설정을 먼저 완료해주세요"),
 
     // File
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "FIL001", "파일 업로드에 실패했습니다"),
