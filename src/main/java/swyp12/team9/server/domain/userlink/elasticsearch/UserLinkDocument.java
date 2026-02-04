@@ -61,7 +61,7 @@ public class UserLinkDocument {
     private Long viewCount;
 
     @Field(type = FieldType.Keyword, index = false)
-    private String thumbnailUrl;
+    private String faviconUrl;
 
     @Field(type = FieldType.Date)
     private LocalDateTime createdAt;
@@ -84,7 +84,7 @@ public class UserLinkDocument {
                 .aiSummary(userLink.getLink().getAiSummary())
                 .url(userLink.getLink().getUrl())
                 .viewCount(userLink.getViewCount())
-                .thumbnailUrl(userLink.getLink().getPreviewImageUrl())
+                .faviconUrl(userLink.getLink().getFaviconUrl())
                 .createdAt(userLink.getCreatedAt())
                 .updatedAt(userLink.getUpdatedAt())
                 .titleAutocomplete(userLink.getLink().getTitle())

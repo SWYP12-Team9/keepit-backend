@@ -128,7 +128,7 @@ public record UserLinkSearchResponse(
                     .aiSummary(userLink.getLink().getAiSummary())
                     .why(userLink.getWhy())
                     .memo(userLink.getMemo())
-                    .thumbnailUrl(userLink.getLink().getPreviewImageUrl())
+                    .thumbnailUrl(userLink.getLink().getFaviconUrl())
                     .viewCount(userLink.getViewCount())
                     .matchedFields(matchedFields)
                     .build();
