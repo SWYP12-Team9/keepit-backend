@@ -28,7 +28,9 @@ public class UserLinkSearchController implements UserLinkSearchApi {
     private final UserLinkSearchService userLinkSearchService;
 
     /**
-     * 링크 검색 (홈/레퍼런스) - isDefault=true: 미지정 폴더 내 검색 - referenceId가 있으면: 해당 레퍼런스 폴더 내 검색 - 둘 다 없으면: 내 링크 전체에서 검색
+     * 링크 검색 (홈/레퍼런스)
+     * - referenceId가 있으면: 해당 레퍼런스 폴더 내 검색 (미지정 폴더도 referenceId로 검색)
+     * - referenceId가 없으면: 내 링크 전체에서 검색
      */
     @Override
     public ApiResponse<UserLinkSearchResponse> searchLinks(
@@ -36,19 +38,13 @@ public class UserLinkSearchController implements UserLinkSearchApi {
             @RequestParam String keyword,
             @RequestParam(required = false) String field,
             @RequestParam(required = false) Long referenceId,
-            @RequestParam(required = false) Boolean isDefault,
             @RequestParam(required = false) String cursor,
             @RequestParam int size
     ) {
         UserLinkSearchResponse response;
 
-        if (Boolean.TRUE.equals(isDefault)) {
-            // 미지정 폴더 내 검색
-            log.info("미지정 폴더 내 링크 검색 요청 - userId: {}, keyword: {}, field: {}, cursor: {}",
-                    userId, keyword, field, cursor);
-            response = userLinkSearchService.searchDefaultReference(userId, keyword, field, cursor, size);
-        } else if (referenceId != null) {
-            // 특정 레퍼런스 폴더 내 검색
+        if (referenceId != null) {
+            // 특정 레퍼런스 폴더 내 검색 (미지정 폴더 포함)
             log.info("레퍼런스 폴더 내 링크 검색 요청 - userId: {}, referenceId: {}, keyword: {}, field: {}, cursor: {}",
                     userId, referenceId, keyword, field, cursor);
             response = userLinkSearchService.searchByReference(userId, referenceId, keyword, field, cursor, size);

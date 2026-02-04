@@ -100,29 +100,6 @@ public class UserLinkSearchService {
     }
 
     /**
-     * 미지정 폴더(isDefault=true) 내 링크 검색 (커서 기반)
-     *
-     * @param userId  현재 로그인한 사용자 ID
-     * @param keyword 검색 키워드
-     * @param field   검색할 필드 (null이면 전체 필드)
-     * @param cursor  커서 (null이면 첫 페이지)
-     * @param size    페이지 크기
-     * @return 검색 결과 (커서 페이징)
-     */
-    public UserLinkSearchResponse searchDefaultReference(Long userId, String keyword, String field, String cursor,
-                                                         int size) {
-        // 사용자의 미지정 폴더(isDefault=true) 조회
-        Reference defaultReference = referenceRepository.findByUserIdAndIsDefaultTrue(userId)
-                .orElseThrow(ReferenceNotFoundException::new);
-
-        log.info("미지정 폴더 검색 - userId: {}, defaultReferenceId: {}, keyword: {}",
-                userId, defaultReference.getId(), keyword);
-
-        // 기존 searchByReference 로직 재사용
-        return searchByReference(userId, defaultReference.getId(), keyword, field, cursor, size);
-    }
-
-    /**
      * 커서 문자열을 Long으로 파싱
      *
      * @param cursor 커서 문자열
