@@ -95,6 +95,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 잘못된 인자값 예외 처리
+     * - Enum 변환 실패 등
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    protected ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.error("[IllegalArgumentException] {}", e.getMessage());
+        ErrorCode errorCode = ErrorCode.INVALID_TYPE_VALUE;
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode));
+    }
+
+    /**
      * 잘못된 JSON 형식 (JSON parse error)
      * - 클라이언트가 JSON 바디를 잘못 보냈을 때
      */
