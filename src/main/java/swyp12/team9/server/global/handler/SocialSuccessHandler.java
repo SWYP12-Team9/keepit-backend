@@ -90,10 +90,11 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         // UserStatus에 따라 리다이렉트 URL 분기
+        // 모두 /cookie 페이지로 이동, 신규 사용자는 isNewUser 파라미터로 구분
         String redirectUrl;
         if (user.getStatus() == UserStatus.PENDING) {
-            // 프로필 미완성 → 프로필 입력 페이지로
-            redirectUrl = frontendUrl + "/profile/complete";
+            // 프로필 미완성 → 쿠키 전환 + 신규 사용자 표시
+            redirectUrl = frontendUrl + "/cookie?isNewUser=true";
             log.info("소셜 로그인 성공 - 프로필 입력 필요 (userId: {}, status: PENDING)", userId);
         } else {
             // 프로필 완성 → 쿠키 전환 페이지로 (기존 로직)

@@ -102,6 +102,9 @@ spring:
   # google, facebook, github
   # 그래서 따로 google은 추가안해도 된다.
 
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+
   ai:
     openai:
       api-key: ${OPENAI_API_KEY} # 환경변수로 설정
@@ -111,8 +114,11 @@ spring:
       embedding:
         options:
           model: text-embedding-3-small
-  elasticsearch:
-    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        dimensions: 1536
+        index-name: keepit-index
 
 logging:
   level:
@@ -124,7 +130,7 @@ logging:
 
 # Frontend URL 설정
 frontend:
-  url: ${FRONTEND_URL:http://localhost:5173}
+  url: ${FRONTEND_URL:http://localhost:3000}
 
 swagger:
   server-url: ${SERVER_URL:http://localhost:8080}
