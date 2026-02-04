@@ -25,27 +25,19 @@ configurations {
 }
 
 repositories {
-    mavenCentral()
-    maven { url 'https://repo.spring.io/milestone' }
+	mavenCentral()
 }
 
 dependencies {
-	// 1. 아래 constraints 블록을 추가하여 버전을 강제로 맞춥니다.
-	constraints {
-		implementation('io.swagger.core.v3:swagger-annotations:2.2.27') {
-			because 'springdoc-openapi 2.8.3과 호환하는 버전'
-		}
-		implementation('io.swagger.core.v3:swagger-annotations-jakarta:2.2.27')
-		implementation('io.swagger.core.v3:swagger-models-jakarta:2.2.27')
-	}
 
-	// 2. springdoc-openapi 버전도 최신 안정화 버전으로 유지
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3' // 2.7.0에서 2.8.3으로 업그레이드 권장
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	// Swagger
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3'
 
 	// Valid 검증
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -56,8 +48,9 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
 	// Spring AI
-	implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
-	implementation 'org.springframework.ai:spring-ai-elasticsearch-store-spring-boot-starter'
+	implementation platform("org.springframework.ai:spring-ai-bom:1.1.2")
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-starter-vector-store-elasticsearch'
 
 	// AWS SDK for S3 (NCP Object Storage)
 	implementation 'software.amazon.awssdk:s3:2.20.26'
@@ -85,13 +78,6 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
-
-dependencyManagement {
-    imports {
-        mavenBom "org.springframework.ai:spring-ai-bom:1.0.0-M5"
-    }
-}
-
 
 tasks.named('test') {
     useJUnitPlatform()
