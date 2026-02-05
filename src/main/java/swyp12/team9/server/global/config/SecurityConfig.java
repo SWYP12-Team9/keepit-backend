@@ -33,6 +33,7 @@ import swyp12.team9.server.global.filter.LoginFilter;
 import swyp12.team9.server.global.handler.CustomAccessDeniedHandler;
 import swyp12.team9.server.global.handler.CustomAuthenticationEntryPoint;
 import swyp12.team9.server.global.handler.RefreshTokenLogoutHandler;
+import swyp12.team9.server.global.security.HttpCookieOAuth2AuthorizationRequestRepository;
 
 @Configuration
 @EnableWebSecurity
@@ -45,6 +46,7 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOrigins;
@@ -55,13 +57,15 @@ public class SecurityConfig {
             @Qualifier("SocialSuccessHandler") AuthenticationSuccessHandler socialSuccessHandler,
             JwtService jwtService,
             CustomAuthenticationEntryPoint authenticationEntryPoint,
-            CustomAccessDeniedHandler accessDeniedHandler) {
+            CustomAccessDeniedHandler accessDeniedHandler,
+            HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.loginSuccessHandler = loginSuccessHandler;
         this.socialSuccessHandler = socialSuccessHandler;
         this.jwtService = jwtService;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.cookieAuthorizationRequestRepository = cookieAuthorizationRequestRepository;
     }
 
     // CORS 설정
@@ -122,7 +126,6 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.POST,
                                         "/api/v1/users/exist",
                                         "/api/v1/users/signup",
-                                        "/api/v1/users/profile/complete",
                                         "/api/v1/auth/login"
                                 ).permitAll()
 
@@ -161,17 +164,15 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)        // 기본 Form 기반 인증 필터들 disable
                 .httpBasic(AbstractHttpConfigurer::disable);       // 기본 Basic 인증 필터 disable
 
-        // OAuth2 인증용 -> 소셜 로그인 기능
-//        http
-//                .oauth2Login(oauth2 -> oauth2
-//                        .successHandler(socialSuccessHandler));
+        // OAuth2 인증용 -> 소셜 로그인 기능 (세션 대신 쿠키 사용으로 완전한 Stateless)
         http
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authorization -> authorization
-                                .baseUri("/api/v1/oauth2/authorization")  // /api/v1 추가
+                                .baseUri("/api/v1/oauth2/authorization")
+                                .authorizationRequestRepository(cookieAuthorizationRequestRepository)
                         )
                         .redirectionEndpoint(redirection -> redirection
-                                .baseUri("/api/v1/login/oauth2/code/*")  // /api/v1 추가
+                                .baseUri("/api/v1/login/oauth2/code/*")
                         )
                         .successHandler(socialSuccessHandler)
                 );

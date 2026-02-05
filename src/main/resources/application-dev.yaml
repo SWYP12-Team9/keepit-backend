@@ -41,9 +41,13 @@ spring:
   security:
     cookie:
       refresh:
-        secure: false
-        same-site: Lax
-        max-age-seconds: 10
+        secure: ${REFRESH_SECURE:false}
+        same-site: ${REFRESH_SAME_SITE:Lax}
+        max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:60}
+      oauth2:
+        secure: ${OAUTH2_COOKIE_SECURE:false}
+        same-site: ${OAUTH2_COOKIE_SAME_SITE:Lax}
+        max-age-seconds: ${OAUTH2_COOKIE_MAX_AGE_SECONDS:180}
     oauth2:
       client:
         registration:
@@ -102,6 +106,9 @@ spring:
   # google, facebook, github
   # 그래서 따로 google은 추가안해도 된다.
 
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+
   ai:
     openai:
       api-key: ${OPENAI_API_KEY} # 환경변수로 설정
@@ -111,8 +118,11 @@ spring:
       embedding:
         options:
           model: text-embedding-3-small
-  elasticsearch:
-    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        dimensions: 1536
+        index-name: keepit-index
 
 logging:
   level:
