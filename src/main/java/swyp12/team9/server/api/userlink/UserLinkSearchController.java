@@ -49,7 +49,7 @@ public class UserLinkSearchController implements UserLinkSearchApi {
                     userId, referenceId, keyword, field, cursor);
             response = userLinkSearchService.searchByReference(userId, referenceId, keyword, field, cursor, size);
         } else {
-            // 내 링크 전체에서 검색
+            // 내 링크 전체에서 검색 (홈, 레퍼런스 페이지)
             log.info("내 링크 검색 요청 - userId: {}, keyword: {}, field: {}, cursor: {}", userId, keyword, field, cursor);
             response = userLinkSearchService.searchMyLinks(userId, keyword, field, cursor, size);
         }

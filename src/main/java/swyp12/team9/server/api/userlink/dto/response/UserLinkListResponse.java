@@ -6,9 +6,6 @@ import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Builder
 @Schema(description = "사용자 링크 목록 응답 객체")
 public record UserLinkListResponse(
@@ -16,8 +13,8 @@ public record UserLinkListResponse(
         @Schema(description = "사용자 링크 ID", example = "1")
         Long id,
 
-        @Schema(description = "레퍼런스 정보 목록")
-        List<ReferenceInfo> references,
+        @Schema(description = "레퍼런스 정보")
+        ReferenceInfo reference,
 
         @Schema(description = "링크 제목", example = "디자인 패턴 가이드")
         String title,
@@ -35,14 +32,13 @@ public record UserLinkListResponse(
         Long viewCount
 ) {
 
-    public static UserLinkListResponse of(UserLink userLink, List<Reference> references) {
-        List<ReferenceInfo> referenceInfos = references.stream()
-                .map(ReferenceInfo::from)
-                .collect(Collectors.toList());
+    public static UserLinkListResponse of(UserLink userLink, Reference reference) {
+
+        ReferenceInfo newReference = ReferenceInfo.from(reference);
 
         return UserLinkListResponse.builder()
                 .id(userLink.getId())
-                .references(referenceInfos)
+                .reference(newReference)
                 .title(userLink.getLink().getTitle())
                 .url(userLink.getLink().getUrl())
                 .aiSummary(userLink.getLink().getAiSummary())
