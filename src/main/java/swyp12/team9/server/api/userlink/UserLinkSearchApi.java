@@ -31,19 +31,19 @@ public interface UserLinkSearchApi {
             summary = "링크 검색 (홈/레퍼런스)",
             description = """
                     키워드를 통해 링크를 검색합니다. (커서 기반 페이징)
-
+                    
                     **검색 범위:**
                     - referenceId 없으면: 내 링크 전체에서 검색 (홈 페이지)
                     - referenceId 있으면: 해당 레퍼런스 폴더 내 링크에서 검색
                       (미지정 폴더도 referenceId로 검색 가능)
-
+                    
                     **검색 대상 필드:**
                     - why: 저장 이유
                     - memo: 메모
                     - title: 링크 제목
                     - aiSummary: AI 요약
                     - url: 링크 URL
-
+                    
                     **검색 방식:**
                     - field 파라미터가 없으면 모든 필드에서 검색
                     - field 파라미터가 있으면 해당 필드에서만 검색

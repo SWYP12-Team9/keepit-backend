@@ -43,7 +43,11 @@ spring:
       refresh:
         secure: ${REFRESH_SECURE:true}
         same-site: ${REFRESH_SAME_SITE:None}
-        max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:60} # 30일 예시
+        max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:60}
+      oauth2:
+        secure: ${OAUTH2_COOKIE_SECURE:true}
+        same-site: ${OAUTH2_COOKIE_SAME_SITE:None}
+        max-age-seconds: ${OAUTH2_COOKIE_MAX_AGE_SECONDS:180}
     oauth2:
       client:
         registration:
