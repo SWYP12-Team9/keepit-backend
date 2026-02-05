@@ -3,6 +3,7 @@ package swyp12.team9.server.global.security;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,16 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
     public static final String OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME = "oauth2_auth_request";
-    private static final int COOKIE_EXPIRE_SECONDS = 180; // 3분
+
+    private final int cookieExpireSeconds;
+    private final boolean cookieSecure;
+
+    public HttpCookieOAuth2AuthorizationRequestRepository(
+            @Value("${spring.security.cookie.oauth2.max-age-seconds:180}") int cookieExpireSeconds,
+            @Value("${spring.security.cookie.oauth2.secure:false}") boolean cookieSecure) {
+        this.cookieExpireSeconds = cookieExpireSeconds;
+        this.cookieSecure = cookieSecure;
+    }
 
     @Override
     public OAuth2AuthorizationRequest loadAuthorizationRequest(HttpServletRequest request) {
@@ -43,8 +53,8 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         Cookie cookie = new Cookie(OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, serialized);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
-        cookie.setMaxAge(COOKIE_EXPIRE_SECONDS);
-        // 프로덕션에서는 secure=true 필요
+        cookie.setSecure(cookieSecure);
+        cookie.setMaxAge(cookieExpireSeconds);
         response.addCookie(cookie);
     }
 
