@@ -5,6 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,16 +21,9 @@ import org.springframework.security.oauth2.client.web.AuthorizationRequestReposi
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-
 /**
- * 세션 대신 쿠키에 OAuth2 인가 요청을 저장하는 Repository
- * 완전한 Stateless 인증을 위해 사용
- *
+ * 세션 대신 쿠키에 OAuth2 인가 요청을 저장하는 Repository 완전한 Stateless 인증을 위해 사용
+ * <p>
  * 보안: SerializationUtils 대신 Jackson JSON 직렬화 사용 (CWE-502 취약점 방지)
  */
 @Component
@@ -76,6 +74,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         String serialized = serialize(authorizationRequest);
         if (serialized == null) {
             log.error("OAuth2AuthorizationRequest 직렬화 실패");
+            deleteCookie(response);
             return;
         }
 
@@ -91,11 +90,9 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
     @Override
     public OAuth2AuthorizationRequest removeAuthorizationRequest(HttpServletRequest request,
-                                                                  HttpServletResponse response) {
+                                                                 HttpServletResponse response) {
         OAuth2AuthorizationRequest authorizationRequest = loadAuthorizationRequest(request);
-        if (authorizationRequest != null) {
-            deleteCookie(response);
-        }
+        deleteCookie(response);
         return authorizationRequest;
     }
 
@@ -127,8 +124,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
     }
 
     /**
-     * OAuth2AuthorizationRequest를 JSON으로 직렬화 후 Base64 URL 인코딩
-     * SerializationUtils 대신 Jackson 사용 (보안 취약점 방지)
+     * OAuth2AuthorizationRequest를 JSON으로 직렬화 후 Base64 URL 인코딩 SerializationUtils 대신 Jackson 사용 (보안 취약점 방지)
      */
     private String serialize(OAuth2AuthorizationRequest authorizationRequest) {
         try {
@@ -142,8 +138,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
     }
 
     /**
-     * Base64 URL 디코딩 후 JSON을 OAuth2AuthorizationRequest로 역직렬화
-     * SerializationUtils 대신 Jackson 사용 (보안 취약점 방지)
+     * Base64 URL 디코딩 후 JSON을 OAuth2AuthorizationRequest로 역직렬화 SerializationUtils 대신 Jackson 사용 (보안 취약점 방지)
      */
     private OAuth2AuthorizationRequest deserialize(String serialized) {
         try {
