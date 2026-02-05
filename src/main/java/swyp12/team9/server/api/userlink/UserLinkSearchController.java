@@ -1,10 +1,6 @@
 package swyp12.team9.server.api.userlink;
 
 import io.swagger.v3.oas.annotations.Parameter;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -39,11 +35,11 @@ public class UserLinkSearchController implements UserLinkSearchApi {
     @Override
     public ApiResponse<UserLinkSearchResponse> searchLinks(
             @Parameter(hidden = true) @CurrentUserId Long userId,
-            @RequestParam @NotBlank @Size(min = 2, max = 50) String keyword,
+            @RequestParam String keyword,
             @RequestParam(required = false) String field,
             @RequestParam(required = false) Long referenceId,
             @RequestParam(required = false) String cursor,
-            @RequestParam @Min(1) @Max(50) int size
+            @RequestParam int size
     ) {
         UserLinkSearchResponse response;
 

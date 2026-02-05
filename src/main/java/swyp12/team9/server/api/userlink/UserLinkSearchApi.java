@@ -3,6 +3,10 @@ package swyp12.team9.server.api.userlink;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,7 +62,7 @@ public interface UserLinkSearchApi {
     ApiResponse<UserLinkSearchResponse> searchLinks(
             @Parameter(hidden = true) @CurrentUserId Long userId,
             @Parameter(description = "검색 키워드 (2~50자)", example = "좋은")
-            @RequestParam String keyword,
+            @RequestParam @NotBlank @Size(min = 2, max = 50) String keyword,
             @Parameter(description = """
                     검색 대상 필드 (선택)
                     - 빈값: 전체 필드 검색
@@ -76,7 +80,7 @@ public interface UserLinkSearchApi {
             @Parameter(description = "커서 (첫 요청 시 null)", example = "10")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "페이지 크기", example = "20")
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     );
 
 }
