@@ -46,6 +46,7 @@ spring:
         max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:60}
       oauth2:
         secure: ${OAUTH2_COOKIE_SECURE:false}
+        same-site: ${OAUTH2_COOKIE_SAME_SITE:Lax}
         max-age-seconds: ${OAUTH2_COOKIE_MAX_AGE_SECONDS:180}
     oauth2:
       client:

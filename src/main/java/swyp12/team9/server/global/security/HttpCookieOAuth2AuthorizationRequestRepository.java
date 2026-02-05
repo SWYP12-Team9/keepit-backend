@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.jackson2.SecurityJackson2Modules;
 import org.springframework.security.oauth2.client.jackson2.OAuth2ClientJackson2Module;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
@@ -36,13 +38,16 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
     private final int cookieExpireSeconds;
     private final boolean cookieSecure;
+    private final String cookieSameSite;
     private final ObjectMapper objectMapper;
 
     public HttpCookieOAuth2AuthorizationRequestRepository(
             @Value("${spring.security.cookie.oauth2.max-age-seconds:180}") int cookieExpireSeconds,
-            @Value("${spring.security.cookie.oauth2.secure:false}") boolean cookieSecure) {
+            @Value("${spring.security.cookie.oauth2.secure:false}") boolean cookieSecure,
+            @Value("${spring.security.cookie.oauth2.same-site:Lax}") String cookieSameSite) {
         this.cookieExpireSeconds = cookieExpireSeconds;
         this.cookieSecure = cookieSecure;
+        this.cookieSameSite = cookieSameSite;
 
         // Spring Security OAuth2 직렬화/역직렬화를 위한 ObjectMapper 설정
         this.objectMapper = new ObjectMapper();
@@ -64,7 +69,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
                                          HttpServletRequest request,
                                          HttpServletResponse response) {
         if (authorizationRequest == null) {
-            deleteCookie(request, response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME);
+            deleteCookie(response);
             return;
         }
 
@@ -74,12 +79,14 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
             return;
         }
 
-        Cookie cookie = new Cookie(OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, serialized);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
-        cookie.setMaxAge(cookieExpireSeconds);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, serialized)
+                .path("/")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(cookieSameSite)
+                .maxAge(cookieExpireSeconds)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     @Override
@@ -87,13 +94,13 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
                                                                   HttpServletResponse response) {
         OAuth2AuthorizationRequest authorizationRequest = loadAuthorizationRequest(request);
         if (authorizationRequest != null) {
-            deleteCookie(request, response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME);
+            deleteCookie(response);
         }
         return authorizationRequest;
     }
 
     public void removeAuthorizationRequestCookies(HttpServletRequest request, HttpServletResponse response) {
-        deleteCookie(request, response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME);
+        deleteCookie(response);
     }
 
     private Cookie getCookie(HttpServletRequest request, String name) {
@@ -108,18 +115,15 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         return null;
     }
 
-    private void deleteCookie(HttpServletRequest request, HttpServletResponse response, String name) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (name.equals(cookie.getName())) {
-                    cookie.setValue("");
-                    cookie.setPath("/");
-                    cookie.setMaxAge(0);
-                    response.addCookie(cookie);
-                }
-            }
-        }
+    private void deleteCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from(OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, "")
+                .path("/")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(cookieSameSite)
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     /**
