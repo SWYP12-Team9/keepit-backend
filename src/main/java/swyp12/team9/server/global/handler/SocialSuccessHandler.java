@@ -72,21 +72,14 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
 
         // 응답
         // SameSite + Secure + HttpOnly
-//        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-//        refreshCookie.setHttpOnly(true);
-//        refreshCookie.setSecure(false); // 프로덕션에서는 true로 변경
-//        refreshCookie.setPath("/");
-//        refreshCookie.setMaxAge(10); // 10초 (프론트에서 발급 후 바로 헤더 전환 로직 진행 예정)
-
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(refreshCookieSecure)
-                .path("/").maxAge(refreshCookieMaxAgeSeconds)
+                .secure(refreshCookieSecure) // 프로덕션에서는 true
+                .path("/").maxAge(refreshCookieMaxAgeSeconds) // 60초 (프론트에서 발급 후 바로 헤더 전환 로직 진행 예정)
                 .sameSite(refreshCookieSameSite) // "Lax", "Strict", "None"
                 // .domain("example.com") // 필요할 때만 (서브도메인 공유 등)
                 .build();
 
-        //response.addCookie(refreshCookie);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         // UserStatus에 따라 리다이렉트 URL 분기
@@ -95,7 +88,7 @@ public class SocialSuccessHandler implements AuthenticationSuccessHandler {
         if (user.getStatus() == UserStatus.PENDING) {
             // 프로필 미완성 → 쿠키 전환 + 신규 사용자 표시
             redirectUrl = frontendUrl + "/cookie?isNewUser=true";
-            log.info("소셜 로그인 성공 - 프로필 입력 필요 (userId: {}, status: PENDING)", userId);
+            log.info("소셜 로그인을 통한 회원가입 진행 중 - 프로필 입력 필요 (userId: {}, status: PENDING)", userId);
         } else {
             // 프로필 완성 → 쿠키 전환 페이지로 (기존 로직)
             redirectUrl = frontendUrl + "/cookie";
