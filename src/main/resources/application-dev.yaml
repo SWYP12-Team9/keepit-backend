@@ -41,9 +41,13 @@ spring:
   security:
     cookie:
       refresh:
-        secure: true
-        same-site: None
-        max-age-seconds: 10
+        secure: ${REFRESH_SECURE:false}
+        same-site: ${REFRESH_SAME_SITE:Lax}
+        max-age-seconds: ${REFRESH_COOKIE_MAX_AGE_SECONDS:60}
+      oauth2:
+        secure: ${OAUTH2_COOKIE_SECURE:false}
+        same-site: ${OAUTH2_COOKIE_SAME_SITE:Lax}
+        max-age-seconds: ${OAUTH2_COOKIE_MAX_AGE_SECONDS:180}
     oauth2:
       client:
         registration:
@@ -98,7 +102,7 @@ spring:
   #            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
   #            user-name-attribute: sub
   #google: 생략 가능
-  # Spring Security가 이미 알고있는 provider들
+  # Sring Security가 이미 알고있는 provider들
   # google, facebook, github
   # 그래서 따로 google은 추가안해도 된다.
 
@@ -147,9 +151,6 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-  health:
-    elasticsearch:
-      enabled: false
 
 # NCP Object Storage 설정
 cloud:
@@ -171,4 +172,4 @@ image:
 # 스크래핑 API 설정
 scraping:
   api:
-    base-url: ${SCRAPING_API_BASE_URL:http://api.sor999.site:8000}
+    base-url: ${SCRAPING_API_BASE_URL:http://localhost:8000}

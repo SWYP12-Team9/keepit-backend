@@ -30,9 +30,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // JWT 검사 제외 경로
         if (
-                path.equals("/api/users/signup") ||
-                        path.equals("/api/users/exist") ||
-                        path.startsWith("/jwt") ||
+                path.equals("/api/v1/users/signup") ||
+                        path.equals("/api/v1/users/exist") ||
+                        path.startsWith("/api/v1/jwt/") ||
+                        path.startsWith("/api/v1/oauth2/") ||
+                        path.startsWith("/api/v1/login/") ||
                         path.startsWith("/swagger") ||
                         path.startsWith("/v3/api-docs") ||
                         path.startsWith("/actuator")
