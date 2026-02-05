@@ -9,6 +9,8 @@ import swyp12.team9.server.api.userlink.dto.response.UserLinkSearchResponse;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
+import swyp12.team9.server.domain.referenceuserlink.model.ReferenceUserLink;
+import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLinkRepository;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkSearchRepository;
 
@@ -28,6 +30,7 @@ public class UserLinkSearchService {
 
     private final UserLinkSearchRepository userLinkSearchRepository;
     private final ReferenceRepository referenceRepository;
+    private final ReferenceUserLinkRepository referenceUserLinkRepository;
 
     /**
      * 내 링크에서 키워드 검색 (커서 기반)
@@ -59,7 +62,7 @@ public class UserLinkSearchService {
 
         log.info("검색 완료 - 결과: {}건", Math.min(result.size(), size));
 
-        return UserLinkSearchResponse.from(result, normalizedKeyword, size);
+        return UserLinkSearchResponse.from(result, normalizedKeyword, size, this::resolveReference);
     }
 
     /**
@@ -97,7 +100,20 @@ public class UserLinkSearchService {
 
         log.info("레퍼런스 폴더 검색 완료 - 결과: {}건", Math.min(result.size(), size));
 
-        return UserLinkSearchResponse.from(result, normalizedKeyword, size);
+        return UserLinkSearchResponse.from(result, normalizedKeyword, size, this::resolveReference);
+    }
+
+    /**
+     * UserLink ID로 Reference 조회
+     *
+     * @param userLinkId UserLink ID
+     * @return 연결된 Reference (없으면 null)
+     */
+    private Reference resolveReference(Long userLinkId) {
+        return referenceUserLinkRepository.findByUserLinkId(userLinkId).stream()
+                .map(ReferenceUserLink::getReference)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
