@@ -38,12 +38,6 @@ public record UserLinkResponse(
         Long viewCount
 ) {
 
-    /**
-     * UserLink 엔티티와 Reference 목록으로부터 응답 생성
-     *
-     * @param userLink  UserLink 엔티티
-     * @param reference Reference 엔티티
-     */
     public static UserLinkResponse from(UserLink userLink, Reference reference) {
 
         ReferenceInfo newReference = ReferenceInfo.from(reference);

@@ -273,7 +273,7 @@ public class UserLinkService {
     /**
      * UserLink 목록을 UserLinkListResponse로 변환
      *
-     * @param targetReference 조회한 레퍼런스 (null이면 모든 레퍼런스 포함)
+     * @param targetReference 조회한 레퍼런스 (null이면 각 UserLink에 연결된 Reference 조회)
      */
     private PageResponse<UserLinkListResponse> buildUserLinkListResponse(
             List<UserLink> userLinks, int size, Reference targetReference) {
@@ -288,20 +288,19 @@ public class UserLinkService {
 
         List<UserLinkListResponse> responses = content.stream()
                 .map(userLink -> {
-                    List<Reference> references;
+                    Reference reference;
                     if (targetReference != null) {
-                        // referenceId로 조회한 경우, 해당 Reference만 포함
-                        references = List.of(targetReference);
+                        // referenceId로 조회한 경우, 해당 Reference 사용
+                        reference = targetReference;
                     } else {
-                        // 전체 조회인 경우, UserLink에 연결된 모든 Reference 포함
-                        List<ReferenceUserLink> referenceUserLinks = referenceUserLinkRepository.findByUserLinkId(
-                                userLink.getId());
-                        references = referenceUserLinks.stream()
+                        // 전체 조회인 경우, UserLink에 연결된 첫 번째 Reference 조회
+                        reference = referenceUserLinkRepository.findByUserLinkId(userLink.getId()).stream()
                                 .map(ReferenceUserLink::getReference)
-                                .collect(Collectors.toList());
+                                .findFirst()
+                                .orElse(null);
                     }
 
-                    return UserLinkListResponse.of(userLink, references);
+                    return UserLinkListResponse.of(userLink, reference);
                 })
                 .collect(Collectors.toList());
 
