@@ -3,7 +3,10 @@ package swyp12.team9.server.api.userlink.dto.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import lombok.Builder;
+import swyp12.team9.server.domain.reference.model.Reference;
+import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
 /**
@@ -16,7 +19,7 @@ import swyp12.team9.server.domain.userlink.model.UserLink;
 public record UserLinkSearchResponse(
 
         @Schema(description = "검색 결과 목록")
-        List<UserLinkSearchItem> items,
+        List<UserLinkSearchContent> contents,
 
         @Schema(description = "검색어", example = "Spring Boot")
         String keyword,
@@ -31,19 +34,24 @@ public record UserLinkSearchResponse(
     /**
      * List<UserLink>로부터 검색 응답 생성 (커서 기반)
      *
-     * @param userLinks 검색 결과 리스트 (size + 1개 조회됨)
-     * @param keyword   검색에 사용된 키워드
-     * @param size      요청된 페이지 크기
+     * @param userLinks         검색 결과 리스트 (size + 1개 조회됨)
+     * @param keyword           검색에 사용된 키워드
+     * @param size              요청된 페이지 크기
+     * @param referenceResolver UserLink ID로 Reference를 조회하는 함수
      * @return 검색 응답 DTO
      */
-    public static UserLinkSearchResponse from(List<UserLink> userLinks, String keyword, int size) {
+    public static UserLinkSearchResponse from(List<UserLink> userLinks, String keyword, int size,
+                                              Function<Long, Reference> referenceResolver) {
         boolean hasNext = userLinks.size() > size;
 
         // size+1개를 가져왔으므로, 실제 반환은 size개만
         List<UserLink> resultList = hasNext ? userLinks.subList(0, size) : userLinks;
 
-        List<UserLinkSearchItem> items = resultList.stream()
-                .map(userLink -> UserLinkSearchItem.from(userLink, keyword))
+        List<UserLinkSearchContent> contents = resultList.stream()
+                .map(userLink -> {
+                    Reference reference = referenceResolver.apply(userLink.getId());
+                    return UserLinkSearchContent.from(userLink, reference, keyword);
+                })
                 .toList();
 
         // 다음 커서는 마지막 아이템의 ID
@@ -52,7 +60,7 @@ public record UserLinkSearchResponse(
                 : null;
 
         return UserLinkSearchResponse.builder()
-                .items(items)
+                .contents(contents)
                 .keyword(keyword)
                 .nextCursor(nextCursor)
                 .hasNext(hasNext)
@@ -66,7 +74,7 @@ public record UserLinkSearchResponse(
      */
     public static UserLinkSearchResponse empty() {
         return UserLinkSearchResponse.builder()
-                .items(Collections.emptyList())
+                .contents(Collections.emptyList())
                 .keyword("")
                 .nextCursor(null)
                 .hasNext(false)
@@ -74,16 +82,19 @@ public record UserLinkSearchResponse(
     }
 
     /**
-     * 개별 검색 결과 아이템
+     * 개별 검색 결과 내용
      * <p>
-     * 검색어 하이라이팅을 위해 매칭된 필드 정보를 포함합니다.
+     * UserLinkListResponse와 동일한 구조 + 검색어 하이라이팅용 matchedFields
      */
     @Builder
     @Schema(description = "검색 결과 아이템")
-    public record UserLinkSearchItem(
+    public record UserLinkSearchContent(
 
             @Schema(description = "사용자 링크 ID", example = "1")
             Long id,
+
+            @Schema(description = "레퍼런스 정보")
+            ReferenceInfo reference,
 
             @Schema(description = "링크 제목", example = "Spring Boot 가이드")
             String title,
@@ -94,11 +105,8 @@ public record UserLinkSearchResponse(
             @Schema(description = "AI 요약", example = "Spring Boot에 대한 종합 가이드입니다.")
             String aiSummary,
 
-            @Schema(description = "저장 이유", example = "개발 공부용")
-            String why,
-
-            @Schema(description = "메모", example = "핵심 내용 정리 필요")
-            String memo,
+            @Schema(description = "읽음 상태", example = "UNREAD")
+            LinkStatus status,
 
             @Schema(description = "조회수", example = "10")
             Long viewCount,
@@ -110,21 +118,22 @@ public record UserLinkSearchResponse(
         /**
          * UserLink 엔티티로부터 검색 아이템 생성
          *
-         * @param userLink UserLink 엔티티
-         * @param keyword  검색 키워드 (매칭 필드 확인용)
+         * @param userLink  UserLink 엔티티
+         * @param reference Reference 엔티티
+         * @param keyword   검색 키워드 (매칭 필드 확인용)
          * @return 검색 아이템 DTO
          */
-        public static UserLinkSearchItem from(UserLink userLink, String keyword) {
-            // 검색어가 매칭된 필드들을 찾음 (하이라이팅용)
+        public static UserLinkSearchContent from(UserLink userLink, Reference reference, String keyword) {
             List<String> matchedFields = findMatchedFields(userLink, keyword);
+            ReferenceInfo referenceInfo = ReferenceInfo.from(reference);
 
-            return UserLinkSearchItem.builder()
+            return UserLinkSearchContent.builder()
                     .id(userLink.getId())
+                    .reference(referenceInfo)
                     .title(userLink.getLink().getTitle())
                     .url(userLink.getLink().getUrl())
                     .aiSummary(userLink.getLink().getAiSummary())
-                    .why(userLink.getWhy())
-                    .memo(userLink.getMemo())
+                    .status(userLink.getStatus())
                     .viewCount(userLink.getViewCount())
                     .matchedFields(matchedFields)
                     .build();
@@ -132,12 +141,6 @@ public record UserLinkSearchResponse(
 
         /**
          * 검색어가 매칭된 필드들을 찾아 반환
-         * <p>
-         * 프론트엔드에서 검색어 하이라이팅에 활용할 수 있습니다.
-         *
-         * @param userLink UserLink 엔티티
-         * @param keyword  검색 키워드
-         * @return 매칭된 필드명 목록
          */
         private static List<String> findMatchedFields(UserLink userLink, String keyword) {
             if (keyword == null || keyword.isEmpty()) {
@@ -147,7 +150,6 @@ public record UserLinkSearchResponse(
             String lowerKeyword = keyword.toLowerCase();
             java.util.List<String> matched = new java.util.ArrayList<>();
 
-            // 각 필드에서 검색어 매칭 확인
             if (containsIgnoreCase(userLink.getWhy(), lowerKeyword)) {
                 matched.add("why");
             }
@@ -167,9 +169,6 @@ public record UserLinkSearchResponse(
             return matched;
         }
 
-        /**
-         * 대소문자 구분 없이 문자열 포함 여부 확인
-         */
         private static boolean containsIgnoreCase(String text, String keyword) {
             return text != null && text.toLowerCase().contains(keyword);
         }
