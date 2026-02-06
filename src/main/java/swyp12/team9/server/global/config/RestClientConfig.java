@@ -46,8 +46,8 @@ public class RestClientConfig {
 
     /**
      * Apache HttpClient 설정
-     * - Connection Pool: 최대 50개 연결, 라우트당 20개
-     * - Timeout: 연결 5초, 응답 30초
+     * - Connection Pool
+     * - Timeout
      * - Keep-Alive 활성화
      */
     @Bean
