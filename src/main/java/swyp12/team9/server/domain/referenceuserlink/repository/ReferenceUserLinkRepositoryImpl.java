@@ -24,27 +24,35 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
 
     /**
      * 사용자의 레퍼런스별 링크 개수 집계
+     * isDefault=true인 미지정 폴더는 제외
+     * 링크가 0개인 폴더도 포함 (count = 0)
      */
     @Override
     public List<ReferenceCategoryCountProjection> countByUserIdGroupByReference(Long userId) {
         return queryFactory
                 .select(Projections.fields(
                         ReferenceCategoryCountProjection.class,
+                        reference.id.as("referenceId"),
                         reference.title.as("referenceTitle"),
-                        referenceUserLink.count().as("count")
+                        reference.colorCode.as("referenceColorCode"),
+                        referenceUserLink.countDistinct().as("count")
                 ))
-                .from(referenceUserLink)
-                .join(referenceUserLink.reference, reference)
-                .join(referenceUserLink.userLink, userLink)
-                .where(userLink.user.id.eq(userId))
-                .groupBy(reference.id, reference.title)
-                .orderBy(referenceUserLink.count().desc())
+                .from(reference)
+                .leftJoin(reference.userLinks, referenceUserLink)
+                .on(referenceUserLink.userLink.user.id.eq(userId))
+                .where(
+                        reference.user.id.eq(userId),
+                        reference.isDefault.eq(false)
+                )
+                .groupBy(reference.id, reference.title, reference.colorCode)
+                .orderBy(referenceUserLink.countDistinct().desc())
                 .fetch();
     }
 
     /**
      * 사용자의 레퍼런스 목록 조회 (레퍼런스 ID, 이름, 링크 개수, 색상 코드 포함)
      * 링크 개수가 많은 순으로 정렬
+     * isDefault=true인 미지정 폴더는 제외
      */
     @Override
     public List<ReferenceWithCountProjection> findReferencesWithCountByUserId(Long userId) {
@@ -61,7 +69,8 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
                 .join(referenceUserLink.userLink, userLink)
                 .where(
                         userLink.user.id.eq(userId),
-                        reference.user.id.eq(userId)
+                        reference.user.id.eq(userId),
+                        reference.isDefault.eq(false)
                 )
                 .groupBy(reference.id, reference.title, reference.colorCode)
                 .orderBy(referenceUserLink.count().desc())
@@ -164,6 +173,32 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
         return query
                 .orderBy(userLink.id.desc())
                 .limit(size + 1)
+                .fetch();
+    }
+
+    /**
+     * 사용자의 레퍼런스별 미열람 링크 개수 집계
+     * isDefault 포함 모든 레퍼런스 대상
+     */
+    @Override
+    public List<ReferenceCategoryCountProjection> countUnreadByUserIdGroupByReference(Long userId) {
+        return queryFactory
+                .select(Projections.fields(
+                        ReferenceCategoryCountProjection.class,
+                        reference.id.as("referenceId"),
+                        reference.title.as("referenceTitle"),
+                        reference.colorCode.as("referenceColorCode"),
+                        referenceUserLink.count().as("count")
+                ))
+                .from(referenceUserLink)
+                .join(referenceUserLink.reference, reference)
+                .join(referenceUserLink.userLink, userLink)
+                .where(
+                        userLink.user.id.eq(userId),
+                        userLink.status.eq(swyp12.team9.server.domain.userlink.model.LinkStatus.UNREAD)
+                )
+                .groupBy(reference.id, reference.title, reference.colorCode)
+                .orderBy(referenceUserLink.count().desc())
                 .fetch();
     }
 }

@@ -187,4 +187,16 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 )
                 .fetch();
     }
+
+    /**
+     * 사용자가 처음 링크를 저장한 날짜 조회
+     */
+    @Override
+    public LocalDateTime findFirstCreatedDateByUserId(Long userId) {
+        return queryFactory
+                .select(userLink.createdAt.min())
+                .from(userLink)
+                .where(userLink.user.id.eq(userId))
+                .fetchOne();
+    }
 }
