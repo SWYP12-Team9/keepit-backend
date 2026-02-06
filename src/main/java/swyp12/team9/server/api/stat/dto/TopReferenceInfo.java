@@ -11,7 +11,7 @@ public record TopReferenceInfo(
         Integer rank,
 
         @Schema(description = "레퍼런스 ID", example = "10")
-        Long referenceId,
+        Long id,
 
         @Schema(description = "레퍼런스 제목", example = "개발")
         String title,
@@ -32,9 +32,9 @@ public record TopReferenceInfo(
         public static TopReferenceInfo of(Integer rank, ReferenceCategoryCountProjection projection) {
                 return TopReferenceInfo.builder()
                         .rank(rank)
-                        .referenceId(projection.getReferenceId())
+                        .id(projection.getReferenceId())
                         .title(projection.getReferenceTitle())
-                        .colorCode(projection.getReferenceColorCode() != null ? projection.getReferenceColorCode() : "#CCCCCC")
+                        .colorCode(projection.getReferenceColorCode() != null ? projection.getReferenceColorCode() : null)
                         .linkCount(projection.getCount())
                         .build();
         }
