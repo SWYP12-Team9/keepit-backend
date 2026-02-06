@@ -14,7 +14,17 @@ public record SavePatternResponse(
         @Schema(description = "가장 많이 저장한 요일 (단독 1위인 경우만 값 존재, 동률이거나 데이터 없으면 null)", example = "월", nullable = true)
         String peakDay,
 
-        @Schema(description = "요일별 저장 개수")
+        @Schema(description = "요일별 저장 개수", example = """
+                [
+                  {"day": "월", "linkCount": 10},
+                  {"day": "화", "linkCount": 5},
+                  {"day": "수", "linkCount": 8},
+                  {"day": "목", "linkCount": 12},
+                  {"day": "금", "linkCount": 7},
+                  {"day": "토", "linkCount": 3},
+                  {"day": "일", "linkCount": 2}
+                ]
+                """)
         List<DayLinkCountResponse> counts,
 
         @Schema(description = "인사이트 텍스트", example = "'월요일'에 링크를 가장 많이 저장했어요. 총 10개예요.")
