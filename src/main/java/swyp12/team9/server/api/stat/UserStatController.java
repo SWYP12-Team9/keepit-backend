@@ -15,7 +15,7 @@ import swyp12.team9.server.global.common.dto.ApiResponse;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-public class UserUserStatController implements UserStatApi {
+public class UserStatController implements UserStatApi {
 
     private final UserStatService userStatService;
 
