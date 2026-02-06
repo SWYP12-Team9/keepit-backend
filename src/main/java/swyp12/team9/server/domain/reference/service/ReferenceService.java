@@ -102,6 +102,53 @@ public class ReferenceService {
         return buildPageResponse(results, size, sortBy);
     }
 
+    /**
+     * 자주 찾는 레퍼런스 조회 (링크 개수 많은 순, 커서 페이징)
+     *
+     * @param userId 현재 사용자 ID
+     * @param cursor 페이지 커서 (형식: "referenceId:linkCount")
+     * @param size   페이지 크기
+     * @return 링크 개수가 많은 순으로 정렬된 레퍼런스 목록 (미지정 폴더 제외)
+     */
+    public PageResponse<ReferenceListResponse> getFrequentReferences(Long userId, String cursor, int size) {
+        ReferenceCursor referenceCursor = ReferenceCursor.from(cursor, ReferenceSortType.LINK_COUNT_DESC);
+
+        // 미지정 폴더를 제외하기 위해 더 많이 조회 후 필터링
+        List<ReferenceListResponse> results = referenceRepository.findAllWithLinkCount(
+                userId,
+                ReferenceType.ALL,
+                ReferenceSortType.LINK_COUNT_DESC,
+                referenceCursor,
+                size + 10  // 미지정 폴더 필터링을 고려해 여유 있게 조회
+        );
+
+        // 미지정 폴더(isDefault=true) 제외
+        List<ReferenceListResponse> filtered = results.stream()
+                .filter(ref -> !Boolean.TRUE.equals(ref.isDefault()))
+                .toList();
+
+        return buildFrequentPageResponse(filtered, size);
+    }
+
+    private PageResponse<ReferenceListResponse> buildFrequentPageResponse(
+            List<ReferenceListResponse> results,
+            int size
+    ) {
+        if (results.isEmpty()) {
+            return PageResponse.empty();
+        }
+
+        boolean hasNext = results.size() > size;
+        List<ReferenceListResponse> content = hasNext ? results.subList(0, size) : results;
+
+        ReferenceListResponse last = content.get(content.size() - 1);
+        String nextCursor = hasNext
+                ? new ReferenceCursor(last.id(), last.linkCount()).encode(ReferenceSortType.LINK_COUNT_DESC)
+                : null;
+
+        return PageResponse.of(content, nextCursor, hasNext);
+    }
+
     private PageResponse<ReferenceListResponse> buildPageResponse(
             List<ReferenceListResponse> results,
             int size,
@@ -121,10 +168,8 @@ public class ReferenceService {
     }
 
     private String buildNextCursor(ReferenceListResponse last, ReferenceSortType sortBy) {
-        if (sortBy == ReferenceSortType.LINK_COUNT_DESC || sortBy == ReferenceSortType.LINK_COUNT_ASC) {
-            return last.id() + ":" + last.linkCount();
-        }
-        return String.valueOf(last.id());
+        ReferenceCursor cursor = new ReferenceCursor(last.id(), last.linkCount());
+        return cursor.encode(sortBy);
     }
 
     // 레퍼런스 수정

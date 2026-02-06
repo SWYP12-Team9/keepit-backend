@@ -4,7 +4,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.api.reference.dto.ReferenceSortType;
 import swyp12.team9.server.api.reference.dto.ReferenceType;
 import swyp12.team9.server.api.reference.dto.request.ReferenceCreateRequest;
@@ -77,6 +81,18 @@ public class ReferenceController implements ReferenceApi {
 
         PaginationUtils.Cursor.PageResponse<ReferenceListResponse> response =
                 referenceService.getReferences(userId, type, sortBy, cursor, size);
+        return ApiResponse.ok(response);
+    }
+
+    // 자주 찾는 레퍼런스 조회
+    @Override
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<ReferenceListResponse>> getFrequentReferences(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int size,
+            @CurrentUserId Long userId) {
+
+        PaginationUtils.Cursor.PageResponse<ReferenceListResponse> response =
+                referenceService.getFrequentReferences(userId, cursor, size);
         return ApiResponse.ok(response);
     }
 
