@@ -79,11 +79,20 @@ public class RecommendationController {
     }
 
     @Operation(
-            summary = "카테고리별 추천 콘텐츠 조회",
+            summary = "추천 콘텐츠 조회 (전체/카테고리별)",
             description = """
-                    카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다.
+                    공개된 링크를 추천합니다.
+
+                    **카테고리 파라미터:**
+                    - 미지정 시: 전체 최신 공개 링크 반환 (전체 탭)
+                    - 지정 시: 해당 카테고리 유사도 높은 순 반환
+
+                    **카테고리 목록:**
+                    경제/시사, 뷰티/패션, 건강/운동, 여행/맛집, 문화/엔터, 자기계발, IT/테크, 기타
+
+                    **동작 방식:**
                     - Elasticsearch 벡터 검색 사용 (OpenAI 임베딩)
-                    - '기타' 카테고리는 지원하지 않음 (예외 발생)
+                    - '기타' 카테고리 또는 미지정 시 최신 공개 링크 반환
                     - 로그인한 사용자의 링크는 자동 제외
                     - 동일 링크는 한 번만 노출
                     - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
@@ -99,20 +108,26 @@ public class RecommendationController {
     @GetMapping
     public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
             @CurrentUserId(required = false) Long userId,
-            @Parameter(description = "카테고리명 (경제/시사, 뷰티/패션 등, '기타' 제외)", example = "경제/시사")
-            @RequestParam @NotBlank String category,
+            @Parameter(description = "카테고리명 (미지정 시 전체 조회)", example = "경제/시사")
+            @RequestParam(required = false) String category,
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
-        LinkCategory linkCategory = LinkCategory.fromDisplayName(category)
-                .orElseThrow(InvalidCategoryException::new);
-
-        // '기타' 카테고리는 최신 공개 링크로 처리 (벡터 검색 대신 최신순)
         List<RecommendationResponse> recommendations;
-        if (linkCategory == LinkCategory.ETC) {
+
+        // 카테고리 미지정 시 전체 최신 공개 링크 반환
+        if (category == null || category.isBlank()) {
             recommendations = recommendationService.getRecentPublicLinks(userId, size);
         } else {
-            recommendations = recommendationService.getRecommendationsByCategory(userId, category, size);
+            LinkCategory linkCategory = LinkCategory.fromDisplayName(category)
+                    .orElseThrow(InvalidCategoryException::new);
+
+            // '기타' 카테고리는 최신 공개 링크로 처리 (벡터 검색 대신 최신순)
+            if (linkCategory == LinkCategory.ETC) {
+                recommendations = recommendationService.getRecentPublicLinks(userId, size);
+            } else {
+                recommendations = recommendationService.getRecommendationsByCategory(userId, category, size);
+            }
         }
 
         return ApiResponse.ok(recommendations);
