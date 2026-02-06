@@ -733,18 +733,20 @@ class UserStatServiceTest {
             }
 
             @Test
-            @DisplayName("성공: 요일별 개수 리스트가 일~토 순서로 반환")
-            void success_DayCountsOrderSundayToSaturday() {
+            @DisplayName("성공: 요일별 개수 리스트가 월~일 순서로 반환")
+            void success_DayCountsOrderMondayToSunday() {
                 // given
                 LocalDateTime twoWeeksAgo = LocalDateTime.now().minusWeeks(2);
+
+                // Enum(1=일, 2=월, 3=화...) 기준에 맞춰 데이터 생성
                 List<DayCountProjection> dayCounts = Arrays.asList(
-                        createDayCount(1, 2L),
-                        createDayCount(2, 10L),
-                        createDayCount(3, 5L),
-                        createDayCount(4, 4L),
-                        createDayCount(5, 6L),
-                        createDayCount(6, 3L),
-                        createDayCount(7, 4L)
+                        createDayCount(2, 2L),  // 월
+                        createDayCount(3, 10L), // 화
+                        createDayCount(4, 5L),  // 수
+                        createDayCount(5, 4L),  // 목
+                        createDayCount(6, 6L),  // 금
+                        createDayCount(7, 3L),  // 토
+                        createDayCount(1, 4L)   // 일
                 );
 
                 given(referenceUserLinkRepository.countByUserIdGroupByReference(TEST_USER_ID))
@@ -764,10 +766,20 @@ class UserStatServiceTest {
                 UserStatResponse result = userStatService.getUserStat(TEST_USER_ID);
 
                 // then
-                assertThat(result.savePattern().counts()).hasSize(7);
-                assertThat(result.savePattern().counts().get(0).day()).isEqualTo("월");
-                assertThat(result.savePattern().counts().get(1).day()).isEqualTo("화");
-                assertThat(result.savePattern().counts().get(6).day()).isEqualTo("일");
+                var counts = result.savePattern().counts();
+                assertThat(counts).hasSize(7);
+
+                // 인덱스 0번: 월요일 (ID 2번의 값인 2L이 있어야 함)
+                assertThat(counts.get(0).day()).isEqualTo("월");
+                assertThat(counts.get(0).linkCount()).isEqualTo(2L);
+
+                // 인덱스 1번: 화요일 (ID 3번의 값인 10L이 있어야 함)
+                assertThat(counts.get(1).day()).isEqualTo("화");
+                assertThat(counts.get(1).linkCount()).isEqualTo(10L);
+
+                // 인덱스 6번: 일요일 (ID 1번의 값인 4L이 있어야 함)
+                assertThat(counts.get(6).day()).isEqualTo("일");
+                assertThat(counts.get(6).linkCount()).isEqualTo(4L);
             }
         }
     }
