@@ -60,6 +60,8 @@ public class RecommendationService {
             if (userId != null) {
                 List<Long> myLinkIds = userLinkRepository.findLinkIdsByUserId(userId);
                 if (!myLinkIds.isEmpty()) {
+                    // TODO 양진모: 사용자의 저장 링크가 65,536개(ES terms limit)를 초과할 경우 에러 발생 가능성 있음. 추후
+                    // 10,000건 이상의 대규모 리스트에 대한 필터링 생략 또는 배치 처리 로직 추가 검토 필요.
                     requestBuilder.filterExpression(new FilterExpressionBuilder()
                             .nin("linkId", myLinkIds.toArray())
                             .build());
@@ -140,6 +142,8 @@ public class RecommendationService {
             if (userId != null) {
                 List<Long> myLinkIds = userLinkRepository.findLinkIdsByUserId(userId);
                 if (!myLinkIds.isEmpty()) {
+                    // TODO 양진모: 사용자의 저장 링크가 65,536개(ES terms limit)를 초과할 경우 에러 발생 가능성 있음. 추후
+                    // 10,000건 이상의 대규모 리스트에 대한 필터링 생략 또는 배치 처리 로직 추가 검토 필요.
                     requestBuilder.filterExpression(new FilterExpressionBuilder()
                             .nin("linkId", myLinkIds.toArray())
                             .build());
