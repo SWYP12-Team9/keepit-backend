@@ -64,19 +64,10 @@ public class RecommendationController {
                 return ApiResponse.ok(searchResults);
         }
 
-        @Operation(summary = "추천 콘텐츠 조회 (전체/카테고리별)", description = """
-                        공개된 링크를 추천합니다.
-
-                        **카테고리 파라미터:**
-                        - 미지정 시: 전체 최신 공개 링크 반환 (전체 탭)
-                        - 지정 시: 해당 카테고리 유사도 높은 순 반환
-
-                        **카테고리 목록:**
-                        경제/시사, 뷰티/패션, 건강/운동, 여행/맛집, 문화/엔터, 자기계발, IT/테크, 기타
-
-                        **동작 방식:**
+        @Operation(summary = "카테고리별 추천 콘텐츠 조회", description = """
+                        카테고리명을 검색어로 유사도 높은 순서로 공개된 링크를 가져옵니다.
                         - Elasticsearch 벡터 검색 사용 (OpenAI 임베딩)
-                        - '기타' 카테고리 또는 미지정 시 최신 공개 링크 반환
+                        - '기타' 카테고리는 다양한 주제의 독특한 콘텐츠를 추천
                         - 로그인한 사용자의 링크는 자동 제외
                         - 동일 링크는 한 번만 노출
                         - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
