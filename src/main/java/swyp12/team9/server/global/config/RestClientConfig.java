@@ -32,6 +32,10 @@ public class RestClientConfig {
                 .baseUrl(scrapingApiBaseUrl)
                 .requestFactory(new BufferingClientHttpRequestFactory(factory))
                 .requestInterceptor(new ScrapingClientInterceptor())
+                .defaultStatusHandler(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    log.warn("스크래핑 API 4xx 에러 - URI: {}, Status: {}", request.getURI(), response.getStatusCode());
+                    throw new LinkScrapingServerException();
+                })
                 .defaultStatusHandler(HttpStatusCode::is5xxServerError, (request, response) -> {
                     log.error("스크래핑 API 5xx 에러 - URI: {}, Status: {}", request.getURI(), response.getStatusCode());
                     throw new LinkScrapingServerException();
