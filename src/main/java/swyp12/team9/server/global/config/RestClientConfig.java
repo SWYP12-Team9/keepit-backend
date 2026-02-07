@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
-import swyp12.team9.server.domain.link.exception.LinkInvalidUrlException;
 import swyp12.team9.server.domain.link.exception.LinkScrapingServerException;
 import swyp12.team9.server.global.interceptor.ScrapingClientInterceptor;
 
@@ -33,10 +32,6 @@ public class RestClientConfig {
                 .baseUrl(scrapingApiBaseUrl)
                 .requestFactory(new BufferingClientHttpRequestFactory(factory))
                 .requestInterceptor(new ScrapingClientInterceptor())
-                .defaultStatusHandler(HttpStatusCode::is4xxClientError, (request, response) -> {
-                    log.warn("스크래핑 API 4xx 에러 - URI: {}, Status: {}", request.getURI(), response.getStatusCode());
-                    throw new LinkInvalidUrlException();
-                })
                 .defaultStatusHandler(HttpStatusCode::is5xxServerError, (request, response) -> {
                     log.error("스크래핑 API 5xx 에러 - URI: {}, Status: {}", request.getURI(), response.getStatusCode());
                     throw new LinkScrapingServerException();

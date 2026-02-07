@@ -3,6 +3,7 @@ package swyp12.team9.server.api.userlink.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
 
@@ -23,6 +24,7 @@ public record UserLinkCreateRequest(
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         @NotBlank(message = "URL은 필수입니다.")
+        @Pattern(regexp = "^https?://.*", message = "유효한 URL 형식이어야 합니다.")
         @URL(message = "유효한 URL 형식이어야 합니다.")
         String url,
 
