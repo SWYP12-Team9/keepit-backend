@@ -72,4 +72,11 @@ public interface UserLinkRepositoryCustom {
      * @return 공개된 전체 UserLink 목록
      */
     List<UserLink> findAllPublicUserLinks();
+
+    /**
+     * 사용자가 처음 링크를 저장한 날짜 조회
+     * @param userId 사용자 ID
+     * @return 첫 저장 날짜 (없으면 null)
+     */
+    LocalDateTime findFirstCreatedDateByUserId(Long userId);
 }
