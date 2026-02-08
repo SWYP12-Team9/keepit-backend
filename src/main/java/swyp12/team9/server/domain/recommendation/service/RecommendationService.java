@@ -90,13 +90,13 @@ public class RecommendationService {
                 return Collections.emptyList();
             }
 
-            // 4. UserLink 정보를 바탕으로 응답 DTO 생성
-            return buildResponsesFromUserLinkIds(filteredUserLinkIds, keyword);
+            // 4. UserLink 정보를 바탕으로 응답 DTO 생성 (키워드 검색은 카테고리 null)
+            return buildResponsesFromUserLinkIds(filteredUserLinkIds, null);
 
         } catch (Exception e) {
             // Elasticsearch 장애 시 DB 기반 키워드 검색으로 대체
             log.error("Elasticsearch 키워드 검색 실패: {}", e.getMessage());
-            return fallbackGetRecentLinks(userId, keyword, size);
+            return fallbackGetRecentLinks(userId, null, keyword, size);
         }
     }
 
@@ -111,7 +111,7 @@ public class RecommendationService {
      */
     public List<RecommendationResponse> getRecentPublicLinks(Long userId, int size) {
         // 빈 키워드로 fallback 메서드를 활용 (최신순 정렬)
-        return fallbackGetRecentLinks(userId, "", size);
+        return fallbackGetRecentLinks(userId, null, "", size);
     }
 
     /**
@@ -177,7 +177,7 @@ public class RecommendationService {
         } catch (Exception e) {
             // Elasticsearch 장애 시 DB 기반 검색으로 대체
             log.error("Elasticsearch 유사도 검색 실패: {}", e.getMessage());
-            return fallbackGetRecentLinks(userId, category, size);
+            return fallbackGetRecentLinks(userId, category, category, size);
         }
     }
 
@@ -229,7 +229,7 @@ public class RecommendationService {
 
     // ========== Fallback 메서드 (Elasticsearch 장애 시 DB에서 키워드 기반 검색 수행) ==========
 
-    private List<RecommendationResponse> fallbackGetRecentLinks(Long userId, String keyword, int size) {
+    private List<RecommendationResponse> fallbackGetRecentLinks(Long userId, String category, String keyword, int size) {
         // 1. 현재 사용자가 이미 저장한 링크 ID 목록 조회 (중복 추천 방지용)
         List<Long> myLinkIds = userId != null
                 ? userLinkRepository.findLinkIdsByUserId(userId)
@@ -258,7 +258,7 @@ public class RecommendationService {
             return Collections.emptyList();
         }
 
-        // 4. 필터링된 UserLink ID 목록을 응답 DTO로 변환하여 반환
-        return buildResponsesFromUserLinkIds(filteredUserLinkIds, keyword);
+        // 4. 필터링된 UserLink ID 목록을 응답 DTO로 변환하여 반환 (category가 null이면 카테고리 미표시)
+        return buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
     }
 }

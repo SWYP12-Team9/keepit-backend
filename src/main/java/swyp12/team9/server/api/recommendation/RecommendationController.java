@@ -50,6 +50,7 @@ public class RecommendationController {
                         - 로그인한 사용자의 링크는 자동 제외
                         - 동일 링크는 한 번만 노출
                         - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
+                        - 응답의 category 필드는 null입니다. (카테고리별 추천 조회와 다름)
                         """)
         @ApiSpec(status = HttpStatus.OK, errors = {
                         ErrorCode.VALIDATION_ERROR
@@ -71,6 +72,7 @@ public class RecommendationController {
                         - 로그인한 사용자의 링크는 자동 제외
                         - 동일 링크는 한 번만 노출
                         - Elasticsearch 장애 시 DB 키워드 검색으로 자동 전환
+                        - 카테고리 지정 시 응답의 category 필드에 해당 카테고리명이 포함됩니다. (미지정 시 null)
                         """)
         @ApiSpec(status = HttpStatus.OK, errors = {
                         ErrorCode.VALIDATION_ERROR,
