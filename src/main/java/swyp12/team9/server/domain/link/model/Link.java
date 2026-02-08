@@ -1,7 +1,16 @@
 package swyp12.team9.server.domain.link.model;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 
 @Entity
@@ -34,10 +43,6 @@ public class Link extends BaseEntity {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category")
-    private LinkCategory category;
-
     @Builder
     public Link(String url, String title, String description, String faviconUrl, String content, String aiSummary) {
         this.url = url;
@@ -60,9 +65,5 @@ public class Link extends BaseEntity {
 
     public void updateAiSummary(String aiSummary) {
         this.aiSummary = aiSummary;
-    }
-
-    public void updateCategory(LinkCategory category) {
-        this.category = category;
     }
 }
