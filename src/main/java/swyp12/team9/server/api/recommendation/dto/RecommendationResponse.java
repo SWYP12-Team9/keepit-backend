@@ -2,6 +2,7 @@ package swyp12.team9.server.api.recommendation.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import swyp12.team9.server.domain.link.model.Link;
+import swyp12.team9.server.domain.link.model.LinkCategory;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
 /**
@@ -28,13 +29,14 @@ public record RecommendationResponse(
         @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
         UserInfo user
 ) {
-    public static RecommendationResponse from(Link link, UserLink firstUserLink, String category) {
+    public static RecommendationResponse from(Link link, UserLink firstUserLink) {
+        LinkCategory linkCategory = link.getCategory();
         return new RecommendationResponse(
                 link.getId(),
                 link.getUrl(),
                 link.getTitle(),
                 link.getAiSummary(),
-                CategoryInfo.from(category),
+                linkCategory != null ? CategoryInfo.from(linkCategory.getDisplayName()) : null,
                 UserInfo.from(firstUserLink.getUser())
         );
     }

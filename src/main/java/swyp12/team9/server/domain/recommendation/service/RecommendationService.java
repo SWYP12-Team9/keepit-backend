@@ -21,11 +21,8 @@ import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 /**
- * Elasticsearch 벡터 검색 기반 추천 서비스
- * - 링크 데이터(title, aiSummary)를 임베딩하여 Elasticsearch에 저장
- * - 카테고리명을 검색어로 유사도 높은 순서로 링크 반환
- * - 공개 설정된 링크만 추천 대상
- * - 첫 발견자(가장 먼저 공개 저장한 사용자) 정보 포함
+ * Elasticsearch 벡터 검색 기반 추천 서비스 - 링크 데이터(title, aiSummary)를 임베딩하여 Elasticsearch에 저장 - 카테고리명을 검색어로 유사도 높은 순서로 링크 반환 - 공개
+ * 설정된 링크만 추천 대상 - 첫 발견자(가장 먼저 공개 저장한 사용자) 정보 포함
  */
 @Slf4j
 @Service
@@ -37,9 +34,8 @@ public class RecommendationService {
     private final UserLinkRepository userLinkRepository;
 
     /**
-     * 키워드로 링크 검색 (Elasticsearch 벡터 검색)
-     * - 현재 사용자가 이미 저장한 링크는 제외
-     * - Elasticsearch 장애 시 DB fallback 처리
+     * 키워드로 링크 검색 (Elasticsearch 벡터 검색) - 현재 사용자가 이미 저장한 링크는 제외 - Elasticsearch 장애 시 DB fallback 처리 - 응답의 category 필드에
+     * AI가 분류한 링크 카테고리가 포함됩니다
      *
      * @param userId  현재 로그인한 사용자 ID (null 가능)
      * @param keyword 사용자가 입력한 검색 키워드
@@ -91,7 +87,7 @@ public class RecommendationService {
             }
 
             // 4. UserLink 정보를 바탕으로 응답 DTO 생성
-            return buildResponsesFromUserLinkIds(filteredUserLinkIds, keyword);
+            return buildResponsesFromUserLinkIds(filteredUserLinkIds);
 
         } catch (Exception e) {
             // Elasticsearch 장애 시 DB 기반 키워드 검색으로 대체
@@ -101,9 +97,7 @@ public class RecommendationService {
     }
 
     /**
-     * 최신 공개 링크 목록 조회 ('기타' 카테고리용)
-     * - 카테고리가 명확하지 않은 다양한 주제의 링크를 최신순으로 제공
-     * - 현재 사용자가 이미 저장한 링크는 제외
+     * 최신 공개 링크 목록 조회 ('기타' 카테고리용) - 카테고리가 명확하지 않은 다양한 주제의 링크를 최신순으로 제공 - 현재 사용자가 이미 저장한 링크는 제외
      *
      * @param userId 현재 로그인한 사용자 ID (null 가능)
      * @param size   가져올 링크 수
@@ -115,9 +109,8 @@ public class RecommendationService {
     }
 
     /**
-     * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
-     * - 현재 사용자가 이미 저장한 링크는 제외 (Pre-filtering)
-     * - Elasticsearch 장애 시 DB fallback 처리
+     * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색) - 현재 사용자가 이미 저장한 링크는 제외 (Pre-filtering) - Elasticsearch 장애 시 DB
+     * fallback 처리
      *
      * @param userId   현재 로그인한 사용자 ID (null 가능)
      * @param category 검색어 (카테고리명 등)
@@ -172,7 +165,7 @@ public class RecommendationService {
             }
 
             // 4. UserLink 정보를 바탕으로 응답 DTO 생성
-            return buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
+            return buildResponsesFromUserLinkIds(filteredUserLinkIds);
 
         } catch (Exception e) {
             // Elasticsearch 장애 시 DB 기반 검색으로 대체
@@ -182,44 +175,48 @@ public class RecommendationService {
     }
 
     /**
-     * UserLink ID 목록으로부터 응답 객체 생성
-     * - DB에서 UserLink 조회 후 요청 순서대로 정렬
-     * - 검색 키워드와 함께 응답 DTO로 변환
-     * 
+     * UserLink ID 목록으로부터 추천 응답 객체 생성
+     *
      * @param userLinkIds 응답에 포함할 UserLink ID 목록 (순서 보장 필요)
-     * @param keyword     검색 키워드 (응답에 포함)
      * @return 추천 링크 응답 목록
      */
-    private List<RecommendationResponse> buildResponsesFromUserLinkIds(List<Long> userLinkIds, String keyword) {
-        List<UserLink> userLinks = userLinkRepository.findAllById(userLinkIds);
-
-        // findAllById는 순서를 보장하지 않으므로, 요청한 ID 순서대로 재정렬
-        Map<Long, UserLink> userLinkMap = userLinks.stream()
-                .collect(Collectors.toMap(UserLink::getId, ul -> ul));
+    private List<RecommendationResponse> buildResponsesFromUserLinkIds(List<Long> userLinkIds) {
+        Map<Long, UserLink> userLinkMap = findUserLinkMapByIds(userLinkIds);
 
         return userLinkIds.stream()
                 .map(userLinkMap::get)
                 .filter(Objects::nonNull)
-                .map(ul -> RecommendationResponse.from(ul.getLink(), ul, keyword))
+                .map(ul -> RecommendationResponse.from(ul.getLink(), ul))
                 .collect(Collectors.toList());
     }
 
     /**
-     * Elasticsearch 메타데이터에서 Long 타입 값 안전하게 추출
-     * - 다양한 Number 타입 변환 처리
-     * 
+     * UserLink ID 목록으로 DB 조회 후 ID → UserLink Map 반환 - findAllById는 순서를 보장하지 않으므로 Map으로 변환하여 호출부에서 순서 보장
+     */
+    private Map<Long, UserLink> findUserLinkMapByIds(List<Long> userLinkIds) {
+        List<UserLink> userLinks = userLinkRepository.findAllById(userLinkIds);
+        return userLinks.stream()
+                .collect(Collectors.toMap(UserLink::getId, ul -> ul));
+    }
+
+    /**
+     * Elasticsearch 메타데이터에서 Long 타입 값 안전하게 추출 - 다양한 Number 타입 변환 처리
+     *
      * @param metadata Elasticsearch 문서의 메타데이터
      * @param key      추출할 필드명
      * @return Long 값 또는 null
      */
     private Long getLongFromMetadata(java.util.Map<String, Object> metadata, String key) {
         Object value = metadata.get(key);
-        if (value == null)
+        if (value == null) {
             return null;
-        if (value instanceof Long)
+        }
+        if (value instanceof Long) {
             return (Long) value;
-        if (value instanceof Number)
+        }
+        if (value instanceof Number) {
             return ((Number) value).longValue();
+        }
         try {
             return Long.parseLong(value.toString());
         } catch (NumberFormatException e) {
@@ -229,7 +226,10 @@ public class RecommendationService {
 
     // ========== Fallback 메서드 (Elasticsearch 장애 시 DB에서 키워드 기반 검색 수행) ==========
 
-    private List<RecommendationResponse> fallbackGetRecentLinks(Long userId, String keyword, int size) {
+    /**
+     * DB에서 키워드 기반으로 공개 UserLink ID 목록을 조회하고 필터링하는 공통 로직
+     */
+    private List<Long> findFallbackUserLinkIds(Long userId, String keyword, int size) {
         // 1. 현재 사용자가 이미 저장한 링크 ID 목록 조회 (중복 추천 방지용)
         List<Long> myLinkIds = userId != null
                 ? userLinkRepository.findLinkIdsByUserId(userId)
@@ -241,7 +241,7 @@ public class RecommendationService {
 
         // 3. 내 링크 제외 및 동일 링크 중복 제거 (가장 최신 UserLink ID만 유지)
         Set<Long> seenLinkIds = new HashSet<>();
-        List<Long> filteredUserLinkIds = publicUserLinks.stream()
+        return publicUserLinks.stream()
                 .filter(ul -> {
                     Long linkId = ul.getLink().getId();
                     if (myLinkIds.contains(linkId) || seenLinkIds.contains(linkId)) {
@@ -253,12 +253,17 @@ public class RecommendationService {
                 .map(UserLink::getId)
                 .limit(size)
                 .collect(Collectors.toList());
+    }
 
+    /**
+     * Fallback (RecommendationResponse 반환)
+     */
+    private List<RecommendationResponse> fallbackGetRecentLinks(Long userId, String keyword, int size) {
+        List<Long> filteredUserLinkIds = findFallbackUserLinkIds(userId, keyword, size);
         if (filteredUserLinkIds.isEmpty()) {
             return Collections.emptyList();
         }
-
-        // 4. 필터링된 UserLink ID 목록을 응답 DTO로 변환하여 반환
-        return buildResponsesFromUserLinkIds(filteredUserLinkIds, keyword);
+        // 필터링된 UserLink ID 목록을 응답 DTO로 변환하여 반환
+        return buildResponsesFromUserLinkIds(filteredUserLinkIds);
     }
 }

@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 탐색 탭의 고정 카테고리 (검색어로 사용)
- * DB에 저장되지 않으며, Elasticsearch 검색 키워드로만 활용
+ * 탐색 탭의 고정 카테고리
+ * Link 엔티티에 AI 분류 결과로 저장되며, Elasticsearch 검색 키워드로도 활용
  */
 @Getter
 @RequiredArgsConstructor

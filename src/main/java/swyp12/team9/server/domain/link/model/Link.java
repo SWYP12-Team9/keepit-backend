@@ -34,6 +34,10 @@ public class Link extends BaseEntity {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category")
+    private LinkCategory category;
+
     @Builder
     public Link(String url, String title, String description, String faviconUrl, String content, String aiSummary) {
         this.url = url;
@@ -56,5 +60,9 @@ public class Link extends BaseEntity {
 
     public void updateAiSummary(String aiSummary) {
         this.aiSummary = aiSummary;
+    }
+
+    public void updateCategory(LinkCategory category) {
+        this.category = category;
     }
 }
