@@ -105,16 +105,16 @@ public interface UserApi {
             summary = "프로필 수정 (마이페이지)",
             description = """
                     프로필 정보 및 이미지를 수정합니다.
-                    
-                    **이미지 처리 방식:**
-                    - 이미지를 보내지 않으면 기존 이미지가 유지됩니다.
-                    - 새 이미지를 보내면 기존 이미지를 교체합니다.
-                    - 이미지를 삭제하려면 별도의 DELETE API를 사용하세요.
-                    
+
+                    **부분 수정 지원:**
+                    - 변경할 필드만 전송하면 됩니다.
+                    - 전송하지 않은 필드는 기존 값이 유지됩니다.
+
                     **예시:**
-                    - 닉네임만 수정: profile 데이터만 전송 (이미지 파트 생략)
-                    - 프로필 이미지만 수정: profile + profileImage 전송
-                    - 배경 이미지만 수정: profile + backgroundImage 전송
+                    - 닉네임만 수정: `{"nickname": "새닉네임"}`
+                    - 소개만 수정: `{"introduction": "새소개"}`
+                    - 프로필 이미지만 수정: profileImage 파일만 전송
+                    - 이미지 삭제: 별도의 DELETE API 사용
                     """
     )
     @SecurityRequirement(name = "AccessToken")
@@ -133,8 +133,8 @@ public interface UserApi {
     @PatchMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<ProfileUpdateResponse> updateProfile(
             @Parameter(hidden = true) @CurrentUserId Long userId,
-            @Parameter(description = "프로필 정보 (JSON)", required = true)
-            @Valid @RequestPart("profile") ProfileUpdateRequest request,
+            @Parameter(description = "프로필 정보 (JSON, 선택) - 변경할 필드만 포함")
+            @Valid @RequestPart(value = "profile", required = false) ProfileUpdateRequest request,
             @Parameter(description = "프로필 이미지 파일 (선택) - 보내지 않으면 기존 이미지 유지")
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
             @Parameter(description = "배경 이미지 파일 (선택) - 보내지 않으면 기존 이미지 유지")

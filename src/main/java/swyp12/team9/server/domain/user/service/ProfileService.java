@@ -76,7 +76,8 @@ public class ProfileService {
         String newNickname = (request.nickname() != null) ? request.nickname() : user.getNickname();
 
         // 닉네임 중복 체크 (본인 제외, 닉네임 변경 시에만)
-        if (!newNickname.equals(user.getNickname()) && userRepository.existsByNickname(newNickname)) {
+        if (newNickname != null && !newNickname.equals(user.getNickname()) && userRepository.existsByNickname(
+                newNickname)) {
             throw new NicknameDuplicateException();
         }
 
@@ -132,5 +133,5 @@ public class ProfileService {
         }
         return null;
     }
-    
+
 }
