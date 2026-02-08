@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
+import swyp12.team9.server.api.user.dto.request.ProfileUpdateRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileUpdateResponse;
@@ -64,26 +65,36 @@ public class ProfileService {
         return ProfileResponse.from(user);
     }
 
-    // 프로필 수정 (이미지 포함)
+    // 프로필 수정 (부분 수정 지원 - null이면 기존 값 유지)
     @Transactional
-    public ProfileUpdateResponse updateProfile(Long userId, ProfileCompleteRequest request,
+    public ProfileUpdateResponse updateProfile(Long userId, ProfileUpdateRequest request,
                                                MultipartFile profileImage, MultipartFile backgroundImage) {
 
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        // 닉네임 중복 체크 (본인 제외)
-        if (!request.nickname().equals(user.getNickname()) && userRepository.existsByNickname(request.nickname())) {
+        // 닉네임: null이면 기존 값 유지
+        String newNickname = (request.nickname() != null) ? request.nickname() : user.getNickname();
+
+        // 닉네임 중복 체크 (본인 제외, 닉네임 변경 시에만)
+        if (!newNickname.equals(user.getNickname()) && userRepository.existsByNickname(newNickname)) {
             throw new NicknameDuplicateException();
         }
 
-        // 프로필 이미지 교체
-        String newProfileImageUrl = imageService.updateImage(user.getProfileImageUrl(), profileImage);
+        // 소개: null이면 기존 값 유지
+        String newIntroduction = (request.introduction() != null) ? request.introduction() : user.getIntroduction();
 
-        // 배경 이미지 교체
-        String newBackgroundImageUrl = imageService.updateImage(user.getBackgroundImageUrl(), backgroundImage);
+        // 프로필 이미지: 새 이미지가 있으면 교체, 없으면 기존 유지
+        String newProfileImageUrl = (profileImage != null && !profileImage.isEmpty())
+                ? imageService.updateImage(user.getProfileImageUrl(), profileImage)
+                : user.getProfileImageUrl();
+
+        // 배경 이미지: 새 이미지가 있으면 교체, 없으면 기존 유지
+        String newBackgroundImageUrl = (backgroundImage != null && !backgroundImage.isEmpty())
+                ? imageService.updateImage(user.getBackgroundImageUrl(), backgroundImage)
+                : user.getBackgroundImageUrl();
 
         // 프로필 업데이트
-        user.updateProfile(request.nickname(), request.introduction(), newProfileImageUrl, newBackgroundImageUrl);
+        user.updateProfile(newNickname, newIntroduction, newProfileImageUrl, newBackgroundImageUrl);
 
         log.info("프로필 수정 완료 - userId: {}", userId);
 

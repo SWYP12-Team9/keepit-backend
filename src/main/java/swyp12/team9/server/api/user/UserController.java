@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
+import swyp12.team9.server.api.user.dto.request.ProfileUpdateRequest;
 import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
@@ -60,13 +61,16 @@ public class UserController implements UserApi {
     @Override
     public ApiResponse<ProfileUpdateResponse>
     updateProfile(@CurrentUserId Long userId,
-                  @Valid @RequestPart("profile")
-                  ProfileCompleteRequest request,
+                  @Valid @RequestPart(value = "profile", required = false)
+                  ProfileUpdateRequest request,
                   @RequestPart(value = "profileImage", required = false)
                   MultipartFile profileImage,
                   @RequestPart(value = "backgroundImage", required = false)
                   MultipartFile backgroundImage) {
-        ProfileUpdateResponse response = profileService.updateProfile(userId, request, profileImage, backgroundImage);
+        // request가 null이면 빈 객체로 처리
+        ProfileUpdateRequest updateRequest = (request != null) ? request : new ProfileUpdateRequest(null, null);
+        ProfileUpdateResponse response = profileService.updateProfile(userId, updateRequest, profileImage,
+                backgroundImage);
         return ApiResponse.ok(response, "프로필이 수정되었습니다.");
     }
 
