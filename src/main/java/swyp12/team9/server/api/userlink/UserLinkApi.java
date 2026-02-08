@@ -57,7 +57,6 @@ public interface UserLinkApi {
                     ErrorCode.REFERENCE_NOT_FOUND,
                     ErrorCode.REFERENCE_TITLE_DUPLICATE,
                     ErrorCode.REFERENCE_SELECTION_DUPLICATE,
-                    ErrorCode.LINK_INVALID_URL,
                     ErrorCode.USER_LINK_DUPLICATE,
                     ErrorCode.LINK_SCRAPING_SERVER_ERROR,
                     ErrorCode.LINK_SCRAPING_TIMEOUT
