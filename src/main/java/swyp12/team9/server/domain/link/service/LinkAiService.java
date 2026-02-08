@@ -1,13 +1,11 @@
 package swyp12.team9.server.domain.link.service;
 
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -22,9 +20,9 @@ public class LinkAiService {
     /**
      * 링크 콘텐츠를 요약합니다.
      *
-     * @param title   링크 제목
+     * @param title       링크 제목
      * @param description 링크 설명
-     * @param content 링크 콘텐츠 미리보기
+     * @param content     링크 콘텐츠 미리보기
      * @return AI 요약 텍스트 (실패 시 null)
      */
     public String summarizeLink(String title, String description, String content) {
@@ -38,11 +36,11 @@ public class LinkAiService {
             // 프롬프트 템플릿 생성
             String promptText = """
                     다음 웹 링크 정보를 한국어로 간단히 요약해주세요.
-
+                    
                     제목: {title}
                     설명: {description}
                     내용: {content}
-
+                    
                     요약은 다음 규칙을 따라주세요:
                     1. 3-5문장으로 핵심 내용만 요약
                     2. 핵심 키워드 포함
@@ -71,8 +69,7 @@ public class LinkAiService {
     }
 
     /**
-     * 콘텐츠가 요약하기에 충분한지 확인
-     * 제목은 무조건, 설명 or 내용 중 최소 하나는 있어야 함
+     * 콘텐츠가 요약하기에 충분한지 확인 제목은 무조건, 설명 or 내용 중 최소 하나는 있어야 함
      */
     private boolean isContentInsufficient(String title, String description, String content) {
         boolean titleEmpty = title == null || title.trim().isEmpty();

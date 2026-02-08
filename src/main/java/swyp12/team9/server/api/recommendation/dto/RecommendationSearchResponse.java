@@ -5,10 +5,10 @@ import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
 /**
- * 추천 콘텐츠 응답 DTO
+ * 키워드 검색 응답 DTO (카테고리 필드 없음)
  */
-@Schema(description = "추천 콘텐츠 응답")
-public record RecommendationResponse(
+@Schema(description = "키워드 검색 응답")
+public record RecommendationSearchResponse(
 
         @Schema(description = "콘텐츠 ID (Link ID)", example = "1")
         Long id,
@@ -22,19 +22,15 @@ public record RecommendationResponse(
         @Schema(description = "AI 요약", example = "이 글의 핵심 요약...")
         String aiSummary,
 
-        @Schema(description = "카테고리 정보")
-        CategoryInfo category,
-
         @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
         UserInfo user
 ) {
-    public static RecommendationResponse from(Link link, UserLink firstUserLink, String category) {
-        return new RecommendationResponse(
+    public static RecommendationSearchResponse from(Link link, UserLink firstUserLink) {
+        return new RecommendationSearchResponse(
                 link.getId(),
                 link.getUrl(),
                 link.getTitle(),
                 link.getAiSummary(),
-                category != null ? CategoryInfo.from(category) : null,
                 UserInfo.from(firstUserLink.getUser())
         );
     }

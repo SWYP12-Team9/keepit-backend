@@ -45,7 +45,7 @@ public class LinkService {
      * 스크래핑 데이터로부터 Link를 생성하고 저장합니다.
      *
      * @param scrapingData 스크래핑 결과
-     * @param url 원본 URL
+     * @param url          원본 URL
      * @return 저장된 Link 엔티티
      */
     private Link createLinkFromScrapingData(ScrapingResponse scrapingData, String url) {
@@ -66,7 +66,7 @@ public class LinkService {
     /**
      * Link에 AI 요약을 추가합니다.
      *
-     * @param link 대상 Link
+     * @param link         대상 Link
      * @param scrapingData 스크래핑 데이터
      */
     private void addAiSummaryToLink(Link link, ScrapingResponse scrapingData) {
