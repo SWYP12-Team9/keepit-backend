@@ -26,7 +26,8 @@ public class LinkIndexingService {
     private final VectorStore vectorStore;
 
     /**
-     * 공개된 링크만 Elasticsearch에 색인 - Reference의 is_public = true인 UserLink만 대상 - title과 aiSummary가 둘 다 있는 링크만 색인 (유효성 검증)
+     * 공개된 링크만 Elasticsearch에 색인
+     * - Reference의 is_public = true인 UserLink만 대상 - title과 aiSummary가 둘 다 있는 링크만 색인 (유효성 검증)
      * - 검색 대상: title, aiSummary, why, memo 통합
      */
     @Transactional(readOnly = true)
@@ -64,7 +65,8 @@ public class LinkIndexingService {
     }
 
     /**
-     * 특정 링크를 가진 모든 공개 UserLink를 Elasticsearch에 색인 - 신규 링크 추가 시 또는 링크 정보 수정 시 호출
+     * 특정 링크를 가진 모든 공개 UserLink를 Elasticsearch에 색인
+     * - 신규 링크 추가 시 또는 링크 정보 수정 시 호출
      *
      * @param linkId 색인할 링크 ID
      */
@@ -98,7 +100,8 @@ public class LinkIndexingService {
     }
 
     /**
-     * 단일 UserLink를 Elasticsearch에 색인 또는 삭제 - UserLink의 why, memo 수정 시 호출 - Reference의 공개 상태 변경 시 색인 추가/삭제 처리
+     * 단일 UserLink를 Elasticsearch에 색인 또는 삭제
+     * - UserLink의 why, memo 수정 시 호출 - Reference의 공개 상태 변경 시 색인 추가/삭제 처리
      *
      * @param userLinkId 색인/삭제할 UserLink ID
      */
@@ -120,7 +123,8 @@ public class LinkIndexingService {
     }
 
     /**
-     * Link의 title과 aiSummary 유효성 검증 - 두 필드 모두 필수 (검색 품질 보장)
+     * Link의 title과 aiSummary 유효성 검증
+     * - 두 필드 모두 필수 (검색 품질 보장)
      *
      * @param link 검증할 Link 엔티티
      * @return 유효 여부
@@ -131,8 +135,10 @@ public class LinkIndexingService {
     }
 
     /**
-     * UserLink를 Elasticsearch Document로 변환 - 검색 대상(content): title + aiSummary + why + memo 통합 - 메타데이터: userId, linkId,
-     * userLinkId, url, title 등 (응답 생성 시 사용) - Document ID: "ul-{userLinkId}" 형식으로 고유 식별
+     * UserLink를 Elasticsearch Document로 변환
+     * - 검색 대상(content): title + aiSummary + why + memo 통합
+     * - 메타데이터: userId, linkId, userLinkId, url, title 등 (응답 생성 시 사용)
+     * - Document ID: "ul-{userLinkId}" 형식으로 고유 식별
      *
      * @param userLink 변환할 UserLink 엔티티
      * @return Elasticsearch Document 객체
