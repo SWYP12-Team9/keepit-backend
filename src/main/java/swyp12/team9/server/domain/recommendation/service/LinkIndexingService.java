@@ -179,6 +179,7 @@ public class LinkIndexingService {
         metadata.put("why", userLink.getWhy() != null ? userLink.getWhy() : "");
         metadata.put("memo", userLink.getMemo() != null ? userLink.getMemo() : "");
         metadata.put("faviconUrl", link.getFaviconUrl() != null ? link.getFaviconUrl() : "");
+        metadata.put("category", link.getCategory() != null ? link.getCategory().name() : "");
 
         // 3. Document 생성 (ID는 "ul-{userLinkId}" 형식)
         // - 동일 ID로 재색인 시 upsert(업데이트) 동작
