@@ -8,9 +8,16 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import swyp12.team9.server.api.user.dto.request.ProfileCompleteRequest;
+import swyp12.team9.server.api.user.dto.request.ProfileUpdateRequest;
 import swyp12.team9.server.api.user.dto.request.UserRequest;
 import swyp12.team9.server.api.user.dto.response.ProfileCompleteResponse;
 import swyp12.team9.server.api.user.dto.response.ProfileResponse;
@@ -96,7 +103,19 @@ public interface UserApi {
 
     @Operation(
             summary = "프로필 수정 (마이페이지)",
-            description = "프로필 정보 및 이미지 수정"
+            description = """
+                    프로필 정보 및 이미지를 수정합니다.
+
+                    **부분 수정 지원:**
+                    - 변경할 필드만 전송하면 됩니다.
+                    - 전송하지 않은 필드는 기존 값이 유지됩니다.
+
+                    **예시:**
+                    - 닉네임만 수정: `{"nickname": "새닉네임"}`
+                    - 소개만 수정: `{"introduction": "새소개"}`
+                    - 프로필 이미지만 수정: profileImage 파일만 전송
+                    - 이미지 삭제: 별도의 DELETE API 사용
+                    """
     )
     @SecurityRequirement(name = "AccessToken")
     @ApiSpec(
@@ -114,11 +133,11 @@ public interface UserApi {
     @PatchMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<ProfileUpdateResponse> updateProfile(
             @Parameter(hidden = true) @CurrentUserId Long userId,
-            @Parameter(description = "프로필 정보 (JSON)", required = true)
-            @Valid @RequestPart("profile") ProfileCompleteRequest request,
-            @Parameter(description = "프로필 이미지 파일")
+            @Parameter(description = "프로필 정보 (JSON, 선택) - 변경할 필드만 포함")
+            @Valid @RequestPart(value = "profile", required = false) ProfileUpdateRequest request,
+            @Parameter(description = "프로필 이미지 파일 (선택) - 보내지 않으면 기존 이미지 유지")
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
-            @Parameter(description = "배경 이미지 파일")
+            @Parameter(description = "배경 이미지 파일 (선택) - 보내지 않으면 기존 이미지 유지")
             @RequestPart(value = "backgroundImage", required = false) MultipartFile backgroundImage
     );
 
