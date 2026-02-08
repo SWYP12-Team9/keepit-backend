@@ -50,4 +50,11 @@ public interface ReferenceUserLinkRepositoryCustom {
      */
     List<UserLinkWithReferenceProjection> findUserLinksByReferenceIdCursor(
             Long userId, Long referenceId, Long cursor, int size);
+
+    /**
+     * 사용자의 레퍼런스별 미열람 링크 개수 집계
+     * @param userId 사용자 ID
+     * @return ReferenceCategoryCountProjection 리스트
+     */
+    List<ReferenceCategoryCountProjection> countUnreadByUserIdGroupByReference(Long userId);
 }
