@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import swyp12.team9.server.domain.link.dto.ScrapingRequest;
 import swyp12.team9.server.domain.link.dto.ScrapingResponse;
+import swyp12.team9.server.domain.link.exception.LinkScrapingServerException;
 
 @Slf4j
 @Service
@@ -36,6 +37,11 @@ public class ScrapingService {
                 .body(request)
                 .retrieve()
                 .body(ScrapingResponse.class);
+
+        if (response == null) {
+            log.error("스크래핑 응답이 비어있음 - URL: {}", url);
+            throw new LinkScrapingServerException();
+        }
 
         log.info("스크래핑 완료 - URL: {}", url);
         return response;
