@@ -86,7 +86,7 @@
 
 `POST /api/v1/user-links` 호출 시 하나의 요청 안에서 외부 API를 2번 동기 호출한다.
 
-```
+```text
 클라이언트 요청
   → ScrapingService.scrapeUrl()        (외부 스크래핑 API 호출, 타임아웃 60초)
     → LinkRepository.save()
@@ -105,7 +105,7 @@
 | 3 | RestClientConfig | 스크래핑 타임아웃 60초 → 10~15초로 축소 | 최대 응답 시간 대폭 개선 |
 
 **개선 1 적용 시 예상 흐름:**
-```
+```text
 // 현재 (동기) — 총 ~8초
 스크래핑 → DB 저장 → AI 요약 → 응답
 
@@ -181,7 +181,7 @@ return response;
 
 ### 파일 구조
 
-```
+```text
 k6-scripts/
 ├── load-test.js          # 메인 부하 테스트 (전체 시나리오)
 ├── spike-test.js         # 스파이크 테스트 (급격한 트래픽 증가)
