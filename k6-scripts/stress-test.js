@@ -20,23 +20,28 @@ export const options = {
   },
 };
 
-function login() {
+// 테스트 시작 전 1회 실행 — 로그인하여 토큰을 모든 VU에 공유
+export function setup() {
   const res = http.post(
     `${BASE_URL}/api/v1/auth/login`,
     JSON.stringify({ username: USERNAME, password: PASSWORD }),
     { headers: { 'Content-Type': 'application/json' } },
   );
 
-  check(res, {
-    'login: status 200': (r) => r.status === 200,
+  const loginSuccess = check(res, {
+    'setup login: status 200': (r) => r.status === 200,
   });
 
-  try {
-    const body = JSON.parse(res.body);
-    return body.accessToken || '';
-  } catch {
-    return '';
+  if (!loginSuccess) {
+    console.error(`Login failed in setup: status=${res.status}, body=${res.body}`);
+    return { accessToken: '' };
   }
+
+  const body = JSON.parse(res.body);
+  console.log('Setup login successful, token acquired');
+  return {
+    accessToken: body.accessToken,
+  };
 }
 
 function authHeaders(token) {
@@ -48,13 +53,14 @@ function authHeaders(token) {
   };
 }
 
-export default function () {
-  const token = login();
-  if (!token) {
+// data는 setup()에서 반환한 토큰 객체
+export default function (data) {
+  if (!data.accessToken) {
+    console.error('No access token available, skipping iteration');
     sleep(1);
     return;
   }
-  const params = authHeaders(token);
+  const params = authHeaders(data.accessToken);
 
   group('User - 프로필 조회', () => {
     const res = http.get(`${BASE_URL}/api/v1/users/info`, params);

@@ -114,6 +114,33 @@
                    → AI 요약 (비동기 백그라운드 처리)
 ```
 
+### TPS 향상 예측 (20 VU 기준)
+
+#### 링크 생성 API 응답 시간 변화
+
+| 단계 | 처리 방식 | 예상 응답 시간 |
+|------|----------|---------------|
+| 현재 | 스크래핑(동기) → DB 저장 → AI 요약(동기) | ~8초 |
+| 개선 1 | 스크래핑(동기) → DB 저장 → AI 요약(**비동기**) | ~3초 |
+| 개선 2 | 스크래핑(**비동기**) → DB 저장 → AI 요약(**비동기**) | ~0.1초 |
+
+#### TPS 비교
+
+| | 현재 | 개선 1 (AI 비동기) | 개선 2 (전부 비동기) |
+|---|------|-------------------|---------------------|
+| iteration 평균 | 7.75s | ~4.5s | ~2.5s |
+| **iteration TPS** | **1.95/s** | **~4.4/s** | **~8.0/s** |
+| HTTP req/s | 20.47/s | ~46/s | ~84/s |
+| 최대 응답 시간 | 8.53s | ~3.5s | ~0.5s |
+| **향상률** | — | **약 2.3배** | **약 4.1배** |
+
+> **계산 근거**: `iteration TPS = VU 수 ÷ iteration 평균 시간`
+> - 현재: 20 ÷ 7.75 ≈ 2.58 (이론), 실측 1.95/s
+> - 개선 1: 20 ÷ 4.5 ≈ 4.4/s (AI ~5초 제거)
+> - 개선 2: 20 ÷ 2.5 ≈ 8.0/s (스크래핑+AI 모두 제거)
+
+읽기 API는 이미 p(95) 187ms로 충분히 빠르기 때문에, **쓰기 API(링크 생성)만 개선해도 전체 TPS가 크게 향상**된다.
+
 ---
 
 ## 테스트 중 발견된 오류 및 해결
@@ -183,10 +210,35 @@ return response;
 
 ```text
 k6-scripts/
-├── load-test.js          # 메인 부하 테스트 (전체 시나리오)
-├── spike-test.js         # 스파이크 테스트 (급격한 트래픽 증가)
-└── stress-test.js        # 스트레스 테스트 (점진적 부하 증가)
+├── load-test.js          # 메인 부하 테스트 (전체 시나리오, 쓰기 API 포함)
+├── spike-test.js         # 스파이크 테스트 (급격한 트래픽 증가, 읽기 API)
+└── stress-test.js        # 스트레스 테스트 (점진적 부하 증가, 읽기 API)
 ```
+
+### 로그인 처리 방식: `setup()` 분리
+
+모든 테스트 스크립트에서 로그인을 `setup()` 함수로 분리하여, 테스트 시작 전 **1회만 로그인**하고 발급받은 토큰을 모든 VU가 공유한다.
+
+```javascript
+// setup(): 테스트 시작 전 1회 실행 → 토큰 반환
+export function setup() {
+  const res = http.post(`${BASE_URL}/api/v1/auth/login`, ...);
+  const body = JSON.parse(res.body);
+  return { accessToken: body.accessToken };
+}
+
+// default function: 각 VU가 반복 실행 → setup()의 반환값을 data로 수신
+export default function (data) {
+  const params = authHeaders(data.accessToken);
+  // ... API 호출 ...
+}
+```
+
+| | 변경 전 (`login()` 매 iteration 호출) | 변경 후 (`setup()` 1회 호출) |
+|---|---|---|
+| 로그인 횟수 | VU × iteration 수 (수백~수천 회) | 1회 |
+| 로그인 API 부하 | 테스트 대상에 포함 (결과 왜곡) | 테스트 대상에서 제외 |
+| 측정 정확도 | 로그인 지연이 iteration 시간에 포함 | 순수 API 성능만 측정 |
 
 ### 시나리오별 Stage 설정
 

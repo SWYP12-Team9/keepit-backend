@@ -22,33 +22,29 @@ export const options = {
   },
 };
 
-function login() {
+// 테스트 시작 전 1회 실행 — 로그인하여 토큰을 모든 VU에 공유
+export function setup() {
   const res = http.post(
     `${BASE_URL}/api/v1/auth/login`,
     JSON.stringify({ username: USERNAME, password: PASSWORD }),
     { headers: { 'Content-Type': 'application/json' } },
   );
 
-  check(res, {
-    'login: status 200': (r) => r.status === 200,
-    'login: has accessToken': (r) => {
-      try {
-        return JSON.parse(r.body).accessToken !== undefined;
-      } catch {
-        return false;
-      }
-    },
+  const loginSuccess = check(res, {
+    'setup login: status 200': (r) => r.status === 200,
   });
 
-  try {
-    const body = JSON.parse(res.body);
-    return {
-      accessToken: body.accessToken,
-      refreshToken: body.refreshToken,
-    };
-  } catch {
+  if (!loginSuccess) {
+    console.error(`Login failed in setup: status=${res.status}, body=${res.body}`);
     return { accessToken: '', refreshToken: '' };
   }
+
+  const body = JSON.parse(res.body);
+  console.log('Setup login successful, token acquired');
+  return {
+    accessToken: body.accessToken,
+    refreshToken: body.refreshToken,
+  };
 }
 
 function authHeaders(token) {
@@ -60,73 +56,72 @@ function authHeaders(token) {
   };
 }
 
-export default function () {
-  // 1. 로그인
-  const tokens = login();
-  if (!tokens.accessToken) {
-    console.error('Login failed, skipping iteration');
+// data는 setup()에서 반환한 토큰 객체
+export default function (data) {
+  if (!data.accessToken) {
+    console.error('No access token available, skipping iteration');
     sleep(1);
     return;
   }
-  const params = authHeaders(tokens.accessToken);
+  const params = authHeaders(data.accessToken);
 
-  // 2. 프로필 조회
+  // 1. 프로필 조회
   group('User - 프로필 조회', () => {
     const res = http.get(`${BASE_URL}/api/v1/users/info`, params);
     check(res, { 'profile: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 3. 레퍼런스 목록 조회
+  // 2. 레퍼런스 목록 조회
   group('Reference - 목록 조회', () => {
     const res = http.get(`${BASE_URL}/api/v1/references`, params);
     check(res, { 'references list: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 4. 자주 찾는 레퍼런스 조회
+  // 3. 자주 찾는 레퍼런스 조회
   group('Reference - 자주 찾는 레퍼런스', () => {
     const res = http.get(`${BASE_URL}/api/v1/references/frequent`, params);
     check(res, { 'frequent refs: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 5. 링크 목록 조회
+  // 4. 링크 목록 조회
   group('UserLink - 목록 조회', () => {
     const res = http.get(`${BASE_URL}/api/v1/user-links`, params);
     check(res, { 'links list: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 6. 링크 검색
+  // 5. 링크 검색
   group('UserLink - 검색', () => {
     const res = http.get(`${BASE_URL}/api/v1/user-links/search?keyword=test&size=20`, params);
     check(res, { 'link search: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 7. 카테고리 목록 조회
+  // 6. 카테고리 목록 조회
   group('Recommendation - 카테고리 목록', () => {
     const res = http.get(`${BASE_URL}/api/v1/recommendations/categories`, params);
     check(res, { 'categories: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 8. 키워드 검색 (추천)
+  // 7. 키워드 검색 (추천)
   group('Recommendation - 키워드 검색', () => {
     const res = http.get(`${BASE_URL}/api/v1/recommendations/search?keyword=test`, params);
     check(res, { 'rec search: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 9. 카테고리별 추천 조회
+  // 8. 카테고리별 추천 조회
   group('Recommendation - 카테고리별 추천', () => {
     const res = http.get(`${BASE_URL}/api/v1/recommendations?category=${encodeURIComponent('경제/시사')}`, params);
     check(res, { 'rec by category: status 200': (r) => r.status === 200 });
   });
   sleep(0.5);
 
-  // 10. 사용자 통계 조회
+  // 9. 사용자 통계 조회
   group('Stat - 사용자 통계', () => {
     const res = http.get(`${BASE_URL}/api/v1/users/stats`, params);
     check(res, { 'user stats: status 200': (r) => r.status === 200 });
@@ -158,11 +153,11 @@ export default function () {
   }
 
   // 토큰 재발급 테스트 (약 10% 확률)
-  if (Math.random() < 0.1 && tokens.refreshToken) {
+  if (Math.random() < 0.1 && data.refreshToken) {
     group('Auth - 토큰 재발급', () => {
       const res = http.post(
         `${BASE_URL}/api/v1/jwt/refresh`,
-        JSON.stringify({ refreshToken: tokens.refreshToken }),
+        JSON.stringify({ refreshToken: data.refreshToken }),
         { headers: { 'Content-Type': 'application/json' } },
       );
       check(res, { 'token refresh: status 200': (r) => r.status === 200 });
