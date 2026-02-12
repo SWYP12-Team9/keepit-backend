@@ -67,21 +67,26 @@ public class UserLinkService {
         String urlHash = Link.generateUrlHash(request.url());
         Link link = linkRepository.findByUrlHash(urlHash).orElse(null);
 
-        // Link가 이미 존재하는 경우, 중복 체크 먼저 수행
-        if (link != null && userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
-            throw new UserLinkDuplicateException();
-        }
-
         // 링크가 없으면 생성
         if (link == null) {
             try {
                 link = linkService.createLink(request.url());
             } catch (DataIntegrityViolationException e) {
+                // url_hash UNIQUE 제약 위반이 아닌 경우 그대로 전파
+                String message = e.getMostSpecificCause().getMessage();
+                if (message == null || !message.contains("uk_link_url_hash")) {
+                    throw e;
+                }
                 // 동시 요청으로 다른 쓰레드가 먼저 같은 URL의 Link를 생성한 경우
                 link = linkRepository.findByUrlHash(urlHash)
                         .orElseThrow(LinkNotFoundException::new);
                 log.info("동시 요청 감지 - 기존 Link 재사용: linkId={}", link.getId());
             }
+        }
+
+        // UserLink 중복 체크 (기존 Link / 동시 요청으로 재사용한 Link 모두 검사)
+        if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
+            throw new UserLinkDuplicateException();
         }
 
         // UserLink 생성
