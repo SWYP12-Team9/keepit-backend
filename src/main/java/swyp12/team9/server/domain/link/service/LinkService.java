@@ -3,6 +3,7 @@ package swyp12.team9.server.domain.link.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.link.dto.ScrapingResponse;
 import swyp12.team9.server.domain.link.model.Link;
@@ -25,7 +26,7 @@ public class LinkService {
      * @param url 스크래핑할 URL
      * @return 생성된 Link 엔티티
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Link createLink(String url) {
         log.info("새로운 Link 생성 시작 - URL: {}", url);
 

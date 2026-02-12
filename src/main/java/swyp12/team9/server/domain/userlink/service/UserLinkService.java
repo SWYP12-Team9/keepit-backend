@@ -75,11 +75,11 @@ public class UserLinkService {
         // 링크가 없으면 생성
         if (link == null) {
             try {
-                link = linkRepository.save(linkService.createLink(request.url()));
+                link = linkService.createLink(request.url());
             } catch (DataIntegrityViolationException e) {
                 // 동시 요청으로 다른 쓰레드가 먼저 같은 URL의 Link를 생성한 경우
                 link = linkRepository.findByUrlHash(urlHash)
-                        .orElseThrow(() -> new LinkNotFoundException());
+                        .orElseThrow(LinkNotFoundException::new);
                 log.info("동시 요청 감지 - 기존 Link 재사용: linkId={}", link.getId());
             }
         }
