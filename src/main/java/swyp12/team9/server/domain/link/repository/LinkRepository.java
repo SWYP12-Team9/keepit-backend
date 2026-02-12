@@ -12,14 +12,14 @@ import java.util.Optional;
 public interface LinkRepository extends JpaRepository<Link, Long> {
 
     /**
-     * URL로 Link 조회 (중복 데이터가 있어도 첫 번째 1건만 반환)
+     * URL 해시로 Link 조회 (url_hash UNIQUE 인덱스 기반)
      */
-    Optional<Link> findFirstByUrl(String url);
+    Optional<Link> findByUrlHash(String urlHash);
 
     /**
-     * URL 존재 여부 확인
+     * URL 해시 존재 여부 확인
      */
-    boolean existsByUrl(String url);
+    boolean existsByUrlHash(String urlHash);
 
     /**
      * ID 목록에 해당하지 않는 링크 조회 (추천용)

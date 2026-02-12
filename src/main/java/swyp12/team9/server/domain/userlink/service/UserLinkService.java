@@ -63,8 +63,9 @@ public class UserLinkService {
             throw new ReferenceSelectionDuplicateException();
         }
 
-        // URL로 기존 Link 조회
-        Link link = linkRepository.findFirstByUrl(request.url()).orElse(null);
+        // URL 해시로 기존 Link 조회
+        String urlHash = Link.generateUrlHash(request.url());
+        Link link = linkRepository.findByUrlHash(urlHash).orElse(null);
 
         // Link가 이미 존재하는 경우, 중복 체크 먼저 수행
         if (link != null && userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
@@ -77,7 +78,7 @@ public class UserLinkService {
                 link = linkRepository.save(linkService.createLink(request.url()));
             } catch (DataIntegrityViolationException e) {
                 // 동시 요청으로 다른 쓰레드가 먼저 같은 URL의 Link를 생성한 경우
-                link = linkRepository.findFirstByUrl(request.url())
+                link = linkRepository.findByUrlHash(urlHash)
                         .orElseThrow(() -> new LinkNotFoundException());
                 log.info("동시 요청 감지 - 기존 Link 재사용: linkId={}", link.getId());
             }

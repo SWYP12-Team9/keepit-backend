@@ -6,6 +6,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,10 +29,12 @@ public class Link extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // DB에 prefix UNIQUE 인덱스 적용 (uk_link_url, url(500))
-    // @Column(unique=true)는 VARCHAR(2048)에서 MySQL 키 길이 제한 초과로 사용 불가
     @Column(name = "url", nullable = false, length = 2048)
     private String url;
+
+    // url_hash(SHA-256)로 전체 URL에 대한 UNIQUE 보장
+    @Column(name = "url_hash", nullable = false, length = 64, unique = true)
+    private String urlHash;
 
     @Column(name = "title", length = 300)
     private String title;
@@ -48,6 +54,7 @@ public class Link extends BaseEntity {
     @Builder
     public Link(String url, String title, String description, String faviconUrl, String content, String aiSummary) {
         this.url = url;
+        this.urlHash = generateUrlHash(url);
         this.title = title;
         this.description = description;
         this.faviconUrl = faviconUrl;
@@ -67,5 +74,15 @@ public class Link extends BaseEntity {
 
     public void updateAiSummary(String aiSummary) {
         this.aiSummary = aiSummary;
+    }
+
+    public static String generateUrlHash(String url) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(url.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
     }
 }
