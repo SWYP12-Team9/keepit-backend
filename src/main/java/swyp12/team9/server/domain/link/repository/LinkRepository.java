@@ -12,9 +12,9 @@ import java.util.Optional;
 public interface LinkRepository extends JpaRepository<Link, Long> {
 
     /**
-     * URL로 Link 조회
+     * URL로 Link 조회 (중복 데이터가 있어도 첫 번째 1건만 반환)
      */
-    Optional<Link> findByUrl(String url);
+    Optional<Link> findFirstByUrl(String url);
 
     /**
      * URL 존재 여부 확인

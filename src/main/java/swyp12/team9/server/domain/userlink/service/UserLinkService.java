@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import swyp12.team9.server.api.userlink.dto.request.UserLinkCreateRequest;
 import swyp12.team9.server.api.userlink.dto.request.UserLinkUpdateRequest;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkListResponse;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkResponse;
+import swyp12.team9.server.domain.link.exception.LinkNotFoundException;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
 import swyp12.team9.server.domain.link.service.LinkService;
@@ -62,7 +64,7 @@ public class UserLinkService {
         }
 
         // URL로 기존 Link 조회
-        Link link = linkRepository.findByUrl(request.url()).orElse(null);
+        Link link = linkRepository.findFirstByUrl(request.url()).orElse(null);
 
         // Link가 이미 존재하는 경우, 중복 체크 먼저 수행
         if (link != null && userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
@@ -71,7 +73,14 @@ public class UserLinkService {
 
         // 링크가 없으면 생성
         if (link == null) {
-            link = linkRepository.save(linkService.createLink(request.url()));
+            try {
+                link = linkRepository.save(linkService.createLink(request.url()));
+            } catch (DataIntegrityViolationException e) {
+                // 동시 요청으로 다른 쓰레드가 먼저 같은 URL의 Link를 생성한 경우
+                link = linkRepository.findFirstByUrl(request.url())
+                        .orElseThrow(() -> new LinkNotFoundException());
+                log.info("동시 요청 감지 - 기존 Link 재사용: linkId={}", link.getId());
+            }
         }
 
         // UserLink 생성

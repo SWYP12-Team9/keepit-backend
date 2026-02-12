@@ -25,6 +25,8 @@ public class Link extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // DB에 prefix UNIQUE 인덱스 적용 (uk_link_url, url(500))
+    // @Column(unique=true)는 VARCHAR(2048)에서 MySQL 키 길이 제한 초과로 사용 불가
     @Column(name = "url", nullable = false, length = 2048)
     private String url;
 
