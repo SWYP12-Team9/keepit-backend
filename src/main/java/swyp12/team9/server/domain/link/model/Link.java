@@ -15,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import swyp12.team9.server.domain.link.exception.LinkHashGenerationException;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 
 @Entity
@@ -82,7 +83,7 @@ public class Link extends BaseEntity {
             byte[] hash = digest.digest(url.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 algorithm not available", e);
+            throw new LinkHashGenerationException(e);
         }
     }
 }
