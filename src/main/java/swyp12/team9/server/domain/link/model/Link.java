@@ -30,7 +30,7 @@ public class Link extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "url", nullable = false, length = 2048)
+    @Column(name = "url", nullable = false, columnDefinition = "TEXT")
     private String url;
 
     // url_hash(SHA-256)로 전체 URL에 대한 UNIQUE 보장
@@ -40,7 +40,7 @@ public class Link extends BaseEntity {
     @Column(name = "title", length = 300)
     private String title;
 
-    @Column(name = "description", length = 1000)
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "favicon_url", length = 1024)
