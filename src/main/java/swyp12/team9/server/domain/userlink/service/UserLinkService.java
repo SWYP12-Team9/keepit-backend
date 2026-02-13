@@ -66,13 +66,18 @@ public class UserLinkService {
         String urlHash = Link.generateUrlHash(request.url());
         Object lock = URL_LOCKS.computeIfAbsent(urlHash, k -> new Object());
         Link link;
-        synchronized (lock) {
-            // 스크래핑 + AI 요약은 트랜잭션 밖에서 실행 (커넥션 미사용)
-            // Link 저장 시에만 REQUIRES_NEW로 커넥션 2를 짧게 획득 (수십ms)
-            // 단, 커넥션 1은 createUserLink `@Transactional로` 인해 계속 점유 상태
-            link = linkService.getOrCreateLink(request.url());
+
+        try {
+            synchronized (lock) {
+                // 스크래핑 + AI 요약은 트랜잭션 밖에서 실행 (커넥션 미사용)
+                // Link 저장 시에만 REQUIRES_NEW로 커넥션 2를 짧게 획득 (수십ms)
+                // 단, 커넥션 1은 createUserLink `@Transactional로` 인해 계속 점유 상태
+                link = linkService.getOrCreateLink(request.url());
+            }
         }
-        URL_LOCKS.remove(urlHash);
+        finally {
+            URL_LOCKS.remove(urlHash);
+        }
 
         // UserLink 중복 체크 (기존 Link / 동시 요청으로 재사용한 Link 모두 검사)
         if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
