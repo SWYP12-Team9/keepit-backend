@@ -13,7 +13,6 @@ import swyp12.team9.server.api.userlink.dto.request.UserLinkUpdateRequest;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkListResponse;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkResponse;
 import swyp12.team9.server.domain.link.model.Link;
-import swyp12.team9.server.domain.link.repository.LinkRepository;
 import swyp12.team9.server.domain.link.service.LinkService;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.model.Reference;
@@ -41,7 +40,6 @@ public class UserLinkService {
     private static final ConcurrentHashMap<String, Object> URL_LOCKS = new ConcurrentHashMap<>();
 
     private final UserLinkRepository userLinkRepository;
-    private final LinkRepository linkRepository;
     private final LinkService linkService;
     private final UserRepository userRepository;
     private final ReferenceRepository referenceRepository;
@@ -73,6 +71,7 @@ public class UserLinkService {
             // 이 안에서 스크래핑 + AI 요약으로 5~8초 동안 커넥션 2개를 동시에 점유
             link = linkService.getOrCreateLink(request.url());
         }
+        URL_LOCKS.remove(urlHash);
 
         // UserLink 중복 체크 (기존 Link / 동시 요청으로 재사용한 Link 모두 검사)
         if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
@@ -289,7 +288,7 @@ public class UserLinkService {
 
         boolean hasNext = userLinks.size() > size;
         List<UserLink> content = hasNext ? userLinks.subList(0, size) : userLinks;
-        String nextCursor = hasNext ? String.valueOf(content.get(content.size() - 1).getId()) : null;
+        String nextCursor = hasNext ? String.valueOf(content.getLast().getId()) : null;
 
         List<UserLinkListResponse> responses = content.stream()
                 .map(userLink -> {
