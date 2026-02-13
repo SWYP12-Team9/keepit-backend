@@ -36,7 +36,7 @@ public class ScrapingService {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
-                .body(ScrapingResponse.class);
+                .body(ScrapingResponse.class); // 외부 서버 응답 대기 (수 초)
 
         if (response == null) {
             log.error("스크래핑 응답이 비어있음 - URL: {}", url);

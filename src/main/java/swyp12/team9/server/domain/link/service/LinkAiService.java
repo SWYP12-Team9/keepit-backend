@@ -58,7 +58,7 @@ public class LinkAiService {
 
             String summary = chatClient.prompt(prompt)
                     .call()
-                    .content();
+                    .content(); // AI API 응답 대기 (수 초)
 
             log.info("AI 요약 생성 완료");
             return summary;
