@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -23,7 +24,9 @@ import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedExcepti
 import swyp12.team9.server.global.common.entity.BaseEntity;
 
 @Entity
-@Table(name = "user_links")
+@Table(name = "user_links", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_link", columnNames = {"user_id", "link_id"})
+})
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
