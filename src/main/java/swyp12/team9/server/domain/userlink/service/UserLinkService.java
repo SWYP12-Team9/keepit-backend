@@ -1,10 +1,10 @@
 package swyp12.team9.server.domain.userlink.service;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +12,6 @@ import swyp12.team9.server.api.userlink.dto.request.UserLinkCreateRequest;
 import swyp12.team9.server.api.userlink.dto.request.UserLinkUpdateRequest;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkListResponse;
 import swyp12.team9.server.api.userlink.dto.response.UserLinkResponse;
-import swyp12.team9.server.domain.link.exception.LinkNotFoundException;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
 import swyp12.team9.server.domain.link.service.LinkService;
@@ -39,6 +38,8 @@ import swyp12.team9.server.global.util.PaginationUtils.Cursor.PageResponse;
 @Transactional(readOnly = true)
 public class UserLinkService {
 
+    private static final ConcurrentHashMap<String, Object> URL_LOCKS = new ConcurrentHashMap<>();
+
     private final UserLinkRepository userLinkRepository;
     private final LinkRepository linkRepository;
     private final LinkService linkService;
@@ -51,9 +52,9 @@ public class UserLinkService {
      * 사용자 링크 생성 - 중복 체크를 먼저 수행한 후 Link 생성 - LinkService를 통해 Link 스크래핑 로직 처리 referenceId와 newReference는 둘 중 하나만 선택 둘 다
      * null이면 기본 미지정 폴더에 자동 분류
      */
-    @Transactional
+    @Transactional // 트랜잭션 A 시작 → 커넥션 1 획득
     public UserLinkResponse createUserLink(Long userId, UserLinkCreateRequest request) {
-        User user = getUserById(userId);
+        User user = getUserById(userId); // 커넥션 1 사용
 
         // referenceId와 newReference 동시 사용 검증
         boolean hasReferenceId = request.referenceId() != null;
@@ -63,25 +64,14 @@ public class UserLinkService {
             throw new ReferenceSelectionDuplicateException();
         }
 
-        // URL 해시로 기존 Link 조회
+        // URL 단위 락으로 동시 요청 시 중복 Link 생성 방지
         String urlHash = Link.generateUrlHash(request.url());
-        Link link = linkRepository.findByUrlHash(urlHash).orElse(null);
-
-        // 링크가 없으면 생성
-        if (link == null) {
-            try {
-                link = linkService.createLink(request.url());
-            } catch (DataIntegrityViolationException e) {
-                // url_hash UNIQUE 제약 위반이 아닌 경우 그대로 전파
-                String message = e.getMostSpecificCause().getMessage();
-                if (message == null || !message.contains("uk_link_url_hash")) {
-                    throw e;
-                }
-                // 동시 요청으로 다른 쓰레드가 먼저 같은 URL의 Link를 생성한 경우
-                link = linkRepository.findByUrlHash(urlHash)
-                        .orElseThrow(LinkNotFoundException::new);
-                log.info("동시 요청 감지 - 기존 Link 재사용: linkId={}", link.getId());
-            }
+        Object lock = URL_LOCKS.computeIfAbsent(urlHash, k -> new Object());
+        Link link;
+        synchronized (lock) {
+            // REQUIRES_NEW → 커넥션 2 추가 획득 (커넥션 1은 일시 중단 상태로 잡혀있음)
+            // 이 안에서 스크래핑 + AI 요약으로 5~8초 동안 커넥션 2개를 동시에 점유
+            link = linkService.getOrCreateLink(request.url());
         }
 
         // UserLink 중복 체크 (기존 Link / 동시 요청으로 재사용한 Link 모두 검사)
