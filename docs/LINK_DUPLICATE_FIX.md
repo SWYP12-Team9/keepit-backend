@@ -177,6 +177,62 @@ Link 확보 이후로 중복 체크를 이동하여, 모든 경로에서 검사.
 
 즉, **개별 응답 속도 개선이 아니라 서버 안정성과 리소스 효율성 개선**이 목적이다.
 
+## 서로 다른 사용자가 동일 URL을 동시에 저장하는 경우
+
+Link는 URL당 1개만 존재하는 공유 자원이고, UserLink가 사용자별 소유 관계를 나타낸다.
+서로 다른 사용자가 같은 URL을 동시에 저장해도 동시성 문제 없이 안전하게 처리된다.
+
+### 처리 흐름
+
+```
+유저 A (URL X)                        유저 B (URL X)
+─────────────                        ─────────────
+urlHash 생성 → 같은 해시              urlHash 생성 → 같은 해시
+lock 획득 ✅                          lock 대기 ⏳
+  getOrCreateLink()
+    find → null
+    스크래핑 (3초)
+    AI 요약 (5초)
+    findOrSaveLink() → COMMIT ✅
+lock 해제                             lock 획득 ✅
+                                        getOrCreateLink()
+                                          find → 있음 → 즉시 재사용 ✅
+                                      lock 해제
+
+중복 체크:                            중복 체크:
+existsByUserIdAndLinkId(A, 1)         existsByUserIdAndLinkId(B, 1)
+→ false (유저 A 없음)                 → false (유저 B 없음)
+
+UserLink 생성 ✅                      UserLink 생성 ✅
+```
+
+### 결과 데이터
+
+```
+links 테이블 (URL당 1개)
+┌─────────┬──────────────────────────┬──────────┐
+│ link_id │ url                      │ url_hash │
+├─────────┼──────────────────────────┼──────────┤
+│ 1       │ https://example.com/post │ a1b2c3.. │
+└─────────┴──────────────────────────┴──────────┘
+
+user_links 테이블 (사용자별 1개)
+┌──────────────┬─────────┬─────────┬───────┬──────┐
+│ user_link_id │ user_id │ link_id │ why   │ memo │
+├──────────────┼─────────┼─────────┼───────┼──────┤
+│ 1            │ 유저 A   │ 1       │ ...   │ ...  │
+│ 2            │ 유저 B   │ 1       │ ...   │ ...  │
+└──────────────┴─────────┴─────────┴───────┴──────┘
+```
+
+### 안전한 이유
+
+1. **`synchronized` 락**: 같은 URL에 대해 Link 생성이 직렬화되므로, 유저 B는 유저 A가 만든 Link를 재사용
+2. **`REQUIRES_NEW`**: 락 해제 전에 커밋이 완료되어 유저 B가 확실히 조회 가능
+3. **UserLink 중복 체크**: `user_id`가 다르므로 각자 정상적으로 UserLink 생성
+
+유저 B는 스크래핑과 AI 요약을 건너뛰고 기존 Link를 즉시 재사용하기 때문에, 응답 시간도 단축되는 이점이 있다.
+
 ## 관련 문서
 
 - [REQUIRES_NEW가 필요한 이유](REQUIRES_NEW_EXPLANATION.md) — synchronized 락만으로 부족한 이유와 REQUIRES_NEW의 역할

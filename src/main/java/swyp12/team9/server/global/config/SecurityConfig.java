@@ -140,6 +140,9 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/api/v1/user-links/{userLinkId}").permitAll()
 //                        .requestMatchers(HttpMethod.GET, "/api/v1/user-links").permitAll()
 
+                                // 링크 추천 조회 (익명 허용 - 탐색 페이지)
+                                .requestMatchers(HttpMethod.GET, "/api/v1/recommendations/**").permitAll()
+
                                 // 약관 조회 (익명 허용)
                                 .requestMatchers(HttpMethod.GET, "/api/v1/terms/**").permitAll()
 
