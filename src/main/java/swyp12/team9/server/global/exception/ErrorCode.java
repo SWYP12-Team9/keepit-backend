@@ -61,6 +61,7 @@ public enum ErrorCode {
     LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "LNK001", "링크를 찾을 수 없습니다"),
     LINK_SCRAPING_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "LNK002", "스크래핑 서버에서 오류가 발생했습니다"),
     LINK_SCRAPING_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "LNK003", "스크래핑 요청 시간이 초과되었습니다"),
+    LINK_HASH_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "LNK004", "링크 URL 해시 생성에 실패했습니다"),
 
     // UserLink
     USER_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "ULK001", "사용자 링크를 찾을 수 없습니다"),
