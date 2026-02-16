@@ -115,20 +115,22 @@ spring:
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
 
+  # Spring AI 설정
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY} # 환경변수로 설정
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4o-mini
+          model: ${OPENAI_MODEL:gpt-4o-mini}
+          temperature: 0.7
       embedding:
         options:
-          model: text-embedding-3-small
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
     vectorstore:
       elasticsearch:
-        initialize-schema: true
+        index-name: ${ELASTICSEARCH_INDEX_NAME:keepit-vectors}
         dimensions: 1536
-        index-name: keepit-index
+        initialize-schema: true
 
 logging:
   level:
