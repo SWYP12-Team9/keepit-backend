@@ -59,9 +59,10 @@ public class RecommendationController {
         public ApiResponse<List<RecommendationResponse>> searchByKeyword(
                         @CurrentUserId(required = false) Long userId,
                         @Parameter(description = "검색 키워드", example = "프론트엔드 성능 최적화") @RequestParam @NotBlank @Size(min = 1, max = 50) String keyword,
+                        @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") @Min(0) @Max(100) int page,
                         @Parameter(description = "가져올 결과 수", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
                 List<RecommendationResponse> searchResults = recommendationService.searchByKeyword(userId, keyword,
-                                size);
+                                page, size);
                 return ApiResponse.ok(searchResults);
         }
 
@@ -82,12 +83,13 @@ public class RecommendationController {
         public ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
                         @CurrentUserId(required = false) Long userId,
                         @Parameter(description = "카테고리명 (미지정 시 전체 조회)", example = "경제/시사") @RequestParam(required = false) String category,
+                        @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") @Min(0) @Max(100) int page,
                         @Parameter(description = "가져올 추천 콘텐츠 수", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
                 List<RecommendationResponse> recommendations;
 
                 // 카테고리 미지정 시 전체 최신 공개 링크 반환
                 if (category == null || category.isBlank()) {
-                        recommendations = recommendationService.getRecentPublicLinks(userId, size);
+                        recommendations = recommendationService.getRecentPublicLinks(userId, page, size);
                 } else {
                         LinkCategory linkCategory = LinkCategory.fromDisplayName(category)
                                         .orElseThrow(InvalidCategoryException::new);
@@ -96,10 +98,10 @@ public class RecommendationController {
                         if (linkCategory == LinkCategory.ETC) {
                                 String etcKeywords = "독특한 새로운 흥미로운 트렌드 화제";
                                 recommendations = recommendationService.getRecommendationsByCategory(userId,
-                                                etcKeywords, size);
+                                                etcKeywords, page, size);
                         } else {
                                 recommendations = recommendationService.getRecommendationsByCategory(userId, category,
-                                                size);
+                                                page, size);
                         }
                 }
 

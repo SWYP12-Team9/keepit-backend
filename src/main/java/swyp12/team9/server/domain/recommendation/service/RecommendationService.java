@@ -46,14 +46,16 @@ public class RecommendationService {
      * @param size    가져올 결과 수
      * @return 검색 결과 목록 (유사도 순)
      */
-    public List<RecommendationResponse> searchByKeyword(Long userId, String keyword, int size) {
+    public List<RecommendationResponse> searchByKeyword(Long userId, String keyword, int page, int size) {
         try {
+            int topK = calculateTopK(page, size);
+
             // 1. Elasticsearch 검색 요청 구성
             // - 키워드를 벡터로 변환하여 유사도 높은 문서 검색
             // - topK: 반환할 최대 결과 수
             SearchRequest.Builder requestBuilder = SearchRequest.builder()
                     .query(keyword)
-                    .topK(size);
+                    .topK(topK);
 
             // 2. Pre-filtering: 내가 이미 저장한 linkId는 검색 전에 제외
             // - Elasticsearch 엔진 레벨에서 필터링하여 성능 향상
@@ -91,12 +93,13 @@ public class RecommendationService {
             }
 
             // 4. UserLink 정보를 바탕으로 응답 DTO 생성 (키워드 검색은 카테고리 null)
-            return buildResponsesFromUserLinkIds(filteredUserLinkIds, null);
+            List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(filteredUserLinkIds, null);
+            return paginate(allResults, page, size);
 
         } catch (Exception e) {
             // Elasticsearch 장애 시 DB 기반 키워드 검색으로 대체
             log.error("Elasticsearch 키워드 검색 실패: {}", e.getMessage());
-            return fallbackGetRecentLinks(userId, null, keyword, size);
+            return fallbackGetRecentLinks(userId, null, keyword, page, size);
         }
     }
 
@@ -109,9 +112,9 @@ public class RecommendationService {
      * @param size   가져올 링크 수
      * @return 최신 공개 링크 목록
      */
-    public List<RecommendationResponse> getRecentPublicLinks(Long userId, int size) {
+    public List<RecommendationResponse> getRecentPublicLinks(Long userId, int page, int size) {
         // 빈 키워드로 fallback 메서드를 활용 (최신순 정렬)
-        return fallbackGetRecentLinks(userId, null, "", size);
+        return fallbackGetRecentLinks(userId, null, "", page, size);
     }
 
     /**
@@ -124,8 +127,10 @@ public class RecommendationService {
      * @param size     가져올 추천 콘텐츠 수
      * @return 추천 콘텐츠 목록 (유사도 순)
      */
-    public List<RecommendationResponse> getRecommendationsByCategory(Long userId, String category, int size) {
+    public List<RecommendationResponse> getRecommendationsByCategory(Long userId, String category, int page, int size) {
         try {
+            int topK = calculateTopK(page, size);
+
             // 1. 카테고리명 슬래시 전처리 (고정 카테고리만 적용)
             // - "경제/시사" → "경제 시사"로 변환하여 벡터화 품질 향상
             String processedCategory = category.contains("/")
@@ -136,7 +141,7 @@ public class RecommendationService {
             // - 카테고리명을 벡터로 변환하여 관련 링크 검색
             SearchRequest.Builder requestBuilder = SearchRequest.builder()
                     .query(processedCategory)
-                    .topK(size);
+                    .topK(topK);
 
             // 3. Pre-filtering: 내가 이미 저장한 linkId는 검색 전에 제외
             if (userId != null) {
@@ -172,12 +177,13 @@ public class RecommendationService {
             }
 
             // 4. UserLink 정보를 바탕으로 응답 DTO 생성
-            return buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
+            List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
+            return paginate(allResults, page, size);
 
         } catch (Exception e) {
             // Elasticsearch 장애 시 DB 기반 검색으로 대체
             log.error("Elasticsearch 유사도 검색 실패: {}", e.getMessage());
-            return fallbackGetRecentLinks(userId, category, category, size);
+            return fallbackGetRecentLinks(userId, category, category, page, size);
         }
     }
 
@@ -229,14 +235,19 @@ public class RecommendationService {
 
     // ========== Fallback 메서드 (Elasticsearch 장애 시 DB에서 키워드 기반 검색 수행) ==========
 
-    private List<RecommendationResponse> fallbackGetRecentLinks(Long userId, String category, String keyword, int size) {
+    private List<RecommendationResponse> fallbackGetRecentLinks(Long userId,
+                                                                String category,
+                                                                String keyword,
+                                                                int page,
+                                                                int size) {
         // 1. 현재 사용자가 이미 저장한 링크 ID 목록 조회 (중복 추천 방지용)
         List<Long> myLinkIds = userId != null
                 ? userLinkRepository.findLinkIdsByUserId(userId)
                 : Collections.emptyList();
 
-        // 2. DB에서 키워드 포함된 공개 UserLink 조회 (필터링 고려해 넉넉하게 5배수 조회)
-        PageRequest pageRequest = PageRequest.of(0, Math.min(size * 5, 100));
+        // 2. DB에서 키워드 포함된 공개 UserLink 조회 (필터링/페이지 고려해 넉넉하게 조회)
+        int fetchSize = Math.min((page + 1) * size * 5, 1000);
+        PageRequest pageRequest = PageRequest.of(0, fetchSize);
         List<UserLink> publicUserLinks = userLinkRepository.findByKeywordAndIsPublicTrue(keyword, pageRequest);
 
         // 3. 내 링크 제외 및 동일 링크 중복 제거 (가장 최신 UserLink ID만 유지)
@@ -251,14 +262,28 @@ public class RecommendationService {
                     return true;
                 })
                 .map(UserLink::getId)
-                .limit(size)
                 .collect(Collectors.toList());
 
         if (filteredUserLinkIds.isEmpty()) {
-            return Collections.emptyList();
+                return Collections.emptyList();
         }
 
         // 4. 필터링된 UserLink ID 목록을 응답 DTO로 변환하여 반환 (category가 null이면 카테고리 미표시)
-        return buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
+        List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
+        return paginate(allResults, page, size);
+    }
+
+    private int calculateTopK(int page, int size) {
+        return Math.min((page + 1) * size * 5, 1000);
+    }
+
+    private <T> List<T> paginate(List<T> items, int page, int size) {
+        int fromIndex = page * size;
+        if (fromIndex >= items.size()) {
+            return Collections.emptyList();
+        }
+
+        int toIndex = Math.min(fromIndex + size, items.size());
+        return items.subList(fromIndex, toIndex);
     }
 }
