@@ -245,10 +245,14 @@ public class RecommendationService {
                 ? userLinkRepository.findLinkIdsByUserId(userId)
                 : Collections.emptyList();
 
-        // 2. DB에서 키워드 포함된 공개 UserLink 조회 (필터링/페이지 고려해 넉넉하게 조회)
+        // 2. DB에서 공개 UserLink 조회
+        // - 전체 탭(category 없음)은 키워드 검색 대신 최신 공개 링크를 직접 조회
+        // - 검색/카테고리 fallback은 기존 키워드 검색 사용
         int fetchSize = Math.min((page + 1) * size * 5, 1000);
         PageRequest pageRequest = PageRequest.of(0, fetchSize);
-        List<UserLink> publicUserLinks = userLinkRepository.findByKeywordAndIsPublicTrue(keyword, pageRequest);
+        List<UserLink> publicUserLinks = (keyword == null || keyword.isBlank())
+                ? userLinkRepository.findPublicUserLinksOrderByIdDesc(pageRequest)
+                : userLinkRepository.findByKeywordAndIsPublicTrue(keyword, pageRequest);
 
         // 3. 내 링크 제외 및 동일 링크 중복 제거 (가장 최신 UserLink ID만 유지)
         Set<Long> seenLinkIds = new HashSet<>();
