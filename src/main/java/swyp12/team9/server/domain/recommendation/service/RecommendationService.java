@@ -43,6 +43,7 @@ public class RecommendationService {
      *
      * @param userId  현재 로그인한 사용자 ID (null 가능)
      * @param keyword 사용자가 입력한 검색 키워드
+     * @param page    페이지 번호 (0부터 시작)
      * @param size    가져올 결과 수
      * @return 검색 결과 목록 (유사도 순)
      */
@@ -109,6 +110,7 @@ public class RecommendationService {
      * - 현재 사용자가 이미 저장한 링크는 제외
      *
      * @param userId 현재 로그인한 사용자 ID (null 가능)
+     * @param page   페이지 번호 (0부터 시작)
      * @param size   가져올 링크 수
      * @return 최신 공개 링크 목록
      */
@@ -124,6 +126,7 @@ public class RecommendationService {
      *
      * @param userId   현재 로그인한 사용자 ID (null 가능)
      * @param category 검색어 (카테고리명 등)
+     * @param page     페이지 번호 (0부터 시작)
      * @param size     가져올 추천 콘텐츠 수
      * @return 추천 콘텐츠 목록 (유사도 순)
      */
@@ -269,7 +272,7 @@ public class RecommendationService {
                 .collect(Collectors.toList());
 
         if (filteredUserLinkIds.isEmpty()) {
-                return Collections.emptyList();
+            return Collections.emptyList();
         }
 
         // 4. 필터링된 UserLink ID 목록을 응답 DTO로 변환하여 반환 (category가 null이면 카테고리 미표시)
