@@ -18,6 +18,7 @@ import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
 import swyp12.team9.server.global.exception.ErrorCode;
+import swyp12.team9.server.global.util.PaginationUtils;
 
 @Tag(name = "Recommendation", description = "추천 콘텐츠 API (Elasticsearch 벡터 검색) - 탐색 페이지")
 @RequestMapping("/api/v1/recommendations")
@@ -40,10 +41,10 @@ public interface RecommendationApi {
             ErrorCode.VALIDATION_ERROR
     })
     @GetMapping("/search")
-    ApiResponse<List<RecommendationResponse>> searchByKeyword(
+    ApiResponse<PaginationUtils.Cursor.PageResponse<RecommendationResponse>> searchByKeyword(
             @CurrentUserId(required = false) Long userId,
             @Parameter(description = "검색 키워드", example = "프론트엔드 성능 최적화") @RequestParam @NotBlank @Size(min = 1, max = 50) String keyword,
-            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") @Min(0) @Max(100) int page,
+            @Parameter(description = "커서 (첫 요청 시 null)", example = "20") @RequestParam(required = false) String cursor,
             @Parameter(description = "가져올 결과 수", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     );
 
@@ -61,10 +62,10 @@ public interface RecommendationApi {
             ErrorCode.INVALID_CATEGORY
     })
     @GetMapping
-    ApiResponse<List<RecommendationResponse>> getRecommendationsByCategory(
+    ApiResponse<PaginationUtils.Cursor.PageResponse<RecommendationResponse>> getRecommendationsByCategory(
             @CurrentUserId(required = false) Long userId,
             @Parameter(description = "카테고리명 (미지정 시 전체 조회)", example = "경제/시사") @RequestParam(required = false) String category,
-            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") @Min(0) @Max(100) int page,
+            @Parameter(description = "커서 (첫 요청 시 null)", example = "20") @RequestParam(required = false) String cursor,
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     );
 
