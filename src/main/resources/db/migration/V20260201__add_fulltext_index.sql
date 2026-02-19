@@ -34,9 +34,6 @@
 -- ============================================================
 -- 검색 대상: why (저장 이유), memo (메모)
 
--- 기존 인덱스가 있으면 삭제 (멱등성 보장)
-DROP INDEX IF EXISTS ft_userlink_search ON user_links;
-
 -- Full-Text Index 생성 (ngram 파서 사용 - 한글 지원)
 CREATE FULLTEXT INDEX ft_userlink_search
     ON user_links (why, memo)
@@ -46,9 +43,6 @@ CREATE FULLTEXT INDEX ft_userlink_search
 -- 2. links 테이블에 Full-Text Index 생성
 -- ============================================================
 -- 검색 대상: title (제목), ai_summary (AI 요약), url (URL)
-
--- 기존 인덱스가 있으면 삭제
-DROP INDEX IF EXISTS ft_link_search ON links;
 
 -- Full-Text Index 생성 (ngram 파서 사용 - 한글 지원)
 CREATE FULLTEXT INDEX ft_link_search

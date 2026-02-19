@@ -4,7 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,13 +12,15 @@ import swyp12.team9.server.domain.link.fixture.LinkFixture;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LinkService 단위 테스트")
@@ -34,63 +35,89 @@ class LinkServiceTest {
     @Mock
     private LinkAiService linkAiService;
 
+    @Mock
+    private LinkSaveService linkSaveService;
+
     @InjectMocks
     private LinkService linkService;
 
     @Nested
-    @DisplayName("링크 생성 테스트")
-    class CreateLink {
+    @DisplayName("getOrCreateLink 테스트")
+    class GetOrCreateLink {
 
         @Test
-        @DisplayName("성공: 스크래핑 데이터와 AI 요약 정보를 사용하여 링크를 생성한다")
-        void success() {
+        @DisplayName("성공: 기존 Link가 없으면 스크래핑 후 새로 생성한다")
+        void success_CreateNew() {
             // given
             String url = LinkFixture.URL;
+            String urlHash = Link.generateUrlHash(url);
             ScrapingResponse scrapingResponse = LinkFixture.createScrapingResponse(url);
             String aiSummary = LinkFixture.AI_SUMMARY;
-
             Link savedLink = LinkFixture.createLinkWithId(1L);
 
+            given(linkRepository.findByUrlHash(urlHash)).willReturn(Optional.empty());
             given(scrapingService.scrapeUrl(anyString(), anyInt())).willReturn(scrapingResponse);
-            given(linkRepository.save(any(Link.class))).willReturn(savedLink);
             given(linkAiService.summarizeLink(anyString(), anyString(), anyString())).willReturn(aiSummary);
+            given(linkSaveService.findOrSaveLink(anyString(), any(ScrapingResponse.class), anyString())).willReturn(savedLink);
 
             // when
-            Link result = linkService.createLink(url);
+            Link result = linkService.getOrCreateLink(url);
 
             // then
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
             verify(scrapingService).scrapeUrl(anyString(), anyInt());
-            verify(linkRepository, times(1)).save(any(Link.class));
             verify(linkAiService).summarizeLink(
                     scrapingResponse.getTitle(),
                     scrapingResponse.getDescription(),
                     scrapingResponse.getContent()
             );
+            verify(linkSaveService).findOrSaveLink(anyString(), any(ScrapingResponse.class), anyString());
         }
 
         @Test
-        @DisplayName("성공: AI 요약 결과가 null이라도 링크 저장을 완료한다")
+        @DisplayName("성공: 기존 Link가 있으면 스크래핑 없이 바로 반환한다")
+        void success_ReturnExisting() {
+            // given
+            String url = LinkFixture.URL;
+            String urlHash = Link.generateUrlHash(url);
+            Link existingLink = LinkFixture.createLinkWithId(1L);
+
+            given(linkRepository.findByUrlHash(urlHash)).willReturn(Optional.of(existingLink));
+
+            // when
+            Link result = linkService.getOrCreateLink(url);
+
+            // then
+            assertThat(result).isNotNull();
+            assertThat(result.getId()).isEqualTo(1L);
+            verify(scrapingService, never()).scrapeUrl(anyString(), anyInt());
+            verify(linkAiService, never()).summarizeLink(anyString(), anyString(), anyString());
+            verify(linkSaveService, never()).findOrSaveLink(anyString(), any(ScrapingResponse.class), anyString());
+        }
+
+        @Test
+        @DisplayName("성공: AI 요약 결과가 null이라도 링크 생성을 완료한다")
         void success_NullAiSummary() {
             // given
             String url = LinkFixture.URL;
+            String urlHash = Link.generateUrlHash(url);
             ScrapingResponse scrapingResponse = LinkFixture.createScrapingResponse(url);
-
             Link savedLink = LinkFixture.createLinkWithId(1L);
 
+            given(linkRepository.findByUrlHash(urlHash)).willReturn(Optional.empty());
             given(scrapingService.scrapeUrl(anyString(), anyInt())).willReturn(scrapingResponse);
-            given(linkRepository.save(any(Link.class))).willReturn(savedLink);
             given(linkAiService.summarizeLink(anyString(), anyString(), anyString())).willReturn(null);
+            given(linkSaveService.findOrSaveLink(anyString(), any(ScrapingResponse.class), any())).willReturn(savedLink);
 
             // when
-            Link result = linkService.createLink(url);
+            Link result = linkService.getOrCreateLink(url);
 
             // then
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
             verify(scrapingService).scrapeUrl(anyString(), anyInt());
-            verify(linkRepository, times(1)).save(any(Link.class));
+            verify(linkSaveService).findOrSaveLink(anyString(), any(ScrapingResponse.class), any());
         }
 
         @Test
@@ -98,48 +125,23 @@ class LinkServiceTest {
         void success_EmptyAiSummary() {
             // given
             String url = LinkFixture.URL;
+            String urlHash = Link.generateUrlHash(url);
             ScrapingResponse scrapingResponse = LinkFixture.createScrapingResponse(url);
-
             Link savedLink = LinkFixture.createLinkWithId(1L);
 
+            given(linkRepository.findByUrlHash(urlHash)).willReturn(Optional.empty());
             given(scrapingService.scrapeUrl(anyString(), anyInt())).willReturn(scrapingResponse);
-            given(linkRepository.save(any(Link.class))).willReturn(savedLink);
             given(linkAiService.summarizeLink(anyString(), anyString(), anyString())).willReturn("");
+            given(linkSaveService.findOrSaveLink(anyString(), any(ScrapingResponse.class), anyString())).willReturn(savedLink);
 
             // when
-            Link result = linkService.createLink(url);
+            Link result = linkService.getOrCreateLink(url);
 
             // then
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
             verify(scrapingService).scrapeUrl(anyString(), anyInt());
-            verify(linkRepository, times(1)).save(any(Link.class));
-        }
-
-        @Test
-        @DisplayName("성공: 스크래핑 데이터의 모든 필드가 Link 엔티티에 올바르게 매핑되어 저장된다")
-        void success_AllFieldsMapped() {
-            // given
-            String url = LinkFixture.URL;
-            ScrapingResponse scrapingResponse = LinkFixture.createScrapingResponse(url);
-            ArgumentCaptor<Link> linkCaptor = ArgumentCaptor.forClass(Link.class);
-
-            Link savedLink = LinkFixture.createLinkWithId(1L);
-
-            given(scrapingService.scrapeUrl(anyString(), anyInt())).willReturn(scrapingResponse);
-            given(linkRepository.save(linkCaptor.capture())).willReturn(savedLink);
-            given(linkAiService.summarizeLink(anyString(), anyString(), anyString())).willReturn(LinkFixture.AI_SUMMARY);
-
-            // when
-            linkService.createLink(url);
-
-            // then
-            Link capturedLink = linkCaptor.getValue();
-            assertThat(capturedLink.getUrl()).isEqualTo(url);
-            assertThat(capturedLink.getTitle()).isEqualTo(scrapingResponse.getTitle());
-            assertThat(capturedLink.getDescription()).isEqualTo(scrapingResponse.getDescription());
-            assertThat(capturedLink.getFaviconUrl()).isEqualTo(scrapingResponse.getFaviconUrl());
-            assertThat(capturedLink.getContent()).isEqualTo(scrapingResponse.getContent());
+            verify(linkSaveService).findOrSaveLink(anyString(), any(ScrapingResponse.class), anyString());
         }
 
         @Test
@@ -147,22 +149,23 @@ class LinkServiceTest {
         void success_MinimalInfo() {
             // given
             String url = LinkFixture.URL;
+            String urlHash = Link.generateUrlHash(url);
             ScrapingResponse scrapingResponse = LinkFixture.createMinimalScrapingResponse(url);
-
             Link savedLink = LinkFixture.createLinkWithId(1L);
 
+            given(linkRepository.findByUrlHash(urlHash)).willReturn(Optional.empty());
             given(scrapingService.scrapeUrl(anyString(), anyInt())).willReturn(scrapingResponse);
-            given(linkRepository.save(any(Link.class))).willReturn(savedLink);
             given(linkAiService.summarizeLink(anyString(), any(), any())).willReturn(null);
+            given(linkSaveService.findOrSaveLink(anyString(), any(ScrapingResponse.class), any())).willReturn(savedLink);
 
             // when
-            Link result = linkService.createLink(url);
+            Link result = linkService.getOrCreateLink(url);
 
             // then
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
             verify(scrapingService).scrapeUrl(anyString(), anyInt());
-            verify(linkRepository, times(1)).save(any(Link.class));
+            verify(linkSaveService).findOrSaveLink(anyString(), any(ScrapingResponse.class), any());
         }
     }
 }
