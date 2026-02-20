@@ -1,18 +1,10 @@
 package swyp12.team9.server.domain.recommendation.service;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +13,16 @@ import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.global.util.PaginationUtils;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * Elasticsearch 벡터 검색 기반 추천 서비스
  * - 링크 데이터(title, aiSummary)를 임베딩하여 Elasticsearch에 저장
  * - 카테고리명을 검색어로 유사도 높은 순서로 링크 반환
  * - 공개 설정된 링크만 추천 대상
  * - 첫 발견자(가장 먼저 공개 저장한 사용자) 정보 포함
+ * - metadata의 indexType으로 추천 전용 문서만 검색 (챗봇 인덱스와 분리)
  */
 @Slf4j
 @Service
@@ -63,22 +59,29 @@ public class RecommendationService {
                     .query(keyword)
                     .topK(topK);
 
-            // 2. Pre-filtering: 내가 이미 저장한 linkId는 검색 전에 제외
-            // - Elasticsearch 엔진 레벨에서 필터링하여 성능 향상
+            // 2. Pre-filtering: 추천 인덱스 타입 + 내가 이미 저장한 linkId는 ES 엔진 레벨에서 제외
+            StringBuilder filterExpression = new StringBuilder("indexType == 'recommendation'");
+
             if (userId != null) {
                 List<Long> myLinkIds = userLinkRepository.findLinkIdsByUserId(userId);
+                log.debug("[추천 검색] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
                 if (!myLinkIds.isEmpty()) {
                     // TODO 양진모: 사용자의 저장 링크가 65,536개(ES terms limit)를 초과할 경우 에러 발생 가능성 있음. 추후
                     // 10,000건 이상의 대규모 리스트에 대한 필터링 생략 또는 배치 처리 로직 추가 검토 필요.
-                    requestBuilder.filterExpression(new FilterExpressionBuilder()
-                            .nin("linkId", myLinkIds.toArray())
-                            .build());
+                    filterExpression.append(" && linkId nin [")
+                            .append(myLinkIds.stream()
+                                    .map(String::valueOf)
+                                    .collect(Collectors.joining(",")))
+                            .append("]");
                 }
             }
 
-            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
+            requestBuilder.filterExpression(filterExpression.toString());
 
-            // 3. 검색 결과에서 중복 Link 제거
+            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
+            log.info("[추천 검색] ES 검색 결과: {}개", results.size());
+
+            // 4. 검색 결과에서 중복 Link 제거
             // - 동일 링크를 여러 사용자가 저장한 경우 첫 번째 결과만 유지
             Set<Long> seenLinkIds = new HashSet<>();
             List<Long> filteredUserLinkIds = results.stream()
@@ -157,21 +160,27 @@ public class RecommendationService {
                     .query(processedCategory)
                     .topK(topK);
 
-            // 3. Pre-filtering: 내가 이미 저장한 linkId는 검색 전에 제외
+            // 3. Pre-filtering: 추천 인덱스 타입 + 내가 이미 저장한 linkId는 ES 엔진 레벨에서 제외
+            StringBuilder filterExpression = new StringBuilder("indexType == 'recommendation'");
+
             if (userId != null) {
                 List<Long> myLinkIds = userLinkRepository.findLinkIdsByUserId(userId);
+                log.debug("[카테고리 추천] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
                 if (!myLinkIds.isEmpty()) {
-                    // TODO 양진모: 사용자의 저장 링크가 65,536개(ES terms limit)를 초과할 경우 에러 발생 가능성 있음. 추후
-                    // 10,000건 이상의 대규모 리스트에 대한 필터링 생략 또는 배치 처리 로직 추가 검토 필요.
-                    requestBuilder.filterExpression(new FilterExpressionBuilder()
-                            .nin("linkId", myLinkIds.toArray())
-                            .build());
+                    filterExpression.append(" && linkId nin [")
+                            .append(myLinkIds.stream()
+                                    .map(String::valueOf)
+                                    .collect(Collectors.joining(",")))
+                            .append("]");
                 }
             }
 
-            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
+            requestBuilder.filterExpression(filterExpression.toString());
 
-            // 3. 검색 결과에서 중복 Link 제거 (동일 링크는 한 번만 노출)
+            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
+            log.info("[카테고리 추천] ES 검색 결과: {}개", results.size());
+
+            // 4. 검색 결과에서 중복 Link 제거 (동일 링크는 한 번만 노출)
             Set<Long> seenLinkIds = new HashSet<>();
             List<Long> filteredUserLinkIds = results.stream()
                     .filter(doc -> {
@@ -190,7 +199,7 @@ public class RecommendationService {
                 return PaginationUtils.Cursor.PageResponse.empty();
             }
 
-            // 4. UserLink 정보를 바탕으로 응답 DTO 생성
+            // 5. UserLink 정보를 바탕으로 응답 DTO 생성
             List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
             return paginateWithCursor(allResults, startIndex, size);
 
