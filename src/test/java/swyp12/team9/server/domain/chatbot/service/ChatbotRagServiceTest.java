@@ -152,12 +152,14 @@ class ChatbotRagServiceTest {
             String result = chatbotRagService.buildPromptContext(contexts);
 
             // then
-            assertThat(result).contains("다음은 사용자가 저장한 관련 링크들입니다");
-            assertThat(result).contains("1. 제목: Spring Security JWT 가이드");
+            assertThat(result).contains("=== 사용자가 저장한 관련 링크");
+            assertThat(result).contains("[링크 1]");
+            assertThat(result).contains("제목: Spring Security JWT 가이드");
             assertThat(result).contains("URL: https://spring.io/guides/jwt");
             assertThat(result).contains("요약: Spring Security와 JWT를 통합하는 방법");
             assertThat(result).contains("저장 이유: JWT 인증 구현할 때 참고");
             assertThat(result).contains("메모: 핵심: 토큰 생성");
+            assertThat(result).contains("=== 답변 규칙");
         }
 
         @Test
@@ -194,7 +196,8 @@ class ChatbotRagServiceTest {
             String result = chatbotRagService.buildPromptContext(emptyContexts);
 
             // then
-            assertThat(result).isEqualTo("관련된 저장 링크를 찾을 수 없습니다.");
+            assertThat(result).contains("관련된 저장 링크를 찾을 수 없습니다");
+            assertThat(result).contains("[중요] 제공된 컨텍스트가 없으므로");
         }
 
         @Test
@@ -226,9 +229,12 @@ class ChatbotRagServiceTest {
             String result = chatbotRagService.buildPromptContext(contexts);
 
             // then
-            assertThat(result).contains("1. 제목: 첫 번째 링크");
-            assertThat(result).contains("2. 제목: 두 번째 링크");
-            assertThat(result).contains("3. 제목: 세 번째 링크");
+            assertThat(result).contains("[링크 1]");
+            assertThat(result).contains("제목: 첫 번째 링크");
+            assertThat(result).contains("[링크 2]");
+            assertThat(result).contains("제목: 두 번째 링크");
+            assertThat(result).contains("[링크 3]");
+            assertThat(result).contains("제목: 세 번째 링크");
         }
     }
 
@@ -244,6 +250,8 @@ class ChatbotRagServiceTest {
         metadata1.put("memo", "핵심: 토큰 생성 및 검증");
         metadata1.put("faviconUrl", "https://spring.io/favicon.ico");
         metadata1.put("score", 0.92f);
+        metadata1.put("indexType", "chatbot");
+        metadata1.put("userId", USER_ID);
 
         Map<String, Object> metadata2 = new HashMap<>();
         metadata2.put("userLinkId", 101L);
@@ -255,10 +263,12 @@ class ChatbotRagServiceTest {
         metadata2.put("memo", "");
         metadata2.put("faviconUrl", "https://jwt.io/favicon.ico");
         metadata2.put("score", 0.88f);
+        metadata2.put("indexType", "chatbot");
+        metadata2.put("userId", USER_ID);
 
         return List.of(
-                new Document("ul-100", "content1", metadata1),
-                new Document("ul-101", "content2", metadata2)
+                new Document("chatbot-100", "content1", metadata1),
+                new Document("chatbot-101", "content2", metadata2)
         );
     }
 }
