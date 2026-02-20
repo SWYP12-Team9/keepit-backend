@@ -34,7 +34,7 @@ public class ChatbotService {
      * @return AI 응답 및 참고 링크 목록
      */
     public ChatbotQueryResponse generateResponse(Long userId, String message) {
-        log.info("챗봇 질문 처리 시작 - userId: {}, message: {}", userId, message);
+        log.debug("챗봇 질문 처리 시작 - userId: {}, message: {}", userId, message);
 
         // 1. RAG 검색: 관련 링크 찾기
         List<RelevantLinkContext> relevantLinks = chatbotRagService.searchRelevantLinks(

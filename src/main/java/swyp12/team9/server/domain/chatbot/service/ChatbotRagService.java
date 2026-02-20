@@ -5,10 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.chatbot.dto.RelevantLinkContext;
-import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +49,13 @@ public class ChatbotRagService {
             // 사용자별 필터링 설정
             if (userId != null) {
                 // 챗봇 인덱스 타입 + 내 링크만 검색 (개인 지식베이스)
-                requestBuilder.filterExpression("indexType == 'chatbot' && userId == " + userId);
+                FilterExpressionBuilder b = new FilterExpressionBuilder();
+                requestBuilder.filterExpression(
+                        b.and(
+                                b.eq("indexType", "chatbot"),
+                                b.eq("userId", userId)
+                        ).build()
+                );
             } else {
                 // 비로그인 사용자는 빈 결과 반환
                 log.info("비로그인 사용자 - 챗봇 검색 제한");
@@ -73,7 +79,7 @@ public class ChatbotRagService {
             return contexts;
 
         } catch (Exception e) {
-            log.error("RAG 검색 실패 - userId: {}, query: {}, error: {}", userId, query, e.getMessage(), e);
+            log.error("RAG 검색 실패 - userId: {}, error: {}", userId, e.getMessage(), e);
             return Collections.emptyList();
         }
     }
