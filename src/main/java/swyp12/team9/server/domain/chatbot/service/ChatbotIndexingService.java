@@ -31,44 +31,6 @@ public class ChatbotIndexingService {
     private final UserLinkRepository userLinkRepository;
 
     /**
-     * 모든 UserLink를 Elasticsearch에 색인 (챗봇용)
-     * - title과 aiSummary가 둘 다 있는 링크만 색인
-     * - why, memo를 검색 텍스트에 포함
-     */
-    @Transactional(readOnly = true)
-    public void indexAllLinks() {
-        List<UserLink> allUserLinks = userLinkRepository.findAll();
-
-        if (allUserLinks.isEmpty()) {
-            log.info("[챗봇] 색인할 UserLink가 없습니다.");
-            return;
-        }
-
-        // title과 aiSummary가 모두 있는 UserLink만 필터링
-        List<UserLink> validUserLinks = allUserLinks.stream()
-                .filter(ul -> hasValidContent(ul.getLink()))
-                .toList();
-
-        int skippedCount = allUserLinks.size() - validUserLinks.size();
-        if (skippedCount > 0) {
-            log.info("[챗봇] Link의 title 또는 aiSummary가 없어 {} 개의 UserLink 색인 제외", skippedCount);
-        }
-
-        if (validUserLinks.isEmpty()) {
-            log.info("[챗봇] 색인 가능한 유효한 UserLink가 없습니다.");
-            return;
-        }
-
-        // Document 객체로 변환하여 Elasticsearch에 벌크 색인
-        List<Document> documents = validUserLinks.stream()
-                .map(this::createDocument)
-                .collect(Collectors.toList());
-
-        vectorStore.add(documents);
-        log.info("[챗봇] 총 {} 개의 UserLink를 Elasticsearch에 색인 완료", documents.size());
-    }
-
-    /**
      * 단일 UserLink를 Elasticsearch에 색인 또는 삭제 (챗봇용)
      * - UserLink 생성/수정 시 호출하여 자동 색인
      *
