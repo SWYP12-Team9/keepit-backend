@@ -130,7 +130,7 @@ spring:
       elasticsearch:
         index-name: ${ELASTICSEARCH_INDEX_NAME:keepit-vectors}
         dimensions: 1536
-        initialize-schema: true
+        initialize-schema: ${ELASTICSEARCH_INITIALIZE_SCHEMA:false}
 
 logging:
   level:
