@@ -18,7 +18,7 @@ import swyp12.team9.server.global.exception.ErrorCode;
  * RAG 기반 URL 검색 챗봇 API 스펙 정의
  */
 @Tag(name = "Chatbot", description = "AI 챗봇 API - RAG 기반 링크 검색 및 추천")
-@RequestMapping("/api/v1/chatbot")
+@RequestMapping("/api/v1/chatbots")
 public interface ChatbotApi {
 
     @Operation(

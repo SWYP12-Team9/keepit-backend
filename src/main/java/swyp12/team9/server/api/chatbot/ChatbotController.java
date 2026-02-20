@@ -16,7 +16,7 @@ import swyp12.team9.server.global.common.dto.ApiResponse;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/v1/chatbot")
+@RequestMapping("/api/v1/chatbots")
 @RequiredArgsConstructor
 public class ChatbotController implements ChatbotApi {
 
