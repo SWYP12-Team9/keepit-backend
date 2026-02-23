@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,9 @@ import org.springframework.stereotype.Service;
 public class LinkAiService {
 
     private final ChatClient linkSummaryChatClient;
+
+    @Value("${ai.summary.temperature:0.4}")
+    private Double summaryTemperature;
 
     /**
      * 링크 콘텐츠를 요약합니다.
@@ -48,8 +53,14 @@ public class LinkAiService {
 
             String userText = promptTemplate.render(variables);
 
+            // 요약용 옵션: temperature 0.4 (일관되고 사실적인 요약), 토큰 제한 없음
+            OpenAiChatOptions options = OpenAiChatOptions.builder()
+                    .temperature(summaryTemperature)
+                    .build();
+
             String summary = linkSummaryChatClient.prompt()
                     .user(userText)
+                    .options(options)
                     .call()
                     .content(); // AI API 응답 대기 (수 초)
 
