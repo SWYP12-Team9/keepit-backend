@@ -122,7 +122,6 @@ spring:
       chat:
         options:
           model: ${OPENAI_MODEL:gpt-4o-mini}
-          temperature: 0.7
       embedding:
         options:
           model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
@@ -131,6 +130,14 @@ spring:
         index-name: ${ELASTICSEARCH_INDEX_NAME:keepit-vectors}
         dimensions: 1536
         initialize-schema: ${ELASTICSEARCH_INITIALIZE_SCHEMA:false}
+
+# AI 개별 설정
+ai:
+  summary:
+    temperature: ${AI_SUMMARY_TEMPERATURE:0.4}
+  chatbot:
+    max-tokens: ${AI_CHATBOT_MAX_TOKENS:2000}  # 챗봇 응답 토큰 제한
+    temperature: ${AI_CHATBOT_TEMPERATURE:0.7}
 
 logging:
   level:
