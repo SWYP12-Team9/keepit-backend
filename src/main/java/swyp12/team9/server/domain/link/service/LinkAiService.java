@@ -1,21 +1,25 @@
 package swyp12.team9.server.domain.link.service;
 
+
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LinkAiService {
 
-    private final ChatClient chatClient;
+    private final ChatClient linkSummaryChatClient;
 
-    public LinkAiService(ChatClient.Builder chatClientBuilder) {
-        this.chatClient = chatClientBuilder.build();
-    }
+    @Value("${ai.summary.temperature:0.4}")
+    private Double summaryTemperature;
 
     /**
      * 링크 콘텐츠를 요약합니다.
@@ -33,30 +37,30 @@ public class LinkAiService {
                 return null;
             }
 
-            // 프롬프트 템플릿 생성
-            String promptText = """
-                    다음 웹 링크 정보를 한국어로 간단히 요약해주세요.
-                    
+            // 사용자 메시지 생성
+            String userMessageTemplate = """
                     제목: {title}
                     설명: {description}
                     내용: {content}
-                    
-                    요약은 다음 규칙을 따라주세요:
-                    1. 3-5문장으로 핵심 내용만 요약
-                    2. 핵심 키워드 포함
-                    3. 존재하지 않는 정보를 지어내지 말 것
-                    4. 이 링크가 왜 유용한지 설명
-                    5. 한국어로 작성
                     """;
 
-            PromptTemplate promptTemplate = new PromptTemplate(promptText);
-            Prompt prompt = promptTemplate.create(Map.of(
+            PromptTemplate promptTemplate = new PromptTemplate(userMessageTemplate);
+            Map<String, Object> variables = Map.of(
                     "title", title != null ? title : "제목 없음",
                     "description", description != null ? description : "설명 없음",
                     "content", content != null ? content : "내용 없음"
-            ));
+            );
 
-            String summary = chatClient.prompt(prompt)
+            String userText = promptTemplate.render(variables);
+
+            // 요약용 옵션: temperature 0.4 (일관되고 사실적인 요약), 토큰 제한 없음
+            OpenAiChatOptions options = OpenAiChatOptions.builder()
+                    .temperature(summaryTemperature)
+                    .build();
+
+            String summary = linkSummaryChatClient.prompt()
+                    .user(userText)
+                    .options(options)
                     .call()
                     .content(); // AI API 응답 대기 (수 초)
 

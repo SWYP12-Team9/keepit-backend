@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,9 @@ import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLink
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
+import swyp12.team9.server.domain.userlink.event.UserLinkCreatedEvent;
+import swyp12.team9.server.domain.userlink.event.UserLinkDeletedEvent;
+import swyp12.team9.server.domain.userlink.event.UserLinkUpdatedEvent;
 import swyp12.team9.server.domain.userlink.exception.ReferenceSelectionDuplicateException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkDuplicateException;
@@ -45,6 +49,7 @@ public class UserLinkService {
     private final ReferenceRepository referenceRepository;
     private final ReferenceUserLinkRepository referenceUserLinkRepository;
     private final ReferenceService referenceService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 사용자 링크 생성 - 중복 체크를 먼저 수행한 후 Link 생성 - LinkService를 통해 Link 스크래핑 로직 처리 referenceId와 newReference는 둘 중 하나만 선택 둘 다
@@ -122,6 +127,9 @@ public class UserLinkService {
                 .build();
         referenceUserLinkRepository.save(referenceUserLink);
 
+        // 인덱싱 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
+        eventPublisher.publishEvent(UserLinkCreatedEvent.of(savedUserLink.getId()));
+
         log.info("사용자 링크 생성 완료 - userId: {}, userLinkId: {}, referenceId: {}, url: {}",
                 userId, savedUserLink.getId(), reference.getId(), request.url());
 
@@ -177,6 +185,16 @@ public class UserLinkService {
                 request.why() != null ? request.why() : userLink.getWhy(),
                 request.memo() != null ? request.memo() : userLink.getMemo()
         );
+
+        // why, memo 변경 시 챗봇 인덱스 재인덱싱
+        // Reference 이동 시 추천 인덱스 재인덱싱 필요
+        boolean needsReindex = request.why() != null || request.memo() != null
+                || request.referenceId() != null || Boolean.TRUE.equals(request.moveToDefault());
+
+        if (needsReindex) {
+            // 재인덱싱 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
+            eventPublisher.publishEvent(UserLinkUpdatedEvent.of(userLinkId));
+        }
 
         // Reference 처리
         Reference reference;
@@ -234,6 +252,9 @@ public class UserLinkService {
 
         // UserLink 삭제
         userLinkRepository.delete(userLink);
+
+        // 인덱스 삭제 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
+        eventPublisher.publishEvent(UserLinkDeletedEvent.of(userLinkId));
 
         log.info("사용자 링크 삭제 완료 - userId: {}, userLinkId: {}", userId, userLinkId);
     }
