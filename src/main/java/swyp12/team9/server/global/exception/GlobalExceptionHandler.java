@@ -22,11 +22,20 @@ public class GlobalExceptionHandler {
     /**
      * 비즈니스 로직 예외 처리
      * - 가장 먼저 잡아야 하는 커스텀 예외
+     * - 4xx 에러: WARN (클라이언트 잘못)
+     * - 5xx 에러: ERROR (서버 장애)
      */
     @ExceptionHandler(BusinessException.class)
     protected ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
-        log.error("[BusinessException] {}", e.getMessage());
         ErrorCode errorCode = e.getErrorCode();
+
+        // 4xx는 WARN, 5xx는 ERROR
+        if (errorCode.getHttpStatus().is4xxClientError()) {
+            log.warn("[BusinessException] {} - errorCode: {}", e.getMessage(), errorCode.getCode());
+        } else {
+            log.error("[BusinessException] {} - errorCode: {}", e.getMessage(), errorCode.getCode());
+        }
+
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
                 .body(ErrorResponse.of(errorCode));
