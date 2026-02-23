@@ -76,6 +76,9 @@ public enum ErrorCode {
     TERMS_NOT_FOUND(HttpStatus.NOT_FOUND, "TRM001", "약관을 찾을 수 없습니다"),
     TERMS_FILE_READ_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "TRM002", "약관 파일을 읽는 중 오류가 발생했습니다"),
 
+    // Chatbot
+    CHATBOT_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "CHT001", "하루 챗봇 사용 횟수를 초과했습니다. 내일 다시 시도해주세요."),
+
     ;
 
     private final HttpStatus httpStatus;
