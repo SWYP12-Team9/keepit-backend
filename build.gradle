@@ -46,6 +46,9 @@ dependencies {
     // Valid 검증
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // Jwt
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
@@ -78,6 +81,7 @@ dependencies {
     // testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
