@@ -21,8 +21,8 @@ spring:
       ddl-auto: ${DDL_AUTO:update}
     properties:
       hibernate:
-        format_sql: true
-        show_sql: true
+        format_sql: false
+        show_sql: false
         default_batch_fetch_size: 100
         jdbc:
           time_zone: Asia/Seoul
@@ -115,20 +115,35 @@ spring:
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
 
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # Spring AI 설정
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY} # 환경변수로 설정
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4o-mini
+          model: ${OPENAI_MODEL:gpt-4o-mini}
       embedding:
         options:
-          model: text-embedding-3-small
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
     vectorstore:
       elasticsearch:
-        initialize-schema: true
+        index-name: ${ELASTICSEARCH_INDEX_NAME:keepit-vectors}
         dimensions: 1536
-        index-name: keepit-index
+        initialize-schema: ${ELASTICSEARCH_INITIALIZE_SCHEMA:false}
+
+# AI 개별 설정
+ai:
+  summary:
+    temperature: ${AI_SUMMARY_TEMPERATURE:0.4}
+  chatbot:
+    max-tokens: ${AI_CHATBOT_MAX_TOKENS:2000}  # 챗봇 응답 토큰 제한
+    temperature: ${AI_CHATBOT_TEMPERATURE:0.7}
 
 logging:
   level:

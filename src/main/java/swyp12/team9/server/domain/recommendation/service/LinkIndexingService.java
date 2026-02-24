@@ -11,11 +11,15 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.link.model.Link;
+import swyp12.team9.server.domain.recommendation.model.IndexType;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 /**
- * Link 데이터를 Elasticsearch에 색인하는 서비스 - 공개 설정된 UserLink의 Link만 색인 대상
+ * 추천 시스템 전용 Elasticsearch 색인 서비스
+ * - 공개 설정된 UserLink를 Elasticsearch에 색인
+ * - metadata의 indexType으로 추천 인덱스 구분
+ * - 탐색 탭의 추천 기능에서만 사용
  */
 @Slf4j
 @Service
@@ -116,7 +120,7 @@ public class LinkIndexingService {
                 log.info("UserLink 색인 완료 - ID: {}", userLinkId);
             } else {
                 // Reference가 비공개이거나 유효하지 않으면 Elasticsearch에서 삭제하여 검색 결과에서 제외
-                vectorStore.delete(List.of("ul-" + userLinkId));
+                vectorStore.delete(List.of("recommendation-" + userLinkId));
                 log.info("UserLink 색인 삭제 (Reference 비공개 또는 유효하지 않음) - ID: {}", userLinkId);
             }
         });
@@ -137,8 +141,8 @@ public class LinkIndexingService {
     /**
      * UserLink를 Elasticsearch Document로 변환
      * - 검색 대상(content): title + aiSummary + why + memo 통합
-     * - 메타데이터: userId, linkId, userLinkId, url, title 등 (응답 생성 시 사용)
-     * - Document ID: "ul-{userLinkId}" 형식으로 고유 식별
+     * - 메타데이터: userId, linkId, userLinkId, indexType 등 (응답 생성 시 사용)
+     * - Document ID: "recommendation-{userLinkId}" 형식 (챗봇/추천 인덱스 구분)
      *
      * @param userLink 변환할 UserLink 엔티티
      * @return Elasticsearch Document 객체
@@ -166,7 +170,8 @@ public class LinkIndexingService {
 
         // 2. 메타데이터 설정 (검색 결과에서 응답 생성 시 사용)
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put("userId", userLink.getUser().getId());  // Pre-filtering용
+        metadata.put("indexType", IndexType.RECOMMENDATION.getValue());
+        metadata.put("userId", userLink.getUser().getId());
         metadata.put("linkId", link.getId());
         metadata.put("userLinkId", userLink.getId());
         metadata.put("url", link.getUrl());
@@ -176,8 +181,8 @@ public class LinkIndexingService {
         metadata.put("memo", userLink.getMemo() != null ? userLink.getMemo() : "");
         metadata.put("faviconUrl", link.getFaviconUrl() != null ? link.getFaviconUrl() : "");
 
-        // 3. Document 생성 (ID는 "ul-{userLinkId}" 형식)
+        // 3. Document 생성 (ID는 "recommendation-{userLinkId}" 형식)
         // - 동일 ID로 재색인 시 upsert(업데이트) 동작
-        return new Document("ul-" + userLink.getId(), content, metadata);
+        return new Document("recommendation-" + userLink.getId(), content, metadata);
     }
 }
