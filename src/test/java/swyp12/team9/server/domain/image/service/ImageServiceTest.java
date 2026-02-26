@@ -96,7 +96,7 @@ class ImageServiceTest {
             String oldUrl = ImageFixture.IMAGE_URL;
             MultipartFile newFile = ImageFixture.createMockFile();
             String newObjectKey = "images/new-uuid.jpg";
-            String newUrl = "https://bucket.kr.object.ncloudstorage.com/" + newObjectKey;
+            String newUrl = "https://storage.googleapis.com/test-bucket/" + newObjectKey;
 
             given(fileStorageService.uploadFile(any(), eq(ImageFixture.DIRECTORY))).willReturn(newObjectKey);
             given(fileStorageService.fileExists(anyString())).willReturn(true);

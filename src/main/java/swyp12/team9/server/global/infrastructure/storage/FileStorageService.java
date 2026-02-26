@@ -1,13 +1,11 @@
 package swyp12.team9.server.global.infrastructure.storage;
 
+import com.google.cloud.storage.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
 import swyp12.team9.server.global.exception.BusinessException;
 import swyp12.team9.server.global.exception.ErrorCode;
 
@@ -16,17 +14,28 @@ import java.util.UUID;
 
 /**
  * 파일 저장소 서비스
- * NCP Object Storage(S3 호환)를 사용한 파일 업로드/다운로드/삭제
+ * GCP Cloud Storage를 사용한 파일 업로드/다운로드/삭제
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileStorageService {
 
-    private final S3Client s3Client;
+    private final Storage storage;
 
-    @Value("${cloud.ncp.object-storage.bucket-name}")
+    @Value("${cloud.gcp.storage.bucket-name:#{null}}")
     private String bucketName;
+
+    /**
+     * GCS Storage가 사용 가능한지 검증
+     * GCS 인증이 설정되지 않은 환경에서 파일 작업 시도 시 명확한 에러 반환
+     */
+    private void validateStorageAvailable() {
+        if (storage == null) {
+            log.error("GCP Cloud Storage가 설정되지 않았습니다. 'gcloud auth application-default login'으로 ADC를 설정하세요.");
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+    }
 
     /**
      * MultipartFile 업로드
@@ -35,25 +44,26 @@ public class FileStorageService {
      * @return 업로드된 파일의 Object Key
      */
     public String uploadFile(MultipartFile file, String directory) {
+        validateStorageAvailable();
         try {
             String originalFilename = file.getOriginalFilename();
             String extension = getExtension(originalFilename);
             String objectKey = directory + "/" + UUID.randomUUID() + extension;
 
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectKey)
-                    .contentType(file.getContentType())
-                    .contentLength(file.getSize())
-                    .acl(ObjectCannedACL.PUBLIC_READ)
+            BlobId blobId = BlobId.of(bucketName, objectKey);
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(file.getContentType())
                     .build();
 
-            s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
+            storage.create(blobInfo, file.getBytes());
 
             log.info("파일 업로드 완료: {}", objectKey);
             return objectKey;
-        } catch (S3Exception | IOException e) {
-            log.error("파일 업로드 중 예상된 예외 발생: {}", e.getMessage());
+        } catch (StorageException e) {
+            log.error("GCS 업로드 중 예외 발생: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        } catch (IOException e) {
+            log.error("파일 읽기 중 예외 발생: {}", e.getMessage());
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         } catch (Exception e) {
             log.error("파일 업로드 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
@@ -70,24 +80,22 @@ public class FileStorageService {
      * @return 업로드된 파일의 Object Key
      */
     public String uploadFile(byte[] fileData, String fileName, String contentType, String directory) {
+        validateStorageAvailable();
         try {
             String extension = getExtension(fileName);
             String objectKey = directory + "/" + UUID.randomUUID() + extension;
 
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectKey)
-                    .contentType(contentType)
-                    .contentLength((long) fileData.length)
-                    .acl(ObjectCannedACL.PUBLIC_READ)
+            BlobId blobId = BlobId.of(bucketName, objectKey);
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(contentType)
                     .build();
 
-            s3Client.putObject(request, RequestBody.fromBytes(fileData));
+            storage.create(blobInfo, fileData);
 
             log.info("파일 업로드 완료(byte[]): {}", objectKey);
             return objectKey;
-        } catch (S3Exception e) {
-            log.error("S3 업로드 중 예외 발생: {}", e.getMessage());
+        } catch (StorageException e) {
+            log.error("GCS 업로드 중 예외 발생: {}", e.getMessage());
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         } catch (Exception e) {
             log.error("파일 업로드(byte[]) 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
@@ -97,24 +105,23 @@ public class FileStorageService {
 
     /**
      * 파일 다운로드
-     * @param objectKey Object Storage의 파일 키
+     * @param objectKey Cloud Storage의 파일 키
      * @return 파일 데이터 (byte array)
      */
     public byte[] downloadFile(String objectKey) {
+        validateStorageAvailable();
         try {
-            GetObjectRequest request = GetObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectKey)
-                    .build();
+            BlobId blobId = BlobId.of(bucketName, objectKey);
+            byte[] data = storage.readAllBytes(blobId);
 
-            byte[] data = s3Client.getObjectAsBytes(request).asByteArray();
             log.info("파일 다운로드 완료: {}", objectKey);
             return data;
-        } catch (NoSuchKeyException e) {
-            log.error("파일을 찾을 수 없음: {}", objectKey);
-            throw new BusinessException(ErrorCode.FILE_NOT_FOUND);
-        } catch (S3Exception e) {
-            log.error("S3 다운로드 중 예외 발생: {}", e.getMessage());
+        } catch (StorageException e) {
+            if (e.getCode() == 404) {
+                log.error("파일을 찾을 수 없음: {}", objectKey);
+                throw new BusinessException(ErrorCode.FILE_NOT_FOUND);
+            }
+            log.error("GCS 다운로드 중 예외 발생: {}", e.getMessage());
             throw new BusinessException(ErrorCode.FILE_DOWNLOAD_FAILED);
         } catch (Exception e) {
             log.error("파일 다운로드 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
@@ -127,16 +134,18 @@ public class FileStorageService {
      * @param objectKey 삭제할 파일의 Object Key
      */
     public void deleteFile(String objectKey) {
+        validateStorageAvailable();
         try {
-            DeleteObjectRequest request = DeleteObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectKey)
-                    .build();
+            BlobId blobId = BlobId.of(bucketName, objectKey);
+            boolean deleted = storage.delete(blobId);
 
-            s3Client.deleteObject(request);
-            log.info("파일 삭제 완료: {}", objectKey);
-        } catch (S3Exception e) {
-            log.error("S3 삭제 중 예외 발생: {}", e.getMessage());
+            if (deleted) {
+                log.info("파일 삭제 완료: {}", objectKey);
+            } else {
+                log.warn("삭제할 파일이 존재하지 않음: {}", objectKey);
+            }
+        } catch (StorageException e) {
+            log.error("GCS 삭제 중 예외 발생: {}", e.getMessage());
             throw new BusinessException(ErrorCode.FILE_DELETE_FAILED);
         } catch (Exception e) {
             log.error("파일 삭제 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
@@ -150,18 +159,13 @@ public class FileStorageService {
      * @return 파일 존재 여부
      */
     public boolean fileExists(String objectKey) {
+        validateStorageAvailable();
         try {
-            HeadObjectRequest request = HeadObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectKey)
-                    .build();
-
-            s3Client.headObject(request);
-            return true;
-        } catch (NoSuchKeyException e) {
-            return false;
-        } catch (S3Exception e) {
-            log.error("S3 파일 존재 확인 중 예외 발생: {}", e.getMessage());
+            BlobId blobId = BlobId.of(bucketName, objectKey);
+            Blob blob = storage.get(blobId);
+            return blob != null && blob.exists();
+        } catch (StorageException e) {
+            log.error("GCS 파일 존재 확인 중 예외 발생: {}", e.getMessage());
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             log.error("파일 존재 여부 확인 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
@@ -175,7 +179,7 @@ public class FileStorageService {
      * @return 파일 URL
      */
     public String getFileUrl(String objectKey) {
-        return String.format("https://%s.kr.object.ncloudstorage.com/%s", bucketName, objectKey);
+        return String.format("https://storage.googleapis.com/%s/%s", bucketName, objectKey);
     }
 
     /**
