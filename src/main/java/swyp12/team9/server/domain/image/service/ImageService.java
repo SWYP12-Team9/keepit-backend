@@ -65,7 +65,7 @@ public class ImageService {
                 log.info("기존 이미지 삭제 완료: {}", oldObjectKey);
             }
         } catch (Exception e) {
-            log.warn("기존 이미지 삭제 실패 (새 이미지는 업로드됨): {}", e.getMessage());
+            log.warn("기존 이미지 삭제 실패: {}", e.getMessage());
             // 기존 이미지 삭제 실패해도 새 이미지는 업로드되었으므로 계속 진행
         }
 

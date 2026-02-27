@@ -6,8 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import swyp12.team9.server.global.exception.BusinessException;
-import swyp12.team9.server.global.exception.ErrorCode;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileDeleteFailedException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileDownloadFailedException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileNotFoundException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileStorageInternalException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileUploadFailedException;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -33,7 +36,7 @@ public class FileStorageService {
     private void validateStorageAvailable() {
         if (storage == null) {
             log.error("GCP Cloud Storage가 설정되지 않았습니다. 'gcloud auth application-default login'으로 ADC를 설정하세요.");
-            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+            throw new FileUploadFailedException();
         }
     }
 
@@ -61,13 +64,13 @@ public class FileStorageService {
             return objectKey;
         } catch (StorageException e) {
             log.error("GCS 업로드 중 예외 발생: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+            throw new FileUploadFailedException();
         } catch (IOException e) {
             log.error("파일 읽기 중 예외 발생: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+            throw new FileUploadFailedException();
         } catch (Exception e) {
             log.error("파일 업로드 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new FileStorageInternalException();
         }
     }
 
@@ -96,10 +99,10 @@ public class FileStorageService {
             return objectKey;
         } catch (StorageException e) {
             log.error("GCS 업로드 중 예외 발생: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+            throw new FileUploadFailedException();
         } catch (Exception e) {
             log.error("파일 업로드(byte[]) 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new FileStorageInternalException();
         }
     }
 
@@ -119,13 +122,13 @@ public class FileStorageService {
         } catch (StorageException e) {
             if (e.getCode() == 404) {
                 log.error("파일을 찾을 수 없음: {}", objectKey);
-                throw new BusinessException(ErrorCode.FILE_NOT_FOUND);
+                throw new FileNotFoundException();
             }
             log.error("GCS 다운로드 중 예외 발생: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.FILE_DOWNLOAD_FAILED);
+            throw new FileDownloadFailedException();
         } catch (Exception e) {
             log.error("파일 다운로드 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new FileStorageInternalException();
         }
     }
 
@@ -146,10 +149,10 @@ public class FileStorageService {
             }
         } catch (StorageException e) {
             log.error("GCS 삭제 중 예외 발생: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.FILE_DELETE_FAILED);
+            throw new FileDeleteFailedException();
         } catch (Exception e) {
             log.error("파일 삭제 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new FileStorageInternalException();
         }
     }
 
@@ -166,10 +169,10 @@ public class FileStorageService {
             return blob != null && blob.exists();
         } catch (StorageException e) {
             log.error("GCS 파일 존재 확인 중 예외 발생: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new FileStorageInternalException();
         } catch (Exception e) {
             log.error("파일 존재 여부 확인 중 알 수 없는 시스템 에러 발생: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw new FileStorageInternalException();
         }
     }
 

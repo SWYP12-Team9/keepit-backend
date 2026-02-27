@@ -11,8 +11,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
-import swyp12.team9.server.global.exception.BusinessException;
 import swyp12.team9.server.global.exception.ErrorCode;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileDeleteFailedException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileDownloadFailedException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileNotFoundException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileStorageInternalException;
+import swyp12.team9.server.global.infrastructure.storage.exception.FileUploadFailedException;
 import swyp12.team9.server.global.infrastructure.fixture.FileFixture;
 
 import java.io.IOException;
@@ -67,7 +71,7 @@ class FileStorageServiceTest {
                         .willThrow(new StorageException(500, "GCS error"));
 
                 assertThatThrownBy(() -> fileStorageService.uploadFile(file, FileFixture.DIRECTORY))
-                        .isInstanceOf(BusinessException.class)
+                        .isInstanceOf(FileUploadFailedException.class)
                         .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FILE_UPLOAD_FAILED);
             }
 
@@ -79,7 +83,7 @@ class FileStorageServiceTest {
                 given(mockFile.getBytes()).willThrow(new IOException("Read error"));
 
                 assertThatThrownBy(() -> fileStorageService.uploadFile(mockFile, FileFixture.DIRECTORY))
-                        .isInstanceOf(BusinessException.class)
+                        .isInstanceOf(FileUploadFailedException.class)
                         .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FILE_UPLOAD_FAILED);
             }
 
@@ -91,7 +95,7 @@ class FileStorageServiceTest {
                         .willThrow(new RuntimeException("System error"));
 
                 assertThatThrownBy(() -> fileStorageService.uploadFile(file, FileFixture.DIRECTORY))
-                        .isInstanceOf(BusinessException.class)
+                        .isInstanceOf(FileStorageInternalException.class)
                         .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTERNAL_SERVER_ERROR);
             }
         }
@@ -120,7 +124,7 @@ class FileStorageServiceTest {
 
                 assertThatThrownBy(() -> fileStorageService.uploadFile(
                         FileFixture.CONTENT, "test.pdf", "application/pdf", FileFixture.DIRECTORY))
-                        .isInstanceOf(BusinessException.class)
+                        .isInstanceOf(FileUploadFailedException.class)
                         .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FILE_UPLOAD_FAILED);
             }
         }
@@ -147,7 +151,7 @@ class FileStorageServiceTest {
                     .willThrow(new StorageException(404, "Not Found"));
 
             assertThatThrownBy(() -> fileStorageService.downloadFile(FileFixture.OBJECT_KEY))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(FileNotFoundException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FILE_NOT_FOUND);
         }
 
@@ -158,7 +162,7 @@ class FileStorageServiceTest {
                     .willThrow(new StorageException(500, "Internal Server Error"));
 
             assertThatThrownBy(() -> fileStorageService.downloadFile(FileFixture.OBJECT_KEY))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(FileDownloadFailedException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FILE_DOWNLOAD_FAILED);
         }
 
@@ -191,7 +195,7 @@ class FileStorageServiceTest {
                     .willThrow(new StorageException(500, "GCS error"));
 
             assertThatThrownBy(() -> fileStorageService.fileExists(FileFixture.OBJECT_KEY))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(FileStorageInternalException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
@@ -202,7 +206,7 @@ class FileStorageServiceTest {
                     .willThrow(new RuntimeException("System error"));
 
             assertThatThrownBy(() -> fileStorageService.fileExists(FileFixture.OBJECT_KEY))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(FileStorageInternalException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -227,7 +231,7 @@ class FileStorageServiceTest {
                     .willThrow(new StorageException(500, "GCS error"));
 
             assertThatThrownBy(() -> fileStorageService.deleteFile(FileFixture.OBJECT_KEY))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(FileDeleteFailedException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FILE_DELETE_FAILED);
         }
 
