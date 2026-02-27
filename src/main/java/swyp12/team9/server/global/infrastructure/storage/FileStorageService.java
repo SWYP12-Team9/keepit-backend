@@ -36,7 +36,7 @@ public class FileStorageService {
     private void validateStorageAvailable() {
         if (storage == null) {
             log.error("GCP Cloud Storage가 설정되지 않았습니다. 'gcloud auth application-default login'으로 ADC를 설정하세요.");
-            throw new FileUploadFailedException();
+            throw new FileStorageInternalException();
         }
     }
 
