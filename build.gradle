@@ -37,8 +37,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
     // DB - MySQL Flyway (DB 스키마 변경을 코드처럼 버전 관리해주는 도구)
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.flywaydb:flyway-mysql' // MySQL 사용 시
+//    implementation 'org.flywaydb:flyway-core'
+//    implementation 'org.flywaydb:flyway-mysql' // MySQL 사용 시
 
     // Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3'
