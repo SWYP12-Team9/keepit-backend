@@ -65,7 +65,7 @@ public class ImageService {
                 log.info("기존 이미지 삭제 완료: {}", oldObjectKey);
             }
         } catch (Exception e) {
-            log.warn("기존 이미지 삭제 실패 (새 이미지는 업로드됨): {}", e.getMessage());
+            log.warn("기존 이미지 삭제 실패: {}", e.getMessage());
             // 기존 이미지 삭제 실패해도 새 이미지는 업로드되었으므로 계속 진행
         }
 
@@ -114,11 +114,15 @@ public class ImageService {
      */
     private String extractObjectKeyFromUrl(String imageUrl) {
         try {
-            // URL 형식: {scheme}://{domain}/{objectKey} 또는 {domain}/{objectKey}
-            // {objectKey}는 일반적으로 도메인 이후의 경로를 의미합니다.
-            if (imageUrl.contains("ncloudstorage.com/")) {
-                int startIndex = imageUrl.indexOf("ncloudstorage.com/") + "ncloudstorage.com/".length();
-                return imageUrl.substring(startIndex);
+            // GCS URL 형식: https://storage.googleapis.com/{bucket}/{objectKey}
+            if (imageUrl.contains("storage.googleapis.com/")) {
+                int bucketStart = imageUrl.indexOf("storage.googleapis.com/") + "storage.googleapis.com/".length();
+                String afterDomain = imageUrl.substring(bucketStart);
+                // 버킷명 이후의 경로가 Object Key
+                int firstSlash = afterDomain.indexOf("/");
+                if (firstSlash >= 0) {
+                    return afterDomain.substring(firstSlash + 1);
+                }
             }
             return imageUrl;
         } catch (Exception e) {

@@ -2,6 +2,9 @@ package swyp12.team9.server.api.user;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -73,6 +76,12 @@ public interface UserApi {
                     ErrorCode.IMAGE_SIZE_EXCEED
             }
     )
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(
+                    mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                    encoding = @Encoding(name = "profile", contentType = MediaType.APPLICATION_JSON_VALUE)
+            )
+    )
     @PostMapping(value = "/profile/complete", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<ProfileCompleteResponse> completeProfile(
             @Parameter(hidden = true) @CurrentUserId Long userId,
@@ -129,6 +138,12 @@ public interface UserApi {
                     ErrorCode.INVALID_IMAGE_FORMAT,
                     ErrorCode.IMAGE_SIZE_EXCEED
             }
+    )
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(
+                    mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                    encoding = @Encoding(name = "profile", contentType = MediaType.APPLICATION_JSON_VALUE)
+            )
     )
     @PatchMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<ProfileUpdateResponse> updateProfile(

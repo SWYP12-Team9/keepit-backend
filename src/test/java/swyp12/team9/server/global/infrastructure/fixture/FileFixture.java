@@ -1,8 +1,6 @@
 package swyp12.team9.server.global.infrastructure.fixture;
 
 import org.springframework.mock.web.MockMultipartFile;
-import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 public class FileFixture {
     public static final String BUCKET_NAME = "test-bucket";
@@ -22,15 +20,5 @@ public class FileFixture {
 
     public static MockMultipartFile createCustomFile(String fileName, String contentType) {
         return new MockMultipartFile("file", fileName, contentType, CONTENT);
-    }
-
-    /**
-     * S3 다운로드 응답 객체 생성
-     */
-    public static ResponseBytes<GetObjectResponse> createResponseBytes() {
-        return ResponseBytes.fromByteArray(
-                GetObjectResponse.builder().build(),
-                CONTENT
-        );
     }
 }

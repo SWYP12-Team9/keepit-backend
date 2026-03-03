@@ -49,7 +49,7 @@ public class ChatbotRateLimitService {
 
         // 제한 횟수 확인
         if (currentCount > MAX_REQUESTS_PER_DAY) {
-            throw new ChatbotRateLimitExceededException(userId);
+            throw new ChatbotRateLimitExceededException();
         }
 
         log.info("챗봇 요청 카운트 증가 - userId: {}, count: {}/{}", userId, currentCount, MAX_REQUESTS_PER_DAY);

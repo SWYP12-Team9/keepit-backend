@@ -59,9 +59,9 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-elasticsearch'
 
-    // AWS SDK for S3 (NCP Object Storage)
-    implementation 'software.amazon.awssdk:s3:2.20.26'
-    implementation 'software.amazon.awssdk:auth:2.20.26'
+    // GCP Cloud Storage
+    implementation platform('com.google.cloud:libraries-bom:26.32.0')
+    implementation 'com.google.cloud:google-cloud-storage'
 
     // Apache HttpComponents (RestClient용)
     implementation 'org.apache.httpcomponents.client5:httpclient5'
