@@ -2,7 +2,7 @@ package swyp12.team9.server.global.config;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import swyp12.team9.server.domain.jwt.repository.RefreshRepository;
+import swyp12.team9.server.domain.auth.jwt.repository.RefreshRepository;
 
 import java.time.LocalDateTime;
 

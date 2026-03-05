@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.util.StringUtils;
-import swyp12.team9.server.domain.jwt.service.JwtService;
+import swyp12.team9.server.domain.auth.jwt.service.JwtService;
 import swyp12.team9.server.global.util.JwtUtil;
 
 import java.io.BufferedReader;

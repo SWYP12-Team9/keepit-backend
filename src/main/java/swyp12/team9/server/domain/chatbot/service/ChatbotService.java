@@ -7,7 +7,7 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.api.chatbot.dto.ChatbotQueryResponse;
+import swyp12.team9.server.domain.chatbot.dto.ChatbotQueryResponse;
 import swyp12.team9.server.domain.chatbot.dto.RelevantLinkContext;
 
 import java.util.List;

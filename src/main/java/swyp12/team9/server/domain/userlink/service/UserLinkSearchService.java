@@ -5,12 +5,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.api.userlink.dto.response.UserLinkSearchResponse;
+import swyp12.team9.server.domain.userlink.dto.response.UserLinkSearchResponse;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
-import swyp12.team9.server.domain.referenceuserlink.model.ReferenceUserLink;
-import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLinkRepository;
+import swyp12.team9.server.domain.reference.relation.model.ReferenceUserLink;
+import swyp12.team9.server.domain.reference.relation.repository.ReferenceUserLinkRepository;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkSearchRepository;
 

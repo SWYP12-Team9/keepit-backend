@@ -2,7 +2,7 @@ package swyp12.team9.server.domain.userlink.repository;
 
 import static swyp12.team9.server.domain.link.model.QLink.link;
 import static swyp12.team9.server.domain.reference.model.QReference.reference;
-import static swyp12.team9.server.domain.referenceuserlink.model.QReferenceUserLink.referenceUserLink;
+import static swyp12.team9.server.domain.reference.relation.model.QReferenceUserLink.referenceUserLink;
 import static swyp12.team9.server.domain.userlink.model.QUserLink.userLink;
 
 import com.querydsl.core.types.dsl.BooleanExpression;

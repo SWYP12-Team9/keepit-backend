@@ -11,7 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.test.util.ReflectionTestUtils;
-import swyp12.team9.server.api.chatbot.dto.ChatbotQueryResponse;
+import swyp12.team9.server.domain.chatbot.dto.ChatbotQueryResponse;
 import swyp12.team9.server.domain.chatbot.dto.RelevantLinkContext;
 
 import java.util.List;

@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static swyp12.team9.server.domain.reference.model.QReference.reference;
-import static swyp12.team9.server.domain.referenceuserlink.model.QReferenceUserLink.referenceUserLink;
+import static swyp12.team9.server.domain.reference.relation.model.QReferenceUserLink.referenceUserLink;
 import static swyp12.team9.server.domain.userlink.model.QUserLink.userLink;
 
 /**
