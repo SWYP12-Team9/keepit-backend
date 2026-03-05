@@ -6,8 +6,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.domain.auth.jwt.dto.JwtResponse;
-import swyp12.team9.server.domain.auth.jwt.dto.RefreshRequest;
+import swyp12.team9.server.domain.auth.dto.TokenRefreshRequest;
+import swyp12.team9.server.domain.auth.dto.TokenResponse;
 import swyp12.team9.server.domain.auth.jwt.model.JwtRefresh;
 import swyp12.team9.server.domain.auth.jwt.repository.RefreshRepository;
 import swyp12.team9.server.global.util.JwtUtil;
@@ -20,7 +20,7 @@ public class JwtService {
 
     // 소셜 로그인 성공 후 쿠키(Refresh) -> 헤더 방식으로 응답
     @Transactional
-    public JwtResponse cookie2Header(
+    public TokenResponse cookie2Header(
             HttpServletRequest request,
             HttpServletResponse response
     ) {
@@ -77,12 +77,12 @@ public class JwtService {
         refreshCookie.setMaxAge(10);
         response.addCookie(refreshCookie);
 
-        return new JwtResponse(newAccessToken, newRefreshToken);
+        return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
     // Refresh 토큰으로 Access 토큰 재발급 로직 (Rotate 포함)
     @Transactional
-    public JwtResponse refreshRotate(RefreshRequest request) {
+    public TokenResponse refreshRotate(TokenRefreshRequest request) {
 
         String refreshToken = request.getRefreshToken();
 
@@ -115,7 +115,7 @@ public class JwtService {
         removeRefresh(refreshToken);
         refreshRepository.save(newRefresh);
 
-        return new JwtResponse(newAccessToken, newRefreshToken);
+        return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
     // JWT Refresh 토큰 발급 후 저장 (기존 토큰 삭제 없이 새 토큰 추가)
