@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.user.dto.request.UserPasswordUpdateRequest;
 import swyp12.team9.server.domain.user.dto.request.UserRequest;
 import swyp12.team9.server.domain.user.dto.response.UserResponse;
-import swyp12.team9.server.domain.jwt.service.JwtService;
+import swyp12.team9.server.domain.auth.jwt.service.JwtService;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.user.exception.DuplicateEmailException;

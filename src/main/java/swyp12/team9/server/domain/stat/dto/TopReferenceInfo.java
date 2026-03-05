@@ -2,7 +2,7 @@ package swyp12.team9.server.domain.stat.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import swyp12.team9.server.domain.referenceuserlink.dto.ReferenceCategoryCountProjection;
+import swyp12.team9.server.domain.reference.relation.dto.ReferenceCategoryCountProjection;
 
 @Builder
 @Schema(description = "상위 레퍼런스 항목")

@@ -19,8 +19,8 @@ import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.reference.service.ReferenceService;
-import swyp12.team9.server.domain.referenceuserlink.model.ReferenceUserLink;
-import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLinkRepository;
+import swyp12.team9.server.domain.reference.relation.model.ReferenceUserLink;
+import swyp12.team9.server.domain.reference.relation.repository.ReferenceUserLinkRepository;
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
