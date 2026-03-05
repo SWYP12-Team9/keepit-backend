@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.api.stat.dto.*;
+import swyp12.team9.server.domain.stat.dto.*;
 import swyp12.team9.server.domain.referenceuserlink.dto.ReferenceCategoryCountProjection;
 import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLinkRepository;
 import swyp12.team9.server.domain.userlink.dto.DayCountProjection;
@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static swyp12.team9.server.api.stat.dto.DayOfWeek.*;
+import static swyp12.team9.server.domain.stat.dto.DayOfWeek.*;
 
 @Service
 @RequiredArgsConstructor

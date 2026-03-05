@@ -8,7 +8,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp12.team9.server.api.recommendation.dto.RecommendationResponse;
+import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.global.util.PaginationUtils;

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import swyp12.team9.server.api.stat.dto.UserStatResponse;
+import swyp12.team9.server.domain.stat.dto.UserStatResponse;
 import swyp12.team9.server.domain.referenceuserlink.dto.ReferenceCategoryCountProjection;
 import swyp12.team9.server.domain.referenceuserlink.repository.ReferenceUserLinkRepository;
 import swyp12.team9.server.domain.stat.service.UserStatService;

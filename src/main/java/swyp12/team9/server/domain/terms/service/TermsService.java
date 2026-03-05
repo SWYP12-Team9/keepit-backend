@@ -3,8 +3,8 @@ package swyp12.team9.server.domain.terms.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import swyp12.team9.server.api.terms.dto.TermsType;
-import swyp12.team9.server.api.terms.dto.response.TermsResponse;
+import swyp12.team9.server.domain.terms.dto.TermsType;
+import swyp12.team9.server.domain.terms.dto.TermsResponse;
 import swyp12.team9.server.domain.terms.exception.TermsFileReadException;
 import swyp12.team9.server.domain.terms.exception.TermsNotFoundException;
 
