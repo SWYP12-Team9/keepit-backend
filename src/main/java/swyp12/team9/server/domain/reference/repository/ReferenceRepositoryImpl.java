@@ -5,15 +5,15 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import swyp12.team9.server.api.reference.dto.ReferenceCursor;
-import swyp12.team9.server.api.reference.dto.ReferenceSortType;
-import swyp12.team9.server.api.reference.dto.ReferenceType;
-import swyp12.team9.server.api.reference.dto.response.ReferenceListResponse;
+import swyp12.team9.server.domain.reference.dto.ReferenceCursor;
+import swyp12.team9.server.domain.reference.dto.ReferenceSortType;
+import swyp12.team9.server.domain.reference.dto.ReferenceType;
+import swyp12.team9.server.domain.reference.dto.response.ReferenceListResponse;
 
 import java.util.List;
 
 import static swyp12.team9.server.domain.reference.model.QReference.reference;
-import static swyp12.team9.server.domain.referenceuserlink.model.QReferenceUserLink.referenceUserLink;
+import static swyp12.team9.server.domain.reference.relation.model.QReferenceUserLink.referenceUserLink;
 import static swyp12.team9.server.domain.userlink.model.QUserLink.userLink;
 
 @RequiredArgsConstructor

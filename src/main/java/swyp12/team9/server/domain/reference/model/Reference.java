@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import swyp12.team9.server.domain.reference.exception.ReferenceAccessDeniedException;
 import swyp12.team9.server.domain.reference.exception.ReferenceValidationException;
-import swyp12.team9.server.domain.referenceuserlink.model.ReferenceUserLink;
+import swyp12.team9.server.domain.reference.relation.model.ReferenceUserLink;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.global.common.entity.BaseEntity;
 import swyp12.team9.server.global.exception.ErrorCode;

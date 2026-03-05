@@ -26,7 +26,7 @@ import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import swyp12.team9.server.domain.jwt.service.JwtService;
+import swyp12.team9.server.domain.auth.jwt.service.JwtService;
 import swyp12.team9.server.domain.user.model.UserRole;
 import swyp12.team9.server.global.filter.JwtFilter;
 import swyp12.team9.server.global.filter.LoginFilter;
