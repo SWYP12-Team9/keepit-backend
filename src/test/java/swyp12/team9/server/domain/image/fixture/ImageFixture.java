@@ -9,7 +9,7 @@ public class ImageFixture {
     public static final byte[] CONTENT = "test-content".getBytes();
 
     public static final String OBJECT_KEY = "images/uuid-test.jpg";
-    public static final String IMAGE_URL = "https://bucket.kr.object.ncloudstorage.com/" + OBJECT_KEY;
+    public static final String IMAGE_URL = "https://storage.googleapis.com/test-bucket/" + OBJECT_KEY;
 
     // 정상적인 이미지 파일 생성
     public static MockMultipartFile createMockFile() {

@@ -134,13 +134,11 @@ cors:
   allowed-origins: http://localhost:5173,http://localhost:3000
 
 cloud:
-  ncp:
-    object-storage:
-      endpoint: https://kr.object.ncloudstorage.com
-      region: kr-standard
+  gcp:
+    storage:
+      project-id: test-project-id
       credentials:
-        access-key: test-access-key
-        secret-key: test-secret-key
+        json:
       bucket-name: test-bucket
 
 image:
