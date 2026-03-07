@@ -73,7 +73,28 @@ public class Link extends BaseEntity {
                 .build();
     }
 
+    public static Link createPlaceholder(String url) {
+        return Link.builder()
+                .url(url)
+                .build();
+    }
+
     public void updateAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
+    }
+
+    public void updateFromScraping(String title, String description, String faviconUrl, String content) {
+        this.title = title;
+        this.description = description;
+        this.faviconUrl = faviconUrl;
+        this.content = content;
+    }
+
+    public void complete(String title, String description, String faviconUrl, String content, String aiSummary) {
+        this.title = title;
+        this.description = description;
+        this.faviconUrl = faviconUrl;
+        this.content = content;
         this.aiSummary = aiSummary;
     }
 

@@ -59,7 +59,8 @@ public interface UserLinkApi {
                     ErrorCode.REFERENCE_SELECTION_DUPLICATE,
                     ErrorCode.USER_LINK_DUPLICATE,
                     ErrorCode.LINK_SCRAPING_SERVER_ERROR,
-                    ErrorCode.LINK_SCRAPING_TIMEOUT
+                    ErrorCode.LINK_SCRAPING_TIMEOUT,
+                    ErrorCode.LINK_PROCESSING_FAILED
             }
     )
     @PostMapping
