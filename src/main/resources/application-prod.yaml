@@ -142,14 +142,8 @@ ai:
   summary:
     temperature: ${AI_SUMMARY_TEMPERATURE:0.4}
   chatbot:
-    max-tokens: ${AI_CHATBOT_MAX_TOKENS:2000}  # 챗봇 응답 토큰 제한
+    max-tokens: ${AI_CHATBOT_MAX_TOKENS:2000} # 챗봇 응답 토큰 제한
     temperature: ${AI_CHATBOT_TEMPERATURE:0.7}
-
-logging:
-  level:
-    root: WARN
-    swyp12.team9: INFO
-    org.hibernate.SQL: WARN
 
 # Frontend URL 설정
 frontend:
