@@ -4,13 +4,21 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import swyp12.team9.server.domain.auth.dto.TokenRefreshRequest;
+import swyp12.team9.server.domain.auth.dto.TokenResponse;
+import swyp12.team9.server.domain.auth.jwt.service.JwtService;
 import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.exception.ErrorCode;
 
@@ -18,10 +26,46 @@ import swyp12.team9.server.global.exception.ErrorCode;
  * 인증 API (Swagger 문서화 용도) 실제 로직은 Spring Security 필터에서 처리됩니다. - 로그인: LoginFilter - 로그아웃: LogoutFilter +
  * RefreshTokenLogoutHandler
  */
-@Tag(name = "Auth", description = "인증 API (로그인/로그아웃)")
+@Tag(name = "Auth", description = "인증 API (로그인/로그아웃/토큰 관리)")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class AuthController {
+
+    private final JwtService jwtService;
+
+    // JWT 토큰 관리 API
+    @Operation(summary = "토큰 교환", description = "소셜 로그인 쿠키 방식의 Refresh 토큰을 헤더 방식으로 교환")
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.INVALID_TOKEN,
+                    ErrorCode.EXPIRED_TOKEN
+            }
+    )
+    @PostMapping(value = "/jwt/exchange")
+    public TokenResponse jwtExchangeApi(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        return jwtService.cookie2Header(request, response);
+    }
+
+    @Operation(summary = "토큰 재발급", description = "Refresh 토큰으로 Access 토큰 재발급 (Refresh 토큰도 갱신)")
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.VALIDATION_ERROR,
+                    ErrorCode.INVALID_TOKEN,
+                    ErrorCode.EXPIRED_TOKEN
+            }
+    )
+    @PostMapping(value = "/jwt/refresh", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public TokenResponse jwtRefreshApi(
+            @Validated @RequestBody TokenRefreshRequest request
+    ) {
+        return jwtService.refreshRotate(request);
+    }
 
     @Operation(summary = "로그인", description = "username, password로 로그인하여 JWT 토큰 발급") // todo 박현제: 삭제 예정
     @ApiSpec(
