@@ -69,6 +69,24 @@ public interface RecommendationApi {
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     );
 
+    @Operation(summary = "인기글 조회", description = """
+                    공개 링크를 조회수 합계 기준으로 인기순 조회합니다.
+                    - 기준: 공개 UserLink의 viewCount 합계
+                    - 정렬: viewCount 내림차순, 동률이면 linkId 내림차순
+                    - 커서 형식: viewCount:linkId (예: 120:45)
+                    """)
+    @ApiSpec(status = HttpStatus.OK, errors = {
+            ErrorCode.VALIDATION_ERROR
+    })
+    @GetMapping("/popular")
+    ApiResponse<PaginationUtils.Cursor.PageResponse<RecommendationResponse>> getPopularLinks(
+            @CurrentUserId(required = false) Long userId,
+            @Parameter(description = "커서 (첫 요청 시 null, 형식: viewCount:linkId)", example = "120:45")
+            @RequestParam(required = false) String cursor,
+            @Parameter(description = "가져올 인기 콘텐츠 수", example = "10")
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
+    );
+
     @Operation(summary = "[관리자] 전체 링크 색인", description = """
                     DB의 모든 공개 링크를 Elasticsearch에 색인합니다.
                     - 색인 대상: is_public=true인 UserLink

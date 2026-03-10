@@ -7,6 +7,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import swyp12.team9.server.domain.userlink.dto.DayCountProjection;
+import swyp12.team9.server.domain.userlink.dto.PopularLinkProjection;
 import swyp12.team9.server.domain.userlink.dto.StatusCountProjection;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
@@ -198,5 +199,40 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 .from(userLink)
                 .where(userLink.user.id.eq(userId))
                 .fetchOne();
+    }
+
+    /**
+     * 공개 링크 인기글 조회 (링크별 조회수 합계 기준)
+     * - N:N 관계: ReferenceUserLink를 통해 공개 여부 판단
+     * - 동점 처리: linkId 내림차순
+     * - 커서: (viewCount, linkId) 복합 커서
+     */
+    @Override
+    public List<PopularLinkProjection> findPopularPublicLinks(Long cursorViewCount, Long cursorLinkId, int size) {
+        var totalViewCount = userLink.viewCount.sum();
+
+        var query = queryFactory
+                .select(Projections.constructor(
+                        PopularLinkProjection.class,
+                        userLink.link.id,
+                        totalViewCount
+                ))
+                .from(userLink)
+                .join(referenceUserLink).on(referenceUserLink.userLink.eq(userLink))
+                .join(referenceUserLink.reference, reference)
+                .where(reference.isPublic.eq(true))
+                .groupBy(userLink.link.id);
+
+        if (cursorViewCount != null && cursorLinkId != null) {
+            query.having(
+                    totalViewCount.lt(cursorViewCount)
+                            .or(totalViewCount.eq(cursorViewCount).and(userLink.link.id.lt(cursorLinkId)))
+            );
+        }
+
+        return query
+                .orderBy(totalViewCount.desc(), userLink.link.id.desc())
+                .limit(size + 1L)
+                .fetch();
     }
 }

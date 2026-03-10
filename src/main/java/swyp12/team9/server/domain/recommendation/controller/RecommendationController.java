@@ -65,6 +65,16 @@ public class RecommendationController implements RecommendationApi {
     }
 
     @Override
+    public ApiResponse<PaginationUtils.Cursor.PageResponse<RecommendationResponse>> getPopularLinks(
+            Long userId,
+            String cursor,
+            int size) {
+        PaginationUtils.Cursor.PageResponse<RecommendationResponse> popularLinks =
+                recommendationService.getPopularPublicLinks(userId, cursor, size);
+        return ApiResponse.ok(popularLinks);
+    }
+
+    @Override
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<String> indexAllLinks() {
         linkIndexingService.indexAllLinks();

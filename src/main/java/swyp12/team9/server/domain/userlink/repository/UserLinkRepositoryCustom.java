@@ -2,6 +2,7 @@ package swyp12.team9.server.domain.userlink.repository;
 
 import org.springframework.data.domain.Pageable;
 import swyp12.team9.server.domain.userlink.dto.DayCountProjection;
+import swyp12.team9.server.domain.userlink.dto.PopularLinkProjection;
 import swyp12.team9.server.domain.userlink.dto.StatusCountProjection;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
@@ -79,4 +80,17 @@ public interface UserLinkRepositoryCustom {
      * @return 첫 저장 날짜 (없으면 null)
      */
     LocalDateTime findFirstCreatedDateByUserId(Long userId);
+
+    /**
+     * 공개 링크 인기글 조회 (링크별 조회수 합계 기준)
+     * @param cursorViewCount 커서 조회수 합계 (첫 페이지면 null)
+     * @param cursorLinkId 커서 Link ID (첫 페이지면 null)
+     * @param size 페이지 크기
+     * @return 인기 링크 프로젝션 (size + 1개 조회)
+     */
+    List<PopularLinkProjection> findPopularPublicLinks(
+            Long cursorViewCount,
+            Long cursorLinkId,
+            int size
+    );
 }
