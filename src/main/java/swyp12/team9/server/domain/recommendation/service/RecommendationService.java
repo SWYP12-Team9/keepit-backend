@@ -46,9 +46,9 @@ public class RecommendationService {
      * @return 검색 결과 목록 (유사도 순)
      */
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> searchByKeyword(Long userId,
-                                                                                        String keyword,
-                                                                                        String cursor,
-                                                                                        int size) {
+            String keyword,
+            String cursor,
+            int size) {
         try {
             int startIndex = parseCursor(cursor);
             int topK = calculateTopK(startIndex, size);
@@ -124,8 +124,8 @@ public class RecommendationService {
      * @return 최신 공개 링크 목록
      */
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getRecentPublicLinks(Long userId,
-                                                                                             String cursor,
-                                                                                             int size) {
+            String cursor,
+            int size) {
         // 빈 키워드로 fallback 메서드를 활용 (최신순 정렬)
         return fallbackGetRecentLinks(userId, null, "", cursor, size);
     }
@@ -142,9 +142,9 @@ public class RecommendationService {
      * @return 추천 콘텐츠 목록 (유사도 순)
      */
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getRecommendationsByCategory(Long userId,
-                                                                                                     String category,
-                                                                                                     String cursor,
-                                                                                                     int size) {
+            String category,
+            String cursor,
+            int size) {
         try {
             int startIndex = parseCursor(cursor);
             int topK = calculateTopK(startIndex, size);
@@ -222,15 +222,14 @@ public class RecommendationService {
      * @return 인기 콘텐츠 목록
      */
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getPopularPublicLinks(Long userId,
-                                                                                              String cursor,
-                                                                                              int size) {
+            String cursor,
+            int size) {
         PopularCursor popularCursor = parsePopularCursor(cursor);
 
         List<PopularLinkProjection> results = userLinkRepository.findPopularPublicLinks(
                 popularCursor != null ? popularCursor.viewCount() : null,
                 popularCursor != null ? popularCursor.linkId() : null,
-                size
-        );
+                size);
 
         if (results.isEmpty()) {
             return PaginationUtils.Cursor.PageResponse.empty();
@@ -289,12 +288,10 @@ public class RecommendationService {
                 .map(PopularLinkProjection::linkId)
                 .toList();
 
-        // 공개 UserLink를 생성일 오름차순으로 조회 후, 링크별 첫 UserLink만 추출
-        List<UserLink> publicUserLinks = userLinkRepository.findPublicUserLinksByLinkIdsOrderByCreatedAtAsc(linkIds);
-        Map<Long, UserLink> firstUserLinkByLinkId = new HashMap<>();
-        for (UserLink userLink : publicUserLinks) {
-            firstUserLinkByLinkId.putIfAbsent(userLink.getLink().getId(), userLink);
-        }
+        // DB 레벨에서 링크별 첫 번째 공개 저장자(최초 등록자)만 1건씩 조회 (성능 최적화)
+        List<UserLink> firstUserLinks = userLinkRepository.findFirstPublicUserLinksByLinkIds(linkIds);
+        Map<Long, UserLink> firstUserLinkByLinkId = firstUserLinks.stream()
+                .collect(Collectors.toMap(ul -> ul.getLink().getId(), ul -> ul));
 
         Map<Long, Long> viewCountByLinkId = projections.stream()
                 .collect(Collectors.toMap(PopularLinkProjection::linkId, PopularLinkProjection::viewCount));
@@ -338,10 +335,10 @@ public class RecommendationService {
     // ========== Fallback 메서드 (Elasticsearch 장애 시 DB에서 키워드 기반 검색 수행) ==========
 
     private PaginationUtils.Cursor.PageResponse<RecommendationResponse> fallbackGetRecentLinks(Long userId,
-                                                                                                String category,
-                                                                                                String keyword,
-                                                                                                String cursor,
-                                                                                                int size) {
+            String category,
+            String keyword,
+            String cursor,
+            int size) {
         int startIndex = parseCursor(cursor);
 
         // 1. 현재 사용자가 이미 저장한 링크 ID 목록 조회 (중복 추천 방지용)
@@ -442,7 +439,6 @@ public class RecommendationService {
 
     private record PopularCursor(
             Long viewCount,
-            Long linkId
-    ) {
+            Long linkId) {
     }
 }
