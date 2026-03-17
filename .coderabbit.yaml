@@ -9,12 +9,12 @@ tone_instructions: >
 reviews:
   profile: chill
   request_changes_workflow: false
-  high_level_summary: true
-  changed_files_summary: false
-  sequence_diagrams: false
-  assess_linked_issues: true
-  related_issues: false
-  related_prs: false
+  high_level_summary: true.   # PR 전체 요약 자동 생성
+  changed_files_summary: true # 파일별 개별 요약
+  sequence_diagrams: true     # 코드 흐름 시퀀스 다이어그램 생성
+  assess_linked_issues: true  # 연결된 이슈 요구사항 충족 여부 체크
+  related_issues: false       # 관련 이슈 자동 발굴
+  related_prs: true           # 관련 PR 자동 연결
   suggested_labels: false
   auto_apply_labels: false
   suggested_reviewers: false
@@ -31,9 +31,9 @@ reviews:
         6. 미작성한 테스트 코드 케이스가 있다면, 어떤 테스트가 필요한지 제안해주세요. (예: API 테스트, Service 단위 테스트, Repository 단위 테스트)
 
   auto_review:
-    # PR이 생성됐을 때 `@coderabbitai review`를 코멘트에 입력하면 리뷰를 시작합니다.
-    enabled: true
-    auto_incremental_review: false
+    # false: PR이 생성됐을 때 `@coderabbitai review`를 코멘트에 입력하면 리뷰를 시작합니다.
+    enabled: true                 # PR 오픈 시 → 자동 리뷰
+    auto_incremental_review: true # 커밋 추가 시 → 자동 재리뷰
 
 chat:
   # 사용자가 @coderabbitai 태그를 지정하지 않아도 자동으로 답글을 달 수 있도록 설정합니다.
