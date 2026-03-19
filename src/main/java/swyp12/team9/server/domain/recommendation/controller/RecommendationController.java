@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
 import swyp12.team9.server.domain.link.exception.InvalidCategoryException;
 import swyp12.team9.server.domain.link.model.LinkCategory;
+import swyp12.team9.server.domain.link.service.LinkService;
 import swyp12.team9.server.domain.recommendation.service.LinkIndexingService;
 import swyp12.team9.server.domain.recommendation.service.RecommendationService;
 import swyp12.team9.server.global.common.dto.ApiResponse;
@@ -20,6 +21,7 @@ public class RecommendationController implements RecommendationApi {
 
     private final RecommendationService recommendationService;
     private final LinkIndexingService linkIndexingService;
+    private final LinkService linkService;
 
     @Override
     public ApiResponse<List<String>> getCategories() {
@@ -72,6 +74,12 @@ public class RecommendationController implements RecommendationApi {
         PaginationUtils.Cursor.PageResponse<RecommendationResponse> popularLinks =
                 recommendationService.getPopularPublicLinks(userId, cursor, size);
         return ApiResponse.ok(popularLinks);
+    }
+
+    @Override
+    public ApiResponse<Void> incrementPublicViewCount(Long linkId) {
+        linkService.incrementPublicViewCount(linkId);
+        return ApiResponse.ok(null);
     }
 
     @Override

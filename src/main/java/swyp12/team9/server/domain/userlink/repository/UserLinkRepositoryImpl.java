@@ -218,7 +218,17 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
          */
         @Override
         public List<PopularLinkProjection> findPopularPublicLinks(Long cursorViewCount, Long cursorLinkId, int size) {
-                var totalViewCount = userLink.viewCount.sum();
+                var totalViewCount = userLink.viewCount.sum().add(userLink.link.publicViewCount);
+                var subUserLink = new swyp12.team9.server.domain.userlink.model.QUserLink("subUserLink");
+
+                // 서브쿼리: 해당 링크 중 하나라도 공개된 ReferenceUserLink를 가지고 있는지 확인
+                BooleanExpression hasPublicReference = com.querydsl.jpa.JPAExpressions.selectOne()
+                                .from(subUserLink)
+                                .join(referenceUserLink).on(referenceUserLink.userLink.eq(subUserLink))
+                                .join(referenceUserLink.reference, reference)
+                                .where(subUserLink.link.id.eq(userLink.link.id),
+                                       reference.isPublic.eq(true))
+                                .exists();
 
                 var query = queryFactory
                                 .select(Projections.constructor(
@@ -226,10 +236,9 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                                                 userLink.link.id,
                                                 totalViewCount))
                                 .from(userLink)
-                                .join(referenceUserLink).on(referenceUserLink.userLink.eq(userLink))
-                                .join(referenceUserLink.reference, reference)
-                                .where(reference.isPublic.eq(true))
-                                .groupBy(userLink.link.id);
+                                .join(userLink.link)
+                                .groupBy(userLink.link.id, userLink.link.publicViewCount)
+                                .having(hasPublicReference);
 
                 if (cursorViewCount != null && cursorLinkId != null) {
                         query.having(

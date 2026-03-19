@@ -52,6 +52,9 @@ public class Link extends BaseEntity {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
+    @Column(name = "public_view_count", nullable = false)
+    private Long publicViewCount = 0L;
+
     @Builder
     public Link(String url, String title, String description, String faviconUrl, String content, String aiSummary) {
         this.url = url;
@@ -75,6 +78,10 @@ public class Link extends BaseEntity {
 
     public void updateAiSummary(String aiSummary) {
         this.aiSummary = aiSummary;
+    }
+
+    public void incrementPublicViewCount() {
+        this.publicViewCount++;
     }
 
     public static String generateUrlHash(String url) {
