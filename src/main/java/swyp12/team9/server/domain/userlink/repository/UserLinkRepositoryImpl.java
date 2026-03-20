@@ -218,7 +218,6 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
          */
         @Override
         public List<PopularLinkProjection> findPopularPublicLinks(Long cursorViewCount, Long cursorLinkId, int size) {
-                var totalViewCount = userLink.viewCount.sum().add(userLink.link.publicViewCount);
                 var subUserLink = new swyp12.team9.server.domain.userlink.model.QUserLink("subUserLink");
 
                 // 서브쿼리: 해당 링크 중 하나라도 공개된 ReferenceUserLink를 가지고 있는지 확인
@@ -234,7 +233,7 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                                 .select(Projections.constructor(
                                                 PopularLinkProjection.class,
                                                 userLink.link.id,
-                                                totalViewCount))
+                                                userLink.link.publicViewCount))
                                 .from(userLink)
                                 .join(userLink.link)
                                 .groupBy(userLink.link.id, userLink.link.publicViewCount)
@@ -242,13 +241,13 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
 
                 if (cursorViewCount != null && cursorLinkId != null) {
                         query.having(
-                                        totalViewCount.lt(cursorViewCount)
-                                                        .or(totalViewCount.eq(cursorViewCount)
+                                        userLink.link.publicViewCount.lt(cursorViewCount)
+                                                        .or(userLink.link.publicViewCount.eq(cursorViewCount)
                                                                         .and(userLink.link.id.lt(cursorLinkId))));
                 }
 
                 return query
-                                .orderBy(totalViewCount.desc(), userLink.link.id.desc())
+                                .orderBy(userLink.link.publicViewCount.desc(), userLink.link.id.desc())
                                 .limit(size + 1L)
                                 .fetch();
         }
