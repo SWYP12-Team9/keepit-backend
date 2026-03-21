@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
@@ -26,11 +25,11 @@ class LinkAiServiceTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ChatClient linkSummaryChatClient;
 
-    @InjectMocks
     private LinkAiService linkAiService;
 
     @BeforeEach
     void setUp() {
+        linkAiService = new LinkAiService(linkSummaryChatClient);
         ReflectionTestUtils.setField(linkAiService, "summaryTemperature", 0.4);
     }
 
@@ -62,7 +61,7 @@ class LinkAiServiceTest {
 
         @Test
         @DisplayName("실패: 제목이 비어있으면 null을 반환한다")
-        void fail_ReturnNull_WhenTitleIsEmpty() {
+        void fail_ReturnNullWhenTitleIsEmpty() {
             // given
             String title = "";
             String description = "기타 설명";
@@ -78,7 +77,7 @@ class LinkAiServiceTest {
 
         @Test
         @DisplayName("실패: 설명과 내용이 모두 비어있으면 null을 반환한다")
-        void fail_ReturnNull_WhenDescriptionAndContentEmpty() {
+        void fail_ReturnNullWhenDescriptionAndContentEmpty() {
             // given
             String title = "제목은 있음";
             String description = null;
@@ -94,7 +93,7 @@ class LinkAiServiceTest {
 
         @Test
         @DisplayName("실패: API 호출 중 예외가 발생하면 예외를 삼키고 null을 반환한다")
-        void fail_ReturnNull_WhenExceptionThrown() {
+        void fail_ReturnNullWhenApiExceptionOccurs() {
             // given
             String title = "테스트 제목";
             String description = "테스트 설명";

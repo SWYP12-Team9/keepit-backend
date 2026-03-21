@@ -46,7 +46,7 @@ class ImageServiceTest {
     class UploadImage {
         @Test
         @DisplayName("성공: 유효한 이미지 업로드 시 URL을 반환한다")
-        void success() {
+        void success_UploadImage() {
             MultipartFile file = ImageFixture.createMockFile();
             given(fileStorageService.uploadFile(any(), eq(ImageFixture.DIRECTORY))).willReturn(ImageFixture.OBJECT_KEY);
             given(fileStorageService.getFileUrl(ImageFixture.OBJECT_KEY)).willReturn(ImageFixture.IMAGE_URL);
@@ -92,7 +92,7 @@ class ImageServiceTest {
     class UpdateImage {
         @Test
         @DisplayName("성공: 새 이미지 업로드 후 기존 이미지를 삭제한다")
-        void success() {
+        void success_UpdateImageAndDeleteOldImage() {
             String oldUrl = ImageFixture.IMAGE_URL;
             MultipartFile newFile = ImageFixture.createMockFile();
             String newObjectKey = "images/new-uuid.jpg";
@@ -132,7 +132,7 @@ class ImageServiceTest {
     class DownloadImage {
         @Test
         @DisplayName("성공: 이미지 데이터를 바이트 배열로 반환한다")
-        void success() {
+        void success_DownloadImage() {
             // given
             given(fileStorageService.fileExists(ImageFixture.OBJECT_KEY)).willReturn(true);
             given(fileStorageService.downloadFile(ImageFixture.OBJECT_KEY)).willReturn(ImageFixture.CONTENT);
@@ -159,7 +159,7 @@ class ImageServiceTest {
     class DeleteImage {
         @Test
         @DisplayName("성공: URL에서 키를 추출하여 삭제를 수행한다")
-        void success() {
+        void success_DeleteImage() {
             given(fileStorageService.fileExists(ImageFixture.OBJECT_KEY)).willReturn(true);
 
             imageService.deleteImage(ImageFixture.IMAGE_URL);

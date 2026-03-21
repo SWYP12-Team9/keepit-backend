@@ -1,4 +1,4 @@
-package swyp12.team9.server.global.event;
+package swyp12.team9.server.domain.chatbot.event;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +26,7 @@ import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
 import swyp12.team9.server.domain.image.service.ImageService;
 import swyp12.team9.server.domain.link.service.LinkAiService;
+import swyp12.team9.server.domain.link.service.LinkSaveService;
 import swyp12.team9.server.domain.link.service.LinkStreamProducer;
 import swyp12.team9.server.domain.link.service.ScrapingService;
 import swyp12.team9.server.domain.reference.fixture.ReferenceFixture;
@@ -33,6 +34,8 @@ import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.user.fixture.UserFixture;
 import swyp12.team9.server.domain.user.model.User;
+import swyp12.team9.server.domain.user.model.UserRole;
+import swyp12.team9.server.domain.user.model.UserStatus;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
@@ -53,8 +56,11 @@ import org.mockito.ArgumentMatchers;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@DisplayName("IndexingEventListener Integration Test")
-class IndexingEventListenerIntegrationTest {
+@DisplayName("ChatbotIndexingEventListener Integration Test")
+class ChatbotIndexingEventListenerIntegrationTest {
+
+    @Autowired
+    private ChatbotIndexingEventListener indexingEventListener;
 
     @MockitoBean
     private VectorStore vectorStore;
@@ -98,6 +104,9 @@ class IndexingEventListenerIntegrationTest {
     private UserLinkService userLinkService;
 
     @Autowired
+    private LinkSaveService linkSaveService;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -124,8 +133,8 @@ class IndexingEventListenerIntegrationTest {
      * vectorStore.add()는 AI 요약 완료 후 LinkAiSummaryUpdatedEvent에서만 호출됨
      */
     @Test
-    @DisplayName("Success: UserLink 생성 시 Placeholder link이므로 인덱스 삭제가 비동기로 호출된다")
-    void indexingOnCreate_PlaceholderLink() {
+    @DisplayName("성공: UserLink 생성 시 Placeholder link이므로 인덱스 삭제가 비동기로 호출된다")
+    void success_IndexingOnCreatePlaceholderLink() {
         // given
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -134,7 +143,7 @@ class IndexingEventListenerIntegrationTest {
 
         // when - 트랜잭션을 명시적으로 커밋
         UserLinkResponse response = transactionTemplate.execute(status -> {
-            User user = userRepository.save(UserFixture.createUser());
+            User user = userRepository.save(createUniqueUser("placeholder"));
             Reference reference = referenceRepository.save(ReferenceFixture.createReference(user));
 
             UserLinkCreateRequest request = new UserLinkCreateRequest(
@@ -164,8 +173,8 @@ class IndexingEventListenerIntegrationTest {
      * - LinkAiSummaryUpdatedEvent가 커밋 후 @TransactionalEventListener에 의해 처리됨
      */
     @Test
-    @DisplayName("Success: LinkAiSummaryUpdatedEvent 발행 후 vectorStore.add()가 비동기로 호출된다")
-    void indexingOnAiSummaryCompleted() {
+    @DisplayName("성공: LinkAiSummaryUpdatedEvent 발행 후 vectorStore.add()가 비동기로 호출된다")
+    void success_IndexingOnAiSummaryCompleted() {
         // given - Link with title+aiSummary, UserLink 직접 저장
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -173,7 +182,7 @@ class IndexingEventListenerIntegrationTest {
         Long[] userLinkIdHolder = new Long[1];
 
         transactionTemplate.execute(status -> {
-            User user = userRepository.save(UserFixture.createOtherUser());
+            User user = userRepository.save(createUniqueUser("summary"));
             Link link = linkRepository.save(LinkFixture.createLinkWithAiSummary());
             UserLink userLink = userLinkRepository.save(UserLink.create(user, link, "테스트 이유", "테스트 메모"));
             userLinkIdHolder[0] = userLink.getId();
@@ -192,5 +201,80 @@ class IndexingEventListenerIntegrationTest {
                     Document doc = docs.get(0);
                     return doc.getId().equals("chatbot-" + userLinkId);
                 }));
+    }
+
+    @Test
+    @DisplayName("성공: 링크 저장 완료 후 placeholder 삭제 뒤 챗봇 인덱스가 다시 생성된다")
+    void success_IndexingAfterLinkCompletionEndToEnd() {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+        String url = "https://example.com/finalized-article";
+
+        UserLinkResponse response = transactionTemplate.execute(status -> {
+            User user = userRepository.save(createUniqueUser("complete"));
+            Reference reference = referenceRepository.save(ReferenceFixture.createReference(user));
+
+            UserLinkCreateRequest request = new UserLinkCreateRequest(
+                    "완료 후 인덱싱 테스트",
+                    url,
+                    reference.getId(),
+                    "챗봇 인덱싱 확인",
+                    null
+            );
+
+            return userLinkService.createUserLink(user.getId(), request);
+        });
+
+        assertThat(response).isNotNull();
+        Long userLinkId = response.id();
+
+        verify(vectorStore, timeout(3000).times(1))
+                .delete(ArgumentMatchers.<java.util.List<String>>argThat(ids -> ids != null && ids.contains("chatbot-" + userLinkId)));
+
+        reset(vectorStore);
+
+        Long linkId = userLinkRepository.findById(userLinkId)
+                .map(UserLink::getLink)
+                .map(Link::getId)
+                .orElseThrow();
+
+        transactionTemplate.execute(status -> {
+            linkSaveService.updateLink(
+                    linkId,
+                    LinkFixture.createScrapingResponse(url),
+                    LinkFixture.AI_SUMMARY,
+                    null
+            );
+            return null;
+        });
+
+        verify(vectorStore, timeout(3000).times(1))
+                .add(argThat(docs -> {
+                    if (docs == null || docs.isEmpty()) {
+                        return false;
+                    }
+
+                    Document doc = docs.get(0);
+                    return doc.getId().equals("chatbot-" + userLinkId)
+                            && LinkFixture.TITLE.equals(doc.getMetadata().get("title"))
+                            && LinkFixture.AI_SUMMARY.equals(doc.getMetadata().get("aiSummary"));
+                }));
+    }
+
+    private User createUniqueUser(String suffix) {
+        String unique = "chatbot-" + suffix + "-" + System.nanoTime();
+        return User.builder()
+                .username(unique)
+                .password(UserFixture.PASSWORD)
+                .nickname(unique)
+                .email(unique + "@example.com")
+                .introduction(UserFixture.INTRODUCTION)
+                .isLock(false)
+                .isSocial(false)
+                .socialProvider(null)
+                .roleType(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .build();
     }
 }

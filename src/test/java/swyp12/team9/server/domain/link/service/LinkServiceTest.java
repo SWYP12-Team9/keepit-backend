@@ -11,6 +11,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import swyp12.team9.server.domain.link.event.LinkCreatedEvent;
 import swyp12.team9.server.domain.link.fixture.LinkFixture;
 import swyp12.team9.server.domain.link.model.Link;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
 
 import java.util.Optional;
@@ -69,7 +70,7 @@ class LinkServiceTest {
 
         @Test
         @DisplayName("성공: 기존 Link의 updatedAt이 1일 이상 지났으면 조회 후 이벤트를 발행한다")
-        void success_ReturnExisting_UpdatesIfOlderThanOneDay() {
+        void success_PublishEventWhenLinkIsOlderThanOneDay() {
             // given
             String url = LinkFixture.URL;
             String urlHash = Link.generateUrlHash(url);
@@ -78,6 +79,7 @@ class LinkServiceTest {
             Link existingLink = mock(Link.class);
             given(existingLink.getId()).willReturn(1L);
             given(existingLink.getUpdatedAt()).willReturn(LocalDateTime.now().minusDays(2));
+            given(existingLink.getProcessingStatus()).willReturn(LinkProcessingStatus.READY);
             
             Long userId = 100L;
 
@@ -95,7 +97,7 @@ class LinkServiceTest {
 
         @Test
         @DisplayName("성공: 기존 Link의 updatedAt이 1일 이내면 조회만 하고 이벤트를 발행하지 않는다")
-        void success_ReturnExisting_NoUpdateIfWithinOneDay() {
+        void success_ReturnExistingWithoutEventWhenWithinOneDay() {
             // given
             String url = LinkFixture.URL;
             String urlHash = Link.generateUrlHash(url);
@@ -103,8 +105,8 @@ class LinkServiceTest {
             // 1시간 전 업데이트된 Link 모의 객체
             Link existingLink = mock(Link.class);
             given(existingLink.getId()).willReturn(1L);
-            given(existingLink.getTitle()).willReturn("완성된 링크 제목");
             given(existingLink.getUpdatedAt()).willReturn(LocalDateTime.now().minusHours(1));
+            given(existingLink.getProcessingStatus()).willReturn(LinkProcessingStatus.READY);
             
             Long userId = 100L;
 
@@ -121,17 +123,17 @@ class LinkServiceTest {
         }
 
         @Test
-        @DisplayName("성공: 기존 Link가 1일 이내라도 title이 없는 미완성(Placeholder) 상태면 이벤트를 발행한다")
-        void success_ReturnExisting_UpdatesIfIncomplete() {
+        @DisplayName("성공: 기존 Link가 1일 이내라도 PENDING 상태면 이벤트를 발행한다")
+        void success_PublishEventWhenLinkIsPending() {
             // given
             String url = LinkFixture.URL;
             String urlHash = Link.generateUrlHash(url);
             
-            // 1시간 전 업데이트된 미완성 Link 모의 객체
+            // 1시간 전 업데이트된 PENDING Link 모의 객체
             Link existingLink = mock(Link.class);
             given(existingLink.getId()).willReturn(1L);
-            given(existingLink.getTitle()).willReturn(null); // 미완성 상태
             given(existingLink.getUpdatedAt()).willReturn(LocalDateTime.now().minusHours(1));
+            given(existingLink.getProcessingStatus()).willReturn(LinkProcessingStatus.PENDING);
             
             Long userId = 100L;
 
@@ -144,7 +146,7 @@ class LinkServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
             verify(linkSaveService, never()).getOrSavePlaceholderLink(anyString(), anyLong());
-            verify(eventPublisher).publishEvent(any(LinkCreatedEvent.class)); // 미완성이므로 무조건 발행
+            verify(eventPublisher).publishEvent(any(LinkCreatedEvent.class)); // 처리 중이므로 무조건 발행
         }
     }
 }

@@ -29,6 +29,18 @@ public class LinkFixture {
         return link;
     }
 
+    public static Link createPlaceholderLinkWithId(Long id) {
+        Link link = Link.createPlaceholder(URL);
+        setId(link, id);
+        return link;
+    }
+
+    public static Link createFailedLinkWithId(Long id) {
+        Link link = createLinkWithId(id);
+        link.markFailed();
+        return link;
+    }
+
     /**
      * 커스텀 URL로 Link 생성
      */

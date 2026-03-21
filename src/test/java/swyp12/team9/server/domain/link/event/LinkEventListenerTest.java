@@ -1,6 +1,7 @@
 package swyp12.team9.server.domain.link.event;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,38 +31,43 @@ class LinkEventListenerTest {
     @InjectMocks
     private LinkEventListener linkEventListener;
 
-    @Test
-    @DisplayName("성공: LinkCreatedEvent 수신 시 Redis Stream 발행을 요청한다")
-    void success_HandleLinkCreated() {
-        // given
-        Long linkId = 1L;
-        Long userId = 100L;
-        LinkCreatedEvent event = LinkCreatedEvent.of(linkId, userId);
-        Link link = spy(Link.create("http://example.com", "제목", null, null, null));
+    @Nested
+    @DisplayName("handleLinkCreated() 테스트")
+    class HandleLinkCreated {
 
-        given(linkRepository.findById(linkId)).willReturn(Optional.of(link));
+        @Test
+        @DisplayName("성공: LinkCreatedEvent 수신 시 Redis Stream 발행을 요청한다")
+        void success_HandleLinkCreated() {
+            // given
+            Long linkId = 1L;
+            Long userId = 100L;
+            LinkCreatedEvent event = LinkCreatedEvent.of(linkId, userId);
+            Link link = spy(Link.create("http://example.com", "제목", null, null, null));
 
-        // when
-        linkEventListener.handleLinkCreated(event);
+            given(linkRepository.findById(linkId)).willReturn(Optional.of(link));
 
-        // then
-        verify(linkStreamProducer).publishLinkProcessTask(link.getId(), link.getUrl(), userId);
-    }
+            // when
+            linkEventListener.handleLinkCreated(event);
 
-    @Test
-    @DisplayName("성공: Link를 찾을 수 없는 경우 중단한다")
-    void success_LinkNotFound() {
-        // given
-        Long linkId = 1L;
-        Long userId = 100L;
-        LinkCreatedEvent event = LinkCreatedEvent.of(linkId, userId);
+            // then
+            verify(linkStreamProducer).publishLinkProcessTask(link.getId(), link.getUrl(), userId);
+        }
 
-        given(linkRepository.findById(linkId)).willReturn(Optional.empty());
+        @Test
+        @DisplayName("성공: Link를 찾을 수 없는 경우 Stream 발행 없이 중단한다")
+        void success_SkipPublishWhenLinkNotFound() {
+            // given
+            Long linkId = 1L;
+            Long userId = 100L;
+            LinkCreatedEvent event = LinkCreatedEvent.of(linkId, userId);
 
-        // when
-        linkEventListener.handleLinkCreated(event);
+            given(linkRepository.findById(linkId)).willReturn(Optional.empty());
 
-        // then
-        verify(linkStreamProducer, never()).publishLinkProcessTask(anyLong(), anyString(), anyLong());
+            // when
+            linkEventListener.handleLinkCreated(event);
+
+            // then
+            verify(linkStreamProducer, never()).publishLinkProcessTask(anyLong(), anyString(), anyLong());
+        }
     }
 }

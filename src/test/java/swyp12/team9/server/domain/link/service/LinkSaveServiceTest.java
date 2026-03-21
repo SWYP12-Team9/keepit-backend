@@ -17,7 +17,6 @@ import swyp12.team9.server.domain.link.exception.LinkNotFoundException;
 import swyp12.team9.server.domain.link.fixture.LinkFixture;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
-import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 import java.util.Optional;
 
@@ -34,9 +33,6 @@ class LinkSaveServiceTest {
 
     @Mock
     private LinkRepository linkRepository;
-
-    @Mock
-    private UserLinkRepository userLinkRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -105,78 +101,6 @@ class LinkSaveServiceTest {
 
             // when
             Link result = linkSaveService.getOrSavePlaceholderLink(url, userId);
-
-            // then
-            assertThat(result.getId()).isEqualTo(1L);
-            verify(linkRepository).save(any(Link.class));
-            verify(eventPublisher).publishEvent(any(LinkCreatedEvent.class));
-        }
-    }
-
-    @Nested
-    @DisplayName("getOrSaveLink 테스트")
-    class FindOrSaveLink {
-
-        @Test
-        @DisplayName("성공: 기존 Link가 있으면 바로 반환한다")
-        void success_ReturnExisting() {
-            // given
-            String url = LinkFixture.URL;
-            String urlHash = Link.generateUrlHash(url);
-            ScrapingResponse data = LinkFixture.createScrapingResponse();
-            Link existingLink = LinkFixture.createLinkWithId(1L);
-            Long userId = 100L;
-
-            given(linkRepository.findByUrlHash(urlHash)).willReturn(Optional.of(existingLink));
-
-            // when
-            Link result = linkSaveService.getOrSaveLink(url, data, userId);
-
-            // then
-            assertThat(result.getId()).isEqualTo(1L);
-            verify(linkRepository, never()).save(any(Link.class));
-            verify(eventPublisher, never()).publishEvent(any(LinkCreatedEvent.class));
-        }
-
-        @Test
-        @DisplayName("성공: 기존 Link가 없으면 스크래핑 데이터로 저장 및 이벤트를 발행한다")
-        void success_CreateNew_AndPublishEvent() {
-            // given
-            String url = LinkFixture.URL;
-            String urlHash = Link.generateUrlHash(url);
-            ScrapingResponse data = LinkFixture.createScrapingResponse();
-            Link savedLink = LinkFixture.createLinkWithId(1L);
-            Long userId = 100L;
-
-            given(linkRepository.findByUrlHash(urlHash)).willReturn(Optional.empty());
-            given(linkRepository.save(any(Link.class))).willReturn(savedLink);
-
-            // when
-            Link result = linkSaveService.getOrSaveLink(url, data, userId);
-
-            // then
-            assertThat(result.getId()).isEqualTo(1L);
-            verify(linkRepository).save(any(Link.class));
-            verify(eventPublisher).publishEvent(any(LinkCreatedEvent.class));
-        }
-
-        @Test
-        @DisplayName("성공: 동시성 이슈로 중복 저장 시 DataIntegrityViolationException을 잡고 재조회하여 반환한다")
-        void success_DuplicateKeyExceptionHandling() {
-            // given
-            String url = LinkFixture.URL;
-            String urlHash = Link.generateUrlHash(url);
-            ScrapingResponse data = LinkFixture.createScrapingResponse();
-            Link existingLink = LinkFixture.createLinkWithId(1L);
-            Long userId = 100L;
-
-            given(linkRepository.findByUrlHash(urlHash))
-                    .willReturn(Optional.empty()) // 첫 조회 시 없음
-                    .willReturn(Optional.of(existingLink)); // 두 번째 조회(예외 처리 블록) 시 있음
-            given(linkRepository.save(any(Link.class))).willThrow(new DataIntegrityViolationException("Duplicate"));
-
-            // when
-            Link result = linkSaveService.getOrSaveLink(url, data, userId);
 
             // then
             assertThat(result.getId()).isEqualTo(1L);
