@@ -1,7 +1,6 @@
 package swyp12.team9.server.domain.sse.event;
 
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -25,7 +24,7 @@ public class LinkCompletedEventListener {
      * 해당 Link를 소장 중인 사용자들에게 SSE 알림을 발송
      */
     @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void handleLinkCompleted(LinkCompletedEvent event) {
         Long linkId = event.linkId();
         String title = event.title();
@@ -39,14 +38,7 @@ public class LinkCompletedEventListener {
                 Long targetUserId = userLink.getUser().getId();
                 Long userLinkId = userLink.getId();
 
-                // 개별 유저 맞춤형 이벤트 데이터 생성 (userLinkId 포함)
-                // Map으로 설정해 SseEmitter 내부 Jackson을 통해 직렬화
-                Map<String, Object> eventData = Map.of(
-                        "userLinkId", userLinkId,
-                        "linkId", linkId,
-                        "title", title != null ? title : "제목 없음",
-                        "status", "COMPLETED"
-                );
+                LinkCompletedSsePayload eventData = LinkCompletedSsePayload.of(userLinkId, linkId, title);
 
                 // 실제 SSE 전송 (개별 전송)
                 sseEmitterService.sendToUsers(List.of(targetUserId), "link_completed", eventData);

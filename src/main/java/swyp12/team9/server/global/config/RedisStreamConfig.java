@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import swyp12.team9.server.domain.link.service.LinkStreamConsumer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
@@ -28,6 +29,7 @@ public class RedisStreamConfig {
 
     public static final String LINK_PROCESS_STREAM = "link:process:stream";
     public static final String LINK_PROCESS_GROUP = "link-processing-group";
+    public static final String LINK_PROCESS_DLQ_STREAM = "link:process:dlq";
     public static final String CONSUMER_PREFIX = "worker-";
 
     @PostConstruct
@@ -51,7 +53,7 @@ public class RedisStreamConfig {
     @Bean(initMethod = "start", destroyMethod = "stop")
     public StreamMessageListenerContainer<String, ObjectRecord<String, String>> streamMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
-            ThreadPoolTaskExecutor streamTaskExecutor) {
+            @Qualifier("streamTaskExecutor") ThreadPoolTaskExecutor streamTaskExecutor) {
         
         StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, ObjectRecord<String, String>> options =
                 StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()

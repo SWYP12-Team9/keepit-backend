@@ -26,7 +26,7 @@ import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.domain.userlink.event.UserLinkCreatedEvent;
 import swyp12.team9.server.domain.userlink.event.UserLinkDeletedEvent;
-import swyp12.team9.server.domain.userlink.event.UserLinkUpdatedEvent;
+import swyp12.team9.server.domain.userlink.event.UserLinkChatbotReindexEvent;
 import swyp12.team9.server.domain.userlink.exception.ReferenceSelectionDuplicateException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkDuplicateException;
@@ -84,8 +84,17 @@ public class UserLinkService {
         }
 
         return transactionTemplate.execute(status -> {
-            // UserLink 중복 체크 (기존 Link / 동시 요청으로 재사용한 Link 모두 검사)
-            if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
+            // 같은 사용자의 기존 저장 건이 있으면, 처리 중/실패 상태에서는 기존 항목을 그대로 반환한다.
+            UserLink existingUserLink = userLinkRepository.findByUserIdAndLinkId(userId, link.getId()).orElse(null);
+            if (existingUserLink != null) {
+                if (!link.isReady()) {
+                    Reference existingReference = referenceUserLinkRepository.findByUserLinkId(existingUserLink.getId()).stream()
+                            .map(ReferenceUserLink::getReference)
+                            .findFirst()
+                            .orElse(null);
+                    return UserLinkResponse.from(existingUserLink, existingReference);
+                }
+
                 throw new UserLinkDuplicateException();
             }
 
@@ -137,7 +146,7 @@ public class UserLinkService {
      */
     @Transactional
     public UserLinkResponse getUserLink(Long userId, Long userLinkId) {
-        UserLink userLink = getUserLinkById(userLinkId);
+        UserLink userLink = getVisibleUserLinkById(userLinkId);
 
         // 소유자 검증
         if (userId == null) {
@@ -156,6 +165,24 @@ public class UserLinkService {
                 .orElse(null);
 
         return UserLinkResponse.from(userLink, reference);
+    }
+
+    /**
+     * 미리보기 렌더링용 사용자 링크를 조회한다.
+     * 조회수는 증가시키지 않으며, 미리보기 표시를 위한 현재 상태만 반환한다.
+     */
+    @Transactional(readOnly = true)
+    public UserLinkListResponse getUserLinkPreview(Long userId, Long userLinkId) {
+        UserLink userLink = getVisibleUserLinkById(userLinkId);
+
+        userLink.validateOwner(userId);
+
+        Reference reference = referenceUserLinkRepository.findByUserLinkId(userLinkId).stream()
+                .map(ReferenceUserLink::getReference)
+                .findFirst()
+                .orElse(null);
+
+        return UserLinkListResponse.of(userLink, reference);
     }
 
     /**
@@ -182,14 +209,11 @@ public class UserLinkService {
                 request.memo() != null ? request.memo() : userLink.getMemo()
         );
 
-        // why, memo 변경 시 챗봇 인덱스 재인덱싱
-        // Reference 이동 시 추천 인덱스 재인덱싱 필요
-        boolean needsReindex = request.why() != null || request.memo() != null
-                || request.referenceId() != null || Boolean.TRUE.equals(request.moveToDefault());
+        boolean chatbotReindexRequired = request.why() != null || request.memo() != null;
 
-        if (needsReindex) {
-            // 재인덱싱 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
-            eventPublisher.publishEvent(UserLinkUpdatedEvent.of(userLinkId));
+        if (chatbotReindexRequired) {
+            // why/memo 변경은 챗봇 문서 내용에 직접 반영되므로 별도 이벤트로 분리한다.
+            eventPublisher.publishEvent(UserLinkChatbotReindexEvent.of(userLinkId));
         }
 
         // Reference 처리
@@ -341,6 +365,14 @@ public class UserLinkService {
 
     private UserLink getUserLinkById(Long userLinkId) {
         return userLinkRepository.findById(userLinkId).orElseThrow(UserLinkNotFoundException::new);
+    }
+
+    private UserLink getVisibleUserLinkById(Long userLinkId) {
+        UserLink userLink = getUserLinkById(userLinkId);
+        if (!userLink.getLink().isReady()) {
+            throw new UserLinkNotFoundException();
+        }
+        return userLink;
     }
 
     private Reference getReferenceById(Long referenceId) {

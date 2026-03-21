@@ -89,6 +89,25 @@ public interface UserLinkApi {
     );
 
     @Operation(
+            summary = "링크 미리보기 조회",
+            description = "링크 미리보기용 읽기 전용 조회입니다. 조회수 증가 없이 현재 상태를 반환합니다."
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_LINK_NOT_FOUND,
+                    ErrorCode.USER_LINK_ACCESS_DENIED
+            }
+    )
+    @GetMapping("/{userLinkId}/preview")
+    ApiResponse<UserLinkListResponse> getUserLinkPreview(
+            @Parameter(description = "사용자 링크 ID", required = true, example = "1")
+            @PathVariable Long userLinkId,
+            @CurrentUserId Long userId
+    );
+
+    @Operation(
             summary = "링크 게시물 수정",
             description = """
                     링크 정보를 부분 수정합니다. 전달된 필드만 수정되며, 소유자만 수정 가능합니다.

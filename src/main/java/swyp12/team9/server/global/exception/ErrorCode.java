@@ -63,6 +63,9 @@ public enum ErrorCode {
     LINK_SCRAPING_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "LNK003", "스크래핑 요청 시간이 초과되었습니다"),
     LINK_HASH_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "LNK004", "링크 URL 해시 생성에 실패했습니다"),
     LINK_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "LNK005", "링크 정보 처리 중 오류가 발생했습니다"),
+    LINK_STREAM_INVALID_MESSAGE(HttpStatus.INTERNAL_SERVER_ERROR, "LNK006", "잘못된 Stream 메시지 포맷입니다"),
+    LINK_STREAM_RETRY_LIMIT_EXCEEDED(HttpStatus.INTERNAL_SERVER_ERROR, "LNK007", "최대 재시도 횟수를 초과했습니다"),
+    LINK_STREAM_PAYLOAD_METADATA_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "LNK008", "Pending 메시지 payload 메타데이터를 찾을 수 없습니다"),
 
     // UserLink
     USER_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "ULK001", "사용자 링크를 찾을 수 없습니다"),

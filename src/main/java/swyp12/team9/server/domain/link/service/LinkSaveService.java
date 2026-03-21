@@ -11,6 +11,7 @@ import swyp12.team9.server.domain.link.exception.LinkNotFoundException;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
 import swyp12.team9.server.domain.link.event.LinkAiSummaryUpdatedEvent;
+import swyp12.team9.server.domain.link.event.LinkCompletedEvent;
 import swyp12.team9.server.domain.link.event.LinkCreatedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -51,45 +52,15 @@ public class LinkSaveService {
                 });
     }
 
-    /**
-     * REQUIRES_NEW 트랜잭션에서 Link를 조회하거나 저장합니다. 독립 트랜잭션이므로 커밋 후 다른 스레드에서도 즉시 조회 가능합니다.
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Link getOrSaveLink(String url, ScrapingResponse data, Long userId) {
-        String urlHash = Link.generateUrlHash(url);
-        return linkRepository.findByUrlHash(urlHash)
-                .orElseGet(() -> {
-                    Link link = Link.create(
-                            url,
-                            data.getTitle(),
-                            data.getDescription(),
-                            data.getFaviconUrl(),
-                            data.getContent()
-                    );
-
-                    try {
-                        Link saved = linkRepository.save(link);
-                        
-                        // AI 요약 및 기타 후속 작업을 위한 이벤트 발행
-                        eventPublisher.publishEvent(LinkCreatedEvent.of(saved.getId(), userId));
-                        
-                        log.info("Link 저장 및 이벤트 발행 완료 - linkId: {}, title: {}", saved.getId(), data.getTitle());
-                        return saved;
-                    } catch (DataIntegrityViolationException e) {
-                        log.warn("Link 중복 저장 감지, 기존 Link 재조회 - url: {}", url);
-                        Link existing = linkRepository.findByUrlHash(urlHash)
-                                .orElseThrow(LinkNotFoundException::new);
-                        // 동시성으로 병합된 유저도 처리 완료 알림을 받아야 하므로 이벤트를 발행 (Redis Set 대기열 삽입 용도)
-                        eventPublisher.publishEvent(LinkCreatedEvent.of(existing.getId(), userId));
-                        return existing;
-                    }
-                });
+    @Transactional(readOnly = true)
+    public Link findById(Long linkId) {
+        return linkRepository.findById(linkId)
+                .orElseThrow(LinkNotFoundException::new);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Link updateLink(Long linkId, ScrapingResponse scrapingData, String aiSummary, Long userId) {
-        Link link = linkRepository.findById(linkId)
-                .orElseThrow(LinkNotFoundException::new);
+        Link link = linkRepository.findById(linkId).orElseThrow(LinkNotFoundException::new);
         
         link.complete(
                 scrapingData.getTitle(),
@@ -104,10 +75,29 @@ public class LinkSaveService {
 
         // SSE 알림을 위한 대상 유저에게만 완료 이벤트 발행
         if (userId != null) {
-            eventPublisher.publishEvent(swyp12.team9.server.domain.link.event.LinkCompletedEvent.of(linkId, scrapingData.getTitle(), userId));
+            eventPublisher.publishEvent(LinkCompletedEvent.of(linkId, scrapingData.getTitle(), userId));
             log.info("SSE 알림 대상 이벤트 발행 - linkId: {}, requestUserId: {}", linkId, userId);
         }
 
         return link;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markLinkPending(Long linkId) {
+        Link link = linkRepository.findById(linkId).orElseThrow(LinkNotFoundException::new);
+        link.markPending();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean markLinkFailed(Long linkId, String errorType, String errorMessage) {
+        Link link = linkRepository.findById(linkId).orElseThrow(LinkNotFoundException::new);
+
+        if (link.isReady()) {
+            return false;
+        }
+
+        log.warn("Link 실패 상태 기록 - linkId: {}, errorType: {}, reason: {}", linkId, errorType, errorMessage);
+        link.markFailed();
+        return true;
     }
 }
