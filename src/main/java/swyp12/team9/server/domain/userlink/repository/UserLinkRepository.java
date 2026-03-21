@@ -48,7 +48,8 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
     @Query("SELECT ul FROM UserLink ul " +
            "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
            "JOIN Reference r ON rul.reference.id = r.id " +
-           "WHERE r.isPublic = true")
+           "WHERE r.isPublic = true " +
+           "AND ul.link.processingStatus = swyp12.team9.server.domain.link.model.LinkProcessingStatus.READY")
     List<UserLink> findAllByReferenceIsPublicTrue();
 
     /**
@@ -105,6 +106,7 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
            "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
            "JOIN Reference r ON rul.reference.id = r.id " +
            "WHERE r.isPublic = true " +
+           "AND l.processingStatus = swyp12.team9.server.domain.link.model.LinkProcessingStatus.READY " +
            "AND (l.title LIKE %:keyword% " +
            "OR l.aiSummary LIKE %:keyword% " +
            "OR ul.why LIKE %:keyword% " +

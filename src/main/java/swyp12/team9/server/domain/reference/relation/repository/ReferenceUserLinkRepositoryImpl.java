@@ -1,8 +1,10 @@
 package swyp12.team9.server.domain.reference.relation.repository;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.reference.relation.dto.ReferenceCategoryCountProjection;
 import swyp12.team9.server.domain.reference.relation.dto.ReferenceWithCountProjection;
 import swyp12.team9.server.domain.reference.relation.dto.UserLinkWithReferenceProjection;
@@ -35,17 +37,22 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
                         reference.id.as("referenceId"),
                         reference.title.as("referenceTitle"),
                         reference.colorCode.as("referenceColorCode"),
-                        referenceUserLink.countDistinct().as("count")
+                        link.id.countDistinct().as("count")
                 ))
                 .from(reference)
                 .leftJoin(reference.userLinks, referenceUserLink)
-                .on(referenceUserLink.userLink.user.id.eq(userId))
+                .leftJoin(referenceUserLink.userLink, userLink)
+                .leftJoin(userLink.link, link)
+                .on(
+                        userLink.user.id.eq(userId),
+                        isReadyLink()
+                )
                 .where(
                         reference.user.id.eq(userId),
                         reference.isDefault.eq(false)
                 )
                 .groupBy(reference.id, reference.title, reference.colorCode)
-                .orderBy(referenceUserLink.countDistinct().desc())
+                .orderBy(link.id.countDistinct().desc())
                 .fetch();
     }
 
@@ -67,10 +74,12 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
                 .from(referenceUserLink)
                 .join(referenceUserLink.reference, reference)
                 .join(referenceUserLink.userLink, userLink)
+                .join(userLink.link, link)
                 .where(
                         userLink.user.id.eq(userId),
                         reference.user.id.eq(userId),
-                        reference.isDefault.eq(false)
+                        reference.isDefault.eq(false),
+                        isReadyLink()
                 )
                 .groupBy(reference.id, reference.title, reference.colorCode)
                 .orderBy(referenceUserLink.count().desc())
@@ -101,7 +110,10 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
                 .join(referenceUserLink.userLink, userLink)
                 .join(referenceUserLink.reference, reference)
                 .join(userLink.link, link)
-                .where(userLink.user.id.eq(userId))
+                .where(
+                        userLink.user.id.eq(userId),
+                        isReadyLink()
+                )
                 .orderBy(reference.id.asc(), userLink.createdAt.desc())
                 .fetch();
     }
@@ -130,7 +142,10 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
                 .join(referenceUserLink.userLink, userLink)
                 .join(referenceUserLink.reference, reference)
                 .join(userLink.link, link)
-                .where(userLink.id.eq(userLinkId))
+                .where(
+                        userLink.id.eq(userLinkId),
+                        isReadyLink()
+                )
                 .fetchOne();
     }
 
@@ -162,7 +177,8 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
                 .join(userLink.link, link)
                 .where(
                         userLink.user.id.eq(userId),
-                        reference.id.eq(referenceId)
+                        reference.id.eq(referenceId),
+                        isReadyLink()
                 );
 
         // 커서 조건 추가
@@ -193,12 +209,18 @@ public class ReferenceUserLinkRepositoryImpl implements ReferenceUserLinkReposit
                 .from(referenceUserLink)
                 .join(referenceUserLink.reference, reference)
                 .join(referenceUserLink.userLink, userLink)
+                .join(userLink.link, link)
                 .where(
                         userLink.user.id.eq(userId),
-                        userLink.status.eq(swyp12.team9.server.domain.userlink.model.LinkStatus.UNREAD)
+                        userLink.status.eq(swyp12.team9.server.domain.userlink.model.LinkStatus.UNREAD),
+                        isReadyLink()
                 )
                 .groupBy(reference.id, reference.title, reference.colorCode)
                 .orderBy(referenceUserLink.count().desc())
                 .fetch();
+    }
+
+    private BooleanExpression isReadyLink() {
+        return link.processingStatus.eq(LinkProcessingStatus.READY);
     }
 }
