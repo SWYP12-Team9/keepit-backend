@@ -184,3 +184,25 @@ image:
 scraping:
   api:
     base-url: ${SCRAPING_API_BASE_URL}
+
+link:
+  stream:
+    processing-state-ttl-minutes: ${LINK_STREAM_PROCESSING_STATE_TTL_MINUTES:30}
+    trim:
+      main-max-len: ${LINK_STREAM_TRIM_MAIN_MAX_LEN:50000}
+      dlq-max-len: ${LINK_STREAM_TRIM_DLQ_MAX_LEN:5000}
+    recovery:
+      enabled: ${LINK_STREAM_RECOVERY_ENABLED:true}
+      fixed-delay-ms: ${LINK_STREAM_RECOVERY_DELAY_MS:10000}
+      min-idle-seconds: ${LINK_STREAM_RECOVERY_MIN_IDLE_SECONDS:30}
+      batch-size: ${LINK_STREAM_RECOVERY_BATCH_SIZE:20}
+      max-delivery-count: ${LINK_STREAM_RECOVERY_MAX_DELIVERY_COUNT:5}
+      backoff:
+        enabled: ${LINK_STREAM_RECOVERY_BACKOFF_ENABLED:true}
+        base-seconds: ${LINK_STREAM_RECOVERY_BACKOFF_BASE_SECONDS:30}
+        multiplier: ${LINK_STREAM_RECOVERY_BACKOFF_MULTIPLIER:2.0}
+        max-delay-seconds: ${LINK_STREAM_RECOVERY_BACKOFF_MAX_DELAY_SECONDS:300}
+
+discord:
+  webhook:
+    url: ${DISCORD_WEBHOOK_URL:}
