@@ -1,6 +1,7 @@
 package swyp12.team9.server.global.config;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,6 +21,7 @@ public class AiConfig {
      * - Temperature 0.4 (일관되고 사실적인 요약)
      */
     @Bean
+    @Qualifier("linkSummaryChatClient")
     public ChatClient linkSummaryChatClient(ChatClient.Builder builder) {
         String systemPrompt = """
                 당신은 웹 콘텐츠를 분석하여 사용자에게 핵심 정보를 전달하는 스마트한 AI 요약 비서입니다.
@@ -51,6 +53,7 @@ public class AiConfig {
      * - Temperature 0.7 (자연스럽고 창의적인 대화)
      */
     @Bean
+    @Qualifier("chatbotChatClient")
     public ChatClient chatbotChatClient(ChatClient.Builder builder) {
         String systemPrompt = """
                 당신은 사용자가 저장한 링크만을 기반으로 답변하는 개인 지식 도우미입니다.
