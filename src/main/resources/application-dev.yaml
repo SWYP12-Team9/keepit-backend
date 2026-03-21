@@ -147,14 +147,6 @@ ai:
     max-tokens: ${AI_CHATBOT_MAX_TOKENS:2000}  # 챗봇 응답 토큰 제한
     temperature: ${AI_CHATBOT_TEMPERATURE:0.7}  # 챗봇 temperature (자연스러운 대화)
 
-logging:
-  level:
-    root: INFO
-    swyp12.team9: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.springframework.web: DEBUG
-
 # Frontend URL 설정
 frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
