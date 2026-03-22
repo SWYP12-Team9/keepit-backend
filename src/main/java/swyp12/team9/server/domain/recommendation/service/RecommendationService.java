@@ -212,8 +212,8 @@ public class RecommendationService {
     }
 
     /**
-     * 인기 공개 링크 조회 (링크별 조회수 합계 기준)
-     * - 공개 UserLink를 Link 단위로 그룹화 후 조회수 합계로 정렬
+     * 인기 공개 링크 조회 (링크별 전역 공개 조회수 기준)
+     * - Link 기준 전역 공개 조회수(publicViewCount) 내림차순 정렬
      * - 커서 기반 페이징: viewCount:linkId
      *
      * @param userId 현재 로그인한 사용자 ID (현재는 필터링에 사용하지 않음)

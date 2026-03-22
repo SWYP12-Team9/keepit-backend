@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.link.dto.ScrapingResponse;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
+import swyp12.team9.server.global.exception.BusinessException;
+import swyp12.team9.server.global.exception.ErrorCode;
 
 @Slf4j
 @Service
@@ -57,7 +59,10 @@ public class LinkService {
      */
     @Transactional
     public void incrementPublicViewCount(Long linkId) {
-        linkRepository.incrementPublicViewCount(linkId);
+        int updatedCount = linkRepository.incrementPublicViewCount(linkId);
+        if (updatedCount == 0) {
+            throw new BusinessException(ErrorCode.LINK_NOT_FOUND);
+        }
         log.debug("Link 공개 조회수 증가 - linkId: {}", linkId);
     }
 }

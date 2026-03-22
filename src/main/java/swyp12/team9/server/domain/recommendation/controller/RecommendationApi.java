@@ -72,7 +72,7 @@ public interface RecommendationApi {
 
     @Operation(summary = "인기글 조회", description = """
                     공개 링크를 조회수 합계 기준으로 인기순 조회합니다.
-                    - 기준: 공개 UserLink의 viewCount 합계
+                    - 기준: 링크별 전역 공개 조회수 (publicViewCount)
                     - 정렬: viewCount 내림차순, 동률이면 linkId 내림차순
                     - 커서 형식: viewCount:linkId (예: 120:45)
                     """)

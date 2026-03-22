@@ -39,5 +39,5 @@ public interface LinkRepository extends JpaRepository<Link, Long> {
      */
     @Modifying
     @Query("UPDATE Link l SET l.publicViewCount = l.publicViewCount + 1 WHERE l.id = :linkId")
-    void incrementPublicViewCount(@Param("linkId") Long linkId);
+    int incrementPublicViewCount(@Param("linkId") Long linkId);
 }
