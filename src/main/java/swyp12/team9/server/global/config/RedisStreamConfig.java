@@ -40,12 +40,11 @@ public class RedisStreamConfig {
     @Bean
     public ThreadPoolTaskExecutor streamTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        // 스크래핑(5) + AI(8) = 13 동시 처리를 위해 Consumer 당 1스레드가 할당되도록 크기 조정 (여유분 포함 15)
-        executor.setCorePoolSize(15); 
+        executor.setCorePoolSize(15);
         executor.setMaxPoolSize(15);
         executor.setThreadNamePrefix("redis-stream-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(5);
+        executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
     }
