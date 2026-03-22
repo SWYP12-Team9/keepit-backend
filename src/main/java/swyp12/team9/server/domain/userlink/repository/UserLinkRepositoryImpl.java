@@ -15,6 +15,7 @@ import swyp12.team9.server.domain.userlink.model.UserLink;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static swyp12.team9.server.domain.link.model.QLink.link;
 import static swyp12.team9.server.domain.reference.model.QReference.reference;
 import static swyp12.team9.server.domain.reference.relation.model.QReferenceUserLink.referenceUserLink;
 import static swyp12.team9.server.domain.userlink.model.QUserLink.userLink;
@@ -225,29 +226,33 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                                 .from(subUserLink)
                                 .join(referenceUserLink).on(referenceUserLink.userLink.eq(subUserLink))
                                 .join(referenceUserLink.reference, reference)
-                                .where(subUserLink.link.id.eq(userLink.link.id),
+                                .where(subUserLink.link.id.eq(link.id), // 외부 쿼리의 link.id 참조
                                        reference.isPublic.eq(true))
                                 .exists();
 
                 var query = queryFactory
                                 .select(Projections.constructor(
                                                 PopularLinkProjection.class,
-                                                userLink.link.id,
-                                                userLink.link.publicViewCount))
+                                                link.id,
+                                                link.publicViewCount))
                                 .from(userLink)
-                                .join(userLink.link)
-                                .groupBy(userLink.link.id, userLink.link.publicViewCount)
-                                .having(hasPublicReference);
+                                .join(userLink.link, link)
+                                .groupBy(link.id, link.publicViewCount);
+
+                // HAVING 조건 결합 (공개 설정 필수 + 커서 조건)
+                com.querydsl.core.BooleanBuilder havingBuilder = new com.querydsl.core.BooleanBuilder();
+                havingBuilder.and(hasPublicReference);
 
                 if (cursorViewCount != null && cursorLinkId != null) {
-                        query.having(
-                                        userLink.link.publicViewCount.lt(cursorViewCount)
-                                                        .or(userLink.link.publicViewCount.eq(cursorViewCount)
-                                                                        .and(userLink.link.id.lt(cursorLinkId))));
+                        havingBuilder.and(
+                                        link.publicViewCount.lt(cursorViewCount)
+                                                        .or(link.publicViewCount.eq(cursorViewCount)
+                                                                        .and(link.id.lt(cursorLinkId))));
                 }
 
                 return query
-                                .orderBy(userLink.link.publicViewCount.desc(), userLink.link.id.desc())
+                                .having(havingBuilder)
+                                .orderBy(link.publicViewCount.desc(), link.id.desc())
                                 .limit(size + 1L)
                                 .fetch();
         }
