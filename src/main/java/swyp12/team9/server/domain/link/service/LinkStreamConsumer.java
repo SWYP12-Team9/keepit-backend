@@ -174,11 +174,11 @@ public class LinkStreamConsumer implements StreamListener<String, ObjectRecord<S
             failedStateRecorded = linkSaveService.markLinkFailed(linkId, errorType, reason);
         }
 
-        // READY로 이미 복구된 링크는 실패 상태로 덮어쓰지 않고, 대기 상태만 정리한다.
+        // READY로 이미 복구된 링크는 실패 상태로 덮어쓰지 않고, 대기 유저에게 성공 알림을 보낸다.
         if (linkId != null && failedStateRecorded) {
             notifyFailureAndClearLock(recordId, linkId, reason);
         } else if (linkId != null) {
-            clearProcessingState(recordId, linkId);
+            notifyAlreadyReadyAndClearLock(recordId, linkId);
         } else {
             clearRecordMetadata(recordId);
         }
@@ -239,12 +239,18 @@ public class LinkStreamConsumer implements StreamListener<String, ObjectRecord<S
         return !existingLink.isReady() || scrapedDataChanged || !existingLink.hasAiSummary();
     }
 
-    private void clearRecordMetadata(String recordId) {
-        linkProcessStreamGateway.clearRecordMetadata(recordId);
+    private void notifyAlreadyReadyAndClearLock(String recordId, Long linkId) {
+        Link link = linkSaveService.findById(linkId);
+        Set<Long> targetUsers = linkProcessStreamGateway.drainTargetUsersAndClearState(linkId, recordId);
+
+        for (Long userId : targetUsers) {
+            eventPublisher.publishEvent(LinkCompletedEvent.of(linkId, link.getTitle(), userId));
+        }
+        log.warn("Consumer 실패했으나 이미 READY 상태 - 대기 유저에게 성공 알림 발행 - recordId: {}, linkId: {}, 대상 수: {}", recordId, linkId, targetUsers.size());
     }
 
-    private void clearProcessingState(String recordId, Long linkId) {
-        linkProcessStreamGateway.drainTargetUsersAndClearState(linkId, recordId);
+    private void clearRecordMetadata(String recordId) {
+        linkProcessStreamGateway.clearRecordMetadata(recordId);
     }
 
     private boolean hasSummarySource(ScrapingResponse scrapingData) {

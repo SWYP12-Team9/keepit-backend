@@ -127,11 +127,14 @@ class LinkStreamConsumerTest {
     class HandlePermanentFailure {
 
         @Test
-        @DisplayName("실패: READY 링크의 refresh 실패는 사용자 실패 알림 없이 정리만 한다")
-        void fail_ReadyRefreshDoesNotPublishFailureEvent() {
+        @DisplayName("실패: 이미 READY 상태인 링크는 실패 이벤트 대신 성공 이벤트를 대기 유저에게 발행한다")
+        void fail_AlreadyReadyLinkPublishesCompletedEventInsteadOfFailure() {
+            Link readyLink = LinkFixture.createLinkWithId(1L);
+
             given(linkSaveService.markLinkFailed(1L, "LinkStreamInvalidMessageException", "잘못된 Stream 메시지 포맷입니다"))
                     .willReturn(false);
-            given(linkProcessStreamGateway.drainTargetUsersAndClearState(1L, "1-0")).willReturn(Set.of(100L));
+            given(linkSaveService.findById(1L)).willReturn(readyLink);
+            given(linkProcessStreamGateway.drainTargetUsersAndClearState(1L, "1-0")).willReturn(Set.of(100L, 200L));
 
             linkStreamConsumer.handlePermanentFailure(
                     "1-0",
@@ -143,6 +146,7 @@ class LinkStreamConsumerTest {
             );
 
             verify(eventPublisher, never()).publishEvent(any(LinkFailedEvent.class));
+            verify(eventPublisher, times(2)).publishEvent(any(LinkCompletedEvent.class));
             verify(linkProcessStreamGateway).drainTargetUsersAndClearState(1L, "1-0");
             verify(linkStreamDlqService).moveToDlq(
                     anyLong(), anyString(), anyString(), anyString(),
