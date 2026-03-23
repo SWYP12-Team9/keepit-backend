@@ -61,3 +61,6 @@ logs/
 ### Local Configuration ###
 src/main/resources/application-local.yaml
 README-LOCAL.md
+
+### Dummy Data ###
+src/main/resources/db/dummy/mock-data-v2.sql
