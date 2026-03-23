@@ -133,10 +133,6 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
         }
 
         /**
-         * 여러 Link ID들에 대해 공개된 UserLink 목록 조회 (Reference.isPublic = true)
-         * - N:N 관계: ReferenceUserLink를 통해 Reference와 연결
-         */
-        /**
          * 여러 Link ID들에 대해 각 링크의 첫 번째 공개 UserLink를 조회 (최초 등록자)
          * - 서브쿼리를 통해 링크별로 가장 먼저 생성된(ID가 가장 작은) UserLink ID를 추출 후 조회
          */
@@ -230,28 +226,24 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                                        reference.isPublic.eq(true))
                                 .exists();
 
-                var query = queryFactory
+                com.querydsl.core.BooleanBuilder whereBuilder = new com.querydsl.core.BooleanBuilder();
+                whereBuilder.and(hasPublicReference);
+                if (cursorViewCount != null && cursorLinkId != null) {
+                        whereBuilder.and(
+                                        link.publicViewCount.lt(cursorViewCount)
+                                                        .or(link.publicViewCount.eq(cursorViewCount)
+                                                                        .and(link.id.lt(cursorLinkId))));
+                }
+
+                return queryFactory
                                 .select(Projections.constructor(
                                                 PopularLinkProjection.class,
                                                 link.id,
                                                 link.publicViewCount))
                                 .from(userLink)
                                 .join(userLink.link, link)
-                                .groupBy(link.id, link.publicViewCount);
-
-                // HAVING 조건 결합 (공개 설정 필수 + 커서 조건)
-                com.querydsl.core.BooleanBuilder havingBuilder = new com.querydsl.core.BooleanBuilder();
-                havingBuilder.and(hasPublicReference);
-
-                if (cursorViewCount != null && cursorLinkId != null) {
-                        havingBuilder.and(
-                                        link.publicViewCount.lt(cursorViewCount)
-                                                        .or(link.publicViewCount.eq(cursorViewCount)
-                                                                        .and(link.id.lt(cursorLinkId))));
-                }
-
-                return query
-                                .having(havingBuilder)
+                                .where(whereBuilder)
+                                .groupBy(link.id, link.publicViewCount)
                                 .orderBy(link.publicViewCount.desc(), link.id.desc())
                                 .limit(size + 1L)
                                 .fetch();
