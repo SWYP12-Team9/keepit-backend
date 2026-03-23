@@ -5,15 +5,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.test.util.ReflectionTestUtils;
 import swyp12.team9.server.domain.chatbot.dto.ChatbotQueryResponse;
 import swyp12.team9.server.domain.chatbot.dto.RelevantLinkContext;
-
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,13 +42,11 @@ class ChatbotServiceTest {
     @Mock
     private ChatResponse chatResponse;
 
-    @InjectMocks
     private ChatbotService chatbotService;
 
     @BeforeEach
     void setUp() {
-        // ChatClient를 Mock으로 직접 주입
-        ReflectionTestUtils.setField(chatbotService, "chatbotChatClient", chatClient);
+        chatbotService = new ChatbotService(chatbotRagService, chatClient, rateLimitService);
     }
 
     @Nested

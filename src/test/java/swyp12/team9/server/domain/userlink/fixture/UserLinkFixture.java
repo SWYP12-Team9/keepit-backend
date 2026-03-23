@@ -24,23 +24,14 @@ public class UserLinkFixture {
      * 기본 UserLink 엔티티 생성
      */
     public static UserLink createUserLink(User user, Link link) {
-        return UserLink.builder()
-                .user(user)
-                .link(link)
-                .why(WHY)
-                .memo(MEMO)
-                .build();
+        return UserLink.create(user, link, WHY, MEMO);
     }
 
     /**
      * 기본 Link 엔티티 생성
      */
     public static Link createLink() {
-        return Link.builder()
-                .url(URL)
-                .title(LINK_TITLE)
-                .description(LINK_DESCRIPTION)
-                .build();
+        return Link.create(URL, LINK_TITLE, LINK_DESCRIPTION, null, null);
     }
 
     /**
@@ -48,11 +39,7 @@ public class UserLinkFixture {
      * 단위 테스트에서 Mock Repository의 반환값으로 사용
      */
     public static Link createLinkWithId(Long id) {
-        Link link = Link.builder()
-                .url(URL)
-                .title(LINK_TITLE)
-                .description(LINK_DESCRIPTION)
-                .build();
+        Link link = Link.create(URL, LINK_TITLE, LINK_DESCRIPTION, null, null);
         setId(link, id);
         return link;
     }
@@ -75,22 +62,13 @@ public class UserLinkFixture {
      * 커스텀 URL로 Link 생성
      */
     public static Link createLinkWithUrl(String url) {
-        return Link.builder()
-                .url(url)
-                .title(LINK_TITLE)
-                .description(LINK_DESCRIPTION)
-                .build();
+        return Link.create(url, LINK_TITLE, LINK_DESCRIPTION, null, null);
     }
 
     /**
      * 커스텀 속성으로 UserLink 생성
      */
     public static UserLink createUserLinkWithCustom(User user, Link link, String why, String memo) {
-        return UserLink.builder()
-                .user(user)
-                .link(link)
-                .why(why)
-                .memo(memo)
-                .build();
+        return UserLink.create(user, link, why, memo);
     }
 }

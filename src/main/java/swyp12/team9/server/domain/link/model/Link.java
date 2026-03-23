@@ -2,6 +2,8 @@ package swyp12.team9.server.domain.link.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -10,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -52,8 +55,20 @@ public class Link extends BaseEntity {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "processing_status", nullable = false, length = 20)
+    private LinkProcessingStatus processingStatus;
+
     @Builder
-    public Link(String url, String title, String description, String faviconUrl, String content, String aiSummary) {
+    public Link(
+            String url,
+            String title,
+            String description,
+            String faviconUrl,
+            String content,
+            String aiSummary,
+            LinkProcessingStatus processingStatus
+    ) {
         this.url = url;
         this.urlHash = generateUrlHash(url);
         this.title = title;
@@ -61,6 +76,7 @@ public class Link extends BaseEntity {
         this.faviconUrl = faviconUrl;
         this.content = content;
         this.aiSummary = aiSummary;
+        this.processingStatus = processingStatus != null ? processingStatus : LinkProcessingStatus.PENDING;
     }
 
     public static Link create(String url, String title, String description, String faviconUrl, String content) {
@@ -70,11 +86,72 @@ public class Link extends BaseEntity {
                 .description(description)
                 .faviconUrl(faviconUrl)
                 .content(content)
+                .processingStatus(LinkProcessingStatus.READY)
+                .build();
+    }
+
+    public static Link createPlaceholder(String url) {
+        return Link.builder()
+                .url(url)
+                .processingStatus(LinkProcessingStatus.PENDING)
                 .build();
     }
 
     public void updateAiSummary(String aiSummary) {
         this.aiSummary = aiSummary;
+    }
+
+    public void updateFromScraping(String title, String description, String faviconUrl, String content) {
+        this.title = title;
+        this.description = description;
+        this.faviconUrl = faviconUrl;
+        this.content = content;
+    }
+
+    public void complete(String title, String description, String faviconUrl, String content, String aiSummary) {
+        this.title = title;
+        this.description = description;
+        this.faviconUrl = faviconUrl;
+        this.content = content;
+        this.aiSummary = aiSummary;
+        this.processingStatus = LinkProcessingStatus.READY;
+    }
+
+    public void markPending() {
+        this.processingStatus = LinkProcessingStatus.PENDING;
+    }
+
+    public void markFailed() {
+        this.processingStatus = LinkProcessingStatus.FAILED;
+    }
+
+    public boolean isPending() {
+        return this.processingStatus == LinkProcessingStatus.PENDING;
+    }
+
+    public boolean isReady() {
+        return this.processingStatus == LinkProcessingStatus.READY;
+    }
+
+    public boolean isFailed() {
+        return this.processingStatus == LinkProcessingStatus.FAILED;
+    }
+
+    public boolean hasAiSummary() {
+        return this.aiSummary != null && !this.aiSummary.isBlank();
+    }
+
+    public boolean isContentChanged(String newTitle, String newDescription, String newContent) {
+        return !Objects.equals(this.title, newTitle)
+                || !Objects.equals(this.description, newDescription)
+                || !Objects.equals(this.content, newContent);
+    }
+
+    public boolean isScrapedDataChanged(String newTitle, String newDescription, String newFaviconUrl, String newContent) {
+        return !Objects.equals(this.title, newTitle)
+                || !Objects.equals(this.description, newDescription)
+                || !Objects.equals(this.faviconUrl, newFaviconUrl)
+                || !Objects.equals(this.content, newContent);
     }
 
     public static String generateUrlHash(String url) {

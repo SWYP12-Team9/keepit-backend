@@ -1,4 +1,4 @@
-package swyp12.team9.server.global.event;
+package swyp12.team9.server.domain.chatbot.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,21 +7,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.event.TransactionPhase;
 import swyp12.team9.server.domain.chatbot.service.ChatbotIndexingService;
+import swyp12.team9.server.domain.link.event.LinkAiSummaryUpdatedEvent;
+import swyp12.team9.server.domain.userlink.event.UserLinkChatbotReindexEvent;
 import swyp12.team9.server.domain.userlink.event.UserLinkCreatedEvent;
 import swyp12.team9.server.domain.userlink.event.UserLinkDeletedEvent;
-import swyp12.team9.server.domain.userlink.event.UserLinkUpdatedEvent;
+import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 /**
  * UserLink 이벤트 리스너
  * - 트랜잭션 커밋 후 비동기로 Elasticsearch 인덱싱 처리
- * - 챗봇용 인덱스만 자동 업데이트 (추천용은 관리자 API로 배치 처리)
+ * - 챗봇용 인덱스를 이벤트별 정책에 따라 자동 업데이트
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class IndexingEventListener {
+public class ChatbotIndexingEventListener {
 
     private final ChatbotIndexingService chatbotIndexingService;
+    private final UserLinkRepository userLinkRepository;
 
     /**
      * UserLink 생성 이벤트 처리
@@ -49,9 +52,9 @@ public class IndexingEventListener {
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleUserLinkUpdated(UserLinkUpdatedEvent event) {
+    public void handleUserLinkChatbotReindex(UserLinkChatbotReindexEvent event) {
         Long userLinkId = event.userLinkId();
-        log.debug("UserLink 수정 이벤트 처리 시작 - userLinkId: {}", userLinkId);
+        log.debug("UserLink 챗봇 재인덱싱 이벤트 처리 시작 - userLinkId: {}", userLinkId);
 
         try {
             chatbotIndexingService.indexUserLink(userLinkId);
@@ -60,6 +63,29 @@ public class IndexingEventListener {
             log.error("[챗봇] UserLink Elasticsearch 재인덱싱 실패 - userLinkId: {}, error: {}",
                     userLinkId, e.getMessage(), e);
         }
+    }
+
+    /**
+     * Link AI 요약 완료 이벤트 처리
+     * - AI 요약이 없어 인덱싱이 skip됐던 UserLink들을 재인덱싱
+     *
+     * @param event linkId를 담은 AI 요약 완료 이벤트
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleLinkAiSummaryUpdated(LinkAiSummaryUpdatedEvent event) {
+        Long linkId = event.linkId();
+        log.debug("Link AI 요약 완료 이벤트 처리 시작 - linkId: {}", linkId);
+
+        userLinkRepository.findByLinkId(linkId).forEach(userLink -> {
+            try {
+                chatbotIndexingService.indexUserLink(userLink.getId());
+                log.info("[챗봇] AI 요약 완료 후 재인덱싱 완료 - userLinkId: {}", userLink.getId());
+            } catch (Exception e) {
+                log.error("[챗봇] AI 요약 완료 후 재인덱싱 실패 - userLinkId: {}, error: {}",
+                        userLink.getId(), e.getMessage(), e);
+            }
+        });
     }
 
     /**

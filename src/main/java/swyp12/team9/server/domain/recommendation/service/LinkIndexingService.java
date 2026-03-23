@@ -11,6 +11,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.link.model.Link;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.recommendation.model.IndexType;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
@@ -134,7 +135,8 @@ public class LinkIndexingService {
      * @return 유효 여부
      */
     private boolean hasValidContent(Link link) {
-        return link.getTitle() != null && !link.getTitle().trim().isEmpty()
+        return link.getProcessingStatus() == LinkProcessingStatus.READY
+                && link.getTitle() != null && !link.getTitle().trim().isEmpty()
                 && link.getAiSummary() != null && !link.getAiSummary().trim().isEmpty();
     }
 

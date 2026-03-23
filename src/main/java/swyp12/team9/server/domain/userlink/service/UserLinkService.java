@@ -26,7 +26,7 @@ import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.user.repository.UserRepository;
 import swyp12.team9.server.domain.userlink.event.UserLinkCreatedEvent;
 import swyp12.team9.server.domain.userlink.event.UserLinkDeletedEvent;
-import swyp12.team9.server.domain.userlink.event.UserLinkUpdatedEvent;
+import swyp12.team9.server.domain.userlink.event.UserLinkChatbotReindexEvent;
 import swyp12.team9.server.domain.userlink.exception.ReferenceSelectionDuplicateException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkAccessDeniedException;
 import swyp12.team9.server.domain.userlink.exception.UserLinkDuplicateException;
@@ -34,11 +34,11 @@ import swyp12.team9.server.domain.userlink.exception.UserLinkNotFoundException;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.global.util.PaginationUtils.Cursor.PageResponse;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class UserLinkService {
 
     private static final ConcurrentHashMap<String, Object> URL_LOCKS = new ConcurrentHashMap<>();
@@ -50,12 +50,12 @@ public class UserLinkService {
     private final ReferenceUserLinkRepository referenceUserLinkRepository;
     private final ReferenceService referenceService;
     private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * 사용자 링크 생성 - 중복 체크를 먼저 수행한 후 Link 생성 - LinkService를 통해 Link 스크래핑 로직 처리 referenceId와 newReference는 둘 중 하나만 선택 둘 다
      * null이면 기본 미지정 폴더에 자동 분류
      */
-    @Transactional // 트랜잭션 A 시작 → 커넥션 1 획득
     public UserLinkResponse createUserLink(Long userId, UserLinkCreateRequest request) {
         User user = getUserById(userId); // 커넥션 1 사용
 
@@ -74,66 +74,71 @@ public class UserLinkService {
 
         try {
             synchronized (lock) {
-                // 스크래핑 + AI 요약은 트랜잭션 밖에서 실행 (커넥션 미사용)
-                // Link 저장 시에만 REQUIRES_NEW로 커넥션 2를 짧게 획득 (수십ms)
-                // 단, 커넥션 1은 createUserLink `@Transactional로` 인해 계속 점유 상태
-                link = linkService.getOrCreateLink(request.url());
+                // 이 단계에서는 트랜잭션을 점유하지 않아 커넥션 낭비와 데드락 발생을 방지
+                // Link 저장 시(getOrSavePlaceholderLink)에만 잠깐 독립 커넥션을 사용
+                link = linkService.getOrCreateLink(request.url(), userId);
             }
         }
         finally {
             URL_LOCKS.remove(urlHash);
         }
 
-        // UserLink 중복 체크 (기존 Link / 동시 요청으로 재사용한 Link 모두 검사)
-        if (userLinkRepository.existsByUserIdAndLinkId(userId, link.getId())) {
-            throw new UserLinkDuplicateException();
-        }
+        return transactionTemplate.execute(status -> {
+            // 같은 사용자의 기존 저장 건이 있으면, 처리 중/실패 상태에서는 기존 항목을 그대로 반환한다.
+            UserLink existingUserLink = userLinkRepository.findByUserIdAndLinkId(userId, link.getId()).orElse(null);
+            if (existingUserLink != null) {
+                if (!link.isReady()) {
+                    Reference existingReference = referenceUserLinkRepository.findByUserLinkId(existingUserLink.getId()).stream()
+                            .map(ReferenceUserLink::getReference)
+                            .findFirst()
+                            .orElse(null);
+                    return UserLinkResponse.from(existingUserLink, existingReference);
+                }
 
-        // UserLink 생성
-        UserLink userLink = UserLink.builder()
-                .user(user)
-                .link(link)
-                .why(request.why())
-                .memo(request.memo())
-                .build();
+                throw new UserLinkDuplicateException();
+            }
 
-        UserLink savedUserLink = userLinkRepository.save(userLink);
+            // UserLink 생성
+            UserLink userLink = UserLink.create(user, link, request.why(), request.memo());
 
-        // ReferenceUserLink 생성 (기존 폴더 OR 새 폴더 OR 미지정)
-        Reference reference;
+            UserLink savedUserLink = userLinkRepository.save(userLink);
 
-        if (hasReferenceId) {
-            // 1. 기존 레퍼런스 폴더 선택한 경우
-            reference = getReferenceById(request.referenceId());
-            reference.validateOwner(userId);
-        } else if (hasNewReference) {
-            // 2. 새 레퍼런스 폴더 생성 옵션 선택한 경우
-            reference = referenceService.createReferenceEntity(
-                    userId,
-                    request.newReference().title(),
-                    request.newReference().colorCode()
-            );
-            log.info("새 레퍼런스 폴더 생성 - userId: {}, referenceId: {}, title: {}",
-                    userId, reference.getId(), request.newReference().title());
-        } else {
-            // 3. 아무것도 선택하지 않은 경우, 기본 미지정 폴더에 자동 분류
-            reference = referenceService.getOrCreateDefaultReference(userId);
-        }
+            // ReferenceUserLink 생성 (기존 폴더 OR 새 폴더 OR 미지정)
+            Reference reference;
 
-        // ReferenceUserLink 엔티티 생성 및 저장
-        ReferenceUserLink referenceUserLink = ReferenceUserLink.builder()
-                .reference(reference)
-                .userLink(savedUserLink)
-                .build();
-        referenceUserLinkRepository.save(referenceUserLink);
+            if (hasReferenceId) {
+                // 1. 기존 레퍼런스 폴더 선택한 경우
+                reference = getReferenceById(request.referenceId());
+                reference.validateOwner(userId);
+            } else if (hasNewReference) {
+                // 2. 새 레퍼런스 폴더 생성 옵션 선택한 경우
+                reference = referenceService.createReferenceEntity(
+                        userId,
+                        request.newReference().title(),
+                        request.newReference().colorCode()
+                );
+                log.info("새 레퍼런스 폴더 생성 - userId: {}, referenceId: {}, title: {}",
+                        userId, reference.getId(), request.newReference().title());
+            } else {
+                // 3. 아무것도 선택하지 않은 경우, 기본 미지정 폴더에 자동 분류
+                reference = referenceService.getOrCreateDefaultReference(userId);
+            }
 
-        // 인덱싱 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
-        eventPublisher.publishEvent(UserLinkCreatedEvent.of(savedUserLink.getId()));
+            // ReferenceUserLink 엔티티 생성 및 저장
+            ReferenceUserLink referenceUserLink = ReferenceUserLink.builder()
+                    .reference(reference)
+                    .userLink(savedUserLink)
+                    .build();
+            referenceUserLinkRepository.save(referenceUserLink);
 
-        log.info("사용자 링크 생성 완료 - userId: {}, userLinkId: {}, referenceId: {}, url: {}",
-                userId, savedUserLink.getId(), reference.getId(), request.url());
+            // 인덱싱 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
+            eventPublisher.publishEvent(UserLinkCreatedEvent.of(savedUserLink.getId()));
 
-        return UserLinkResponse.from(savedUserLink, reference);
+            log.info("사용자 링크 생성 완료 - userId: {}, userLinkId: {}, referenceId: {}, url: {}",
+                    userId, savedUserLink.getId(), reference.getId(), request.url());
+
+            return UserLinkResponse.from(savedUserLink, reference);
+        });
     }
 
     /**
@@ -141,7 +146,7 @@ public class UserLinkService {
      */
     @Transactional
     public UserLinkResponse getUserLink(Long userId, Long userLinkId) {
-        UserLink userLink = getUserLinkById(userLinkId);
+        UserLink userLink = getVisibleUserLinkById(userLinkId);
 
         // 소유자 검증
         if (userId == null) {
@@ -160,6 +165,24 @@ public class UserLinkService {
                 .orElse(null);
 
         return UserLinkResponse.from(userLink, reference);
+    }
+
+    /**
+     * 미리보기 렌더링용 사용자 링크를 조회한다.
+     * 조회수는 증가시키지 않으며, 미리보기 표시를 위한 현재 상태만 반환한다.
+     */
+    @Transactional(readOnly = true)
+    public UserLinkListResponse getUserLinkPreview(Long userId, Long userLinkId) {
+        UserLink userLink = getVisibleUserLinkById(userLinkId);
+
+        userLink.validateOwner(userId);
+
+        Reference reference = referenceUserLinkRepository.findByUserLinkId(userLinkId).stream()
+                .map(ReferenceUserLink::getReference)
+                .findFirst()
+                .orElse(null);
+
+        return UserLinkListResponse.of(userLink, reference);
     }
 
     /**
@@ -186,14 +209,11 @@ public class UserLinkService {
                 request.memo() != null ? request.memo() : userLink.getMemo()
         );
 
-        // why, memo 변경 시 챗봇 인덱스 재인덱싱
-        // Reference 이동 시 추천 인덱스 재인덱싱 필요
-        boolean needsReindex = request.why() != null || request.memo() != null
-                || request.referenceId() != null || Boolean.TRUE.equals(request.moveToDefault());
+        boolean chatbotReindexRequired = request.why() != null || request.memo() != null;
 
-        if (needsReindex) {
-            // 재인덱싱 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
-            eventPublisher.publishEvent(UserLinkUpdatedEvent.of(userLinkId));
+        if (chatbotReindexRequired) {
+            // why/memo 변경은 챗봇 문서 내용에 직접 반영되므로 별도 이벤트로 분리한다.
+            eventPublisher.publishEvent(UserLinkChatbotReindexEvent.of(userLinkId));
         }
 
         // Reference 처리
@@ -269,6 +289,7 @@ public class UserLinkService {
      * @param size        페이지 크기
      * @return 커서 기반 페이징 응답
      */
+    @Transactional(readOnly = true)
     public PageResponse<UserLinkListResponse> getUserLinksByReferenceId(
             Long userId, Long referenceId, String cursor, int size) {
 
@@ -344,6 +365,14 @@ public class UserLinkService {
 
     private UserLink getUserLinkById(Long userLinkId) {
         return userLinkRepository.findById(userLinkId).orElseThrow(UserLinkNotFoundException::new);
+    }
+
+    private UserLink getVisibleUserLinkById(Long userLinkId) {
+        UserLink userLink = getUserLinkById(userLinkId);
+        if (!userLink.getLink().isReady()) {
+            throw new UserLinkNotFoundException();
+        }
+        return userLink;
     }
 
     private Reference getReferenceById(Long referenceId) {

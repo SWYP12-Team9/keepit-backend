@@ -74,6 +74,15 @@ public class UserLink extends BaseEntity {
         this.viewCount = 0L;
     }
 
+    public static UserLink create(User user, Link link, String why, String memo) {
+        return UserLink.builder()
+                .user(user)
+                .link(link)
+                .why(why)
+                .memo(memo)
+                .build();
+    }
+
     public void updateUserLink(String why, String memo) {
         this.why = why;
         this.memo = memo;
