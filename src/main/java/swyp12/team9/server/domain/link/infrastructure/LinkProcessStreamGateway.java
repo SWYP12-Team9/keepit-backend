@@ -74,18 +74,23 @@ public class LinkProcessStreamGateway {
 
     // 처리 중에는 관련 상태 키들의 TTL을 함께 갱신해 장시간 작업 중 만료로 인한 중복 처리/복구 실패를 막음
     public void touchProcessingState(Long linkId, String recordId, Duration ttl) {
-        List<byte[]> keys = List.of(
-                LinkStreamRedisKeys.notifyUsersKey(linkId).getBytes(),
-                LinkStreamRedisKeys.processingLockKey(linkId).getBytes(),
-                LinkStreamRedisKeys.payloadBackupKey(recordId).getBytes(),
-                LinkStreamRedisKeys.linkIdBackupKey(recordId).getBytes()
+        String script =
+                "for i=1, #KEYS do " +
+                "  redis.call('EXPIRE', KEYS[i], ARGV[1]); " +
+                "end " +
+                "return 1;";
+
+        RedisScript<Long> touchScript = new DefaultRedisScript<>(script, Long.class);
+        stringRedisTemplate.execute(
+                touchScript,
+                List.of(
+                        LinkStreamRedisKeys.notifyUsersKey(linkId),
+                        LinkStreamRedisKeys.processingLockKey(linkId),
+                        LinkStreamRedisKeys.payloadBackupKey(recordId),
+                        LinkStreamRedisKeys.linkIdBackupKey(recordId)
+                ),
+                String.valueOf(ttl.toSeconds())
         );
-        stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            for (byte[] key : keys) {
-                connection.keyCommands().expire(key, ttl.toSeconds());
-            }
-            return null;
-        });
     }
 
     // 완료/실패 시 대기 유저를 한 번에 꺼내고, lock/백업 메타데이터까지 같이 제거해 다음 요청을 위한 상태로 되돌림
