@@ -3,8 +3,10 @@ package swyp12.team9.server.domain.reference.repository;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.reference.dto.ReferenceCursor;
 import swyp12.team9.server.domain.reference.dto.ReferenceSortType;
 import swyp12.team9.server.domain.reference.dto.ReferenceType;
@@ -12,6 +14,7 @@ import swyp12.team9.server.domain.reference.dto.response.ReferenceListResponse;
 
 import java.util.List;
 
+import static swyp12.team9.server.domain.link.model.QLink.link;
 import static swyp12.team9.server.domain.reference.model.QReference.reference;
 import static swyp12.team9.server.domain.reference.relation.model.QReferenceUserLink.referenceUserLink;
 import static swyp12.team9.server.domain.userlink.model.QUserLink.userLink;
@@ -24,6 +27,7 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
     /**
      * Reference 목록 조회 (UserLink count 포함, N:N 관계 고려)
      * - ReferenceUserLink를 통해 UserLink count 집계
+     * - link.processingStatus = READY 인 UserLink만 count에 포함
      * - ALL 타입일 경우만 미지정 폴더 포함
      */
     @Override
@@ -34,17 +38,21 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
             ReferenceCursor cursor,
             int size
     ) {
+        NumberExpression<Long> visibleLinkCount = visibleLinkCount();
+
         var query = queryFactory
                 .select(Projections.constructor(ReferenceListResponse.class,
                         reference.id,
                         reference.title,
                         reference.colorCode,
-                        referenceUserLink.userLink.countDistinct(),
+                        visibleLinkCount,
                         reference.isDefault
                 ))
                 .from(reference)
                 .leftJoin(referenceUserLink).on(referenceUserLink.reference.eq(reference))
                 .leftJoin(referenceUserLink.userLink, userLink)
+                .leftJoin(userLink.link, link)
+                .on(isReadyLink())
                 .where(
                         userIdEq(userId),
                         eqType(type),
@@ -55,11 +63,11 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
 
         // LINK_COUNT 정렬 시 HAVING으로 처리
         if (isLinkCountSort(sortBy) && cursor != null && cursor.linkCount() != null) {
-            query.having(linkCountHaving(sortBy, cursor));
+            query.having(linkCountHaving(sortBy, cursor, visibleLinkCount));
         }
 
         return query
-                .orderBy(getOrderSpecifier(sortBy), reference.id.desc())
+                .orderBy(getOrderSpecifier(sortBy, visibleLinkCount), reference.id.desc())
                 .limit(size + 1)
                 .fetch();
     }
@@ -92,18 +100,16 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
      * LINK_COUNT 정렬용 HAVING 조건
      * - linkCount가 같을 경우 id로 추가 비교
      */
-    private BooleanExpression linkCountHaving(ReferenceSortType sortBy, ReferenceCursor cursor) {
+    private BooleanExpression linkCountHaving(ReferenceSortType sortBy, ReferenceCursor cursor, NumberExpression<Long> visibleLinkCount) {
         if (cursor == null || cursor.linkCount() == null) return null;
-
-        var count = referenceUserLink.userLink.countDistinct();
 
         return switch (sortBy) {
             case LINK_COUNT_DESC ->
-                    count.lt(cursor.linkCount())
-                            .or(count.eq(cursor.linkCount()).and(reference.id.lt(cursor.id())));
+                    visibleLinkCount.lt(cursor.linkCount())
+                            .or(visibleLinkCount.eq(cursor.linkCount()).and(reference.id.lt(cursor.id())));
             case LINK_COUNT_ASC ->
-                    count.gt(cursor.linkCount())
-                            .or(count.eq(cursor.linkCount()).and(reference.id.lt(cursor.id())));
+                    visibleLinkCount.gt(cursor.linkCount())
+                            .or(visibleLinkCount.eq(cursor.linkCount()).and(reference.id.lt(cursor.id())));
             default -> null;
         };
     }
@@ -123,16 +129,24 @@ public class ReferenceRepositoryImpl implements ReferenceRepositoryCustom {
      * - CREATED: id 기준 정렬 (생성순 = id순)
      * - LINK_COUNT: linkCount 기준 정렬
      */
-    private OrderSpecifier<?> getOrderSpecifier(ReferenceSortType sortBy) {
+    private OrderSpecifier<?> getOrderSpecifier(ReferenceSortType sortBy, NumberExpression<Long> visibleLinkCount) {
         return switch (sortBy) {
             case CREATED_DESC -> reference.id.desc();
             case CREATED_ASC -> reference.id.asc();
-            case LINK_COUNT_DESC -> referenceUserLink.userLink.countDistinct().desc();
-            case LINK_COUNT_ASC -> referenceUserLink.userLink.countDistinct().asc();
+            case LINK_COUNT_DESC -> visibleLinkCount.desc();
+            case LINK_COUNT_ASC -> visibleLinkCount.asc();
         };
     }
 
     private boolean isLinkCountSort(ReferenceSortType sortBy) {
         return sortBy == ReferenceSortType.LINK_COUNT_DESC || sortBy == ReferenceSortType.LINK_COUNT_ASC;
+    }
+
+    private BooleanExpression isReadyLink() {
+        return link.processingStatus.eq(LinkProcessingStatus.READY);
+    }
+
+    private NumberExpression<Long> visibleLinkCount() {
+        return link.id.countDistinct();
     }
 }

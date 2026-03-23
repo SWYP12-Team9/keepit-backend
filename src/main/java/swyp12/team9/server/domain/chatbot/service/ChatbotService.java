@@ -1,9 +1,9 @@
 package swyp12.team9.server.domain.chatbot.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +20,22 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChatbotService {
 
     private final ChatbotRagService chatbotRagService;
     private final ChatClient chatbotChatClient;
     private final ChatbotRateLimitService rateLimitService;
+
+    public ChatbotService(
+            ChatbotRagService chatbotRagService,
+            @Qualifier("chatbotChatClient") ChatClient chatbotChatClient,
+            ChatbotRateLimitService rateLimitService
+    ) {
+        this.chatbotRagService = chatbotRagService;
+        this.chatbotChatClient = chatbotChatClient;
+        this.rateLimitService = rateLimitService;
+    }
 
     @Value("${ai.chatbot.max-tokens:2000}")
     private Integer chatbotMaxTokens;

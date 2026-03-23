@@ -57,9 +57,7 @@ public interface UserLinkApi {
                     ErrorCode.REFERENCE_NOT_FOUND,
                     ErrorCode.REFERENCE_TITLE_DUPLICATE,
                     ErrorCode.REFERENCE_SELECTION_DUPLICATE,
-                    ErrorCode.USER_LINK_DUPLICATE,
-                    ErrorCode.LINK_SCRAPING_SERVER_ERROR,
-                    ErrorCode.LINK_SCRAPING_TIMEOUT
+                    ErrorCode.USER_LINK_DUPLICATE
             }
     )
     @PostMapping
@@ -85,6 +83,25 @@ public interface UserLinkApi {
             @Parameter(description = "사용자 링크 ID", required = true, example = "1")
             @PathVariable Long userLinkId,
             @CurrentUserId(required = false) Long userId
+    );
+
+    @Operation(
+            summary = "링크 미리보기 조회",
+            description = "링크 미리보기용 읽기 전용 조회입니다. 조회수 증가 없이 현재 상태를 반환합니다."
+    )
+    @ApiSpec(
+            status = HttpStatus.OK,
+            errors = {
+                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.USER_LINK_NOT_FOUND,
+                    ErrorCode.USER_LINK_ACCESS_DENIED
+            }
+    )
+    @GetMapping("/{userLinkId}/preview")
+    ApiResponse<UserLinkListResponse> getUserLinkPreview(
+            @Parameter(description = "사용자 링크 ID", required = true, example = "1")
+            @PathVariable Long userLinkId,
+            @CurrentUserId Long userId
     );
 
     @Operation(

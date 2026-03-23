@@ -1,22 +1,25 @@
 package swyp12.team9.server.domain.link.service;
 
 
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import java.util.Map;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class LinkAiService {
 
     private final ChatClient linkSummaryChatClient;
+
+    public LinkAiService(@Qualifier("linkSummaryChatClient") ChatClient linkSummaryChatClient) {
+        this.linkSummaryChatClient = linkSummaryChatClient;
+    }
 
     @Value("${ai.summary.temperature:0.4}")
     private Double summaryTemperature;

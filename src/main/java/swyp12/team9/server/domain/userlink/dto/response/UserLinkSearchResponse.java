@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import lombok.Builder;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
@@ -105,6 +106,9 @@ public record UserLinkSearchResponse(
             @Schema(description = "AI 요약", example = "Spring Boot에 대한 종합 가이드입니다.")
             String aiSummary,
 
+            @Schema(description = "링크 처리 상태", example = "READY")
+            LinkProcessingStatus processingStatus,
+
             @Schema(description = "읽음 상태", example = "UNREAD")
             LinkStatus status,
 
@@ -133,6 +137,7 @@ public record UserLinkSearchResponse(
                     .title(userLink.getLink().getTitle())
                     .url(userLink.getLink().getUrl())
                     .aiSummary(userLink.getLink().getAiSummary())
+                    .processingStatus(userLink.getLink().getProcessingStatus())
                     .status(userLink.getStatus())
                     .viewCount(userLink.getViewCount())
                     .matchedFields(matchedFields)

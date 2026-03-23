@@ -3,7 +3,6 @@ package swyp12.team9.server.domain.chatbot.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
@@ -11,6 +10,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.link.model.Link;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.recommendation.model.IndexType;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
@@ -67,7 +67,8 @@ public class ChatbotIndexingService {
      * Link의 title과 aiSummary 유효성 검증
      */
     private boolean hasValidContent(Link link) {
-        return link.getTitle() != null && !link.getTitle().trim().isEmpty()
+        return link.getProcessingStatus() == LinkProcessingStatus.READY
+                && link.getTitle() != null && !link.getTitle().trim().isEmpty()
                 && link.getAiSummary() != null && !link.getAiSummary().trim().isEmpty();
     }
 

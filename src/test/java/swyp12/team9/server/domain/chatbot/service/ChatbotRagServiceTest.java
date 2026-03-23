@@ -44,7 +44,7 @@ class ChatbotRagServiceTest {
 
         @Test
         @DisplayName("성공: 사용자 질문과 관련된 링크를 검색하여 반환한다")
-        void success() {
+        void success_SearchRelevantLinks() {
             // given
             int topK = 5;
             List<Document> mockDocuments = createMockDocuments();
@@ -135,7 +135,7 @@ class ChatbotRagServiceTest {
 
         @Test
         @DisplayName("성공: 검색된 링크 목록을 프롬프트용 텍스트로 변환한다")
-        void success() {
+        void success_BuildPromptContext() {
             // given
             List<RelevantLinkContext> contexts = List.of(
                     RelevantLinkContext.builder()

@@ -47,6 +47,15 @@ public class UserLinkController implements UserLinkApi {
         return ApiResponse.ok(response, "링크를 조회했습니다.");
     }
 
+    @Override
+    public ApiResponse<UserLinkListResponse> getUserLinkPreview(
+            @PathVariable Long userLinkId,
+            @CurrentUserId Long userId) {
+
+        UserLinkListResponse response = userLinkService.getUserLinkPreview(userId, userLinkId);
+        return ApiResponse.ok(response);
+    }
+
     // 사용자 링크 수정
     @Override
     public ApiResponse<UserLinkResponse> updateUserLink(
