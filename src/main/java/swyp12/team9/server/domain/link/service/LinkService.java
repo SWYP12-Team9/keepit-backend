@@ -4,10 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import swyp12.team9.server.domain.link.event.LinkCreatedEvent;
+import swyp12.team9.server.domain.link.exception.LinkNotFoundException;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
-import swyp12.team9.server.domain.link.event.LinkCreatedEvent;
 
 
 @Slf4j
@@ -68,5 +70,17 @@ public class LinkService {
 
         log.info("Link 생성 완료 (Placeholder) - linkId: {}", link.getId());
         return link;
+    }
+
+    /**
+     * 외부(추천/인기 탭 등)에서 링크 카드를 클릭했을 때 공개 조회수를 1 증가시킵니다.
+     */
+    @Transactional
+    public void incrementPublicViewCount(Long linkId) {
+        int updatedCount = linkRepository.incrementPublicViewCount(linkId);
+        if (updatedCount == 0) {
+            throw new LinkNotFoundException();
+        }
+        log.debug("Link 공개 조회수 증가 - linkId: {}", linkId);
     }
 }

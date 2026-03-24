@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -67,6 +68,36 @@ public interface RecommendationApi {
             @Parameter(description = "카테고리명 (미지정 시 전체 조회)", example = "경제/시사") @RequestParam(required = false) String category,
             @Parameter(description = "커서 (첫 요청 시 null)", example = "20") @RequestParam(required = false) String cursor,
             @Parameter(description = "가져올 추천 콘텐츠 수", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
+    );
+
+    @Operation(summary = "인기글 조회", description = """
+                    공개 링크를 조회수 합계 기준으로 인기순 조회합니다.
+                    - 기준: 링크별 전역 공개 조회수 (publicViewCount)
+                    - 정렬: publicViewCount 내림차순, 동률이면 linkId 내림차순
+                    - 커서 형식: publicViewCount:linkId (예: 120:45)
+                    """)
+    @ApiSpec(status = HttpStatus.OK, errors = {
+            ErrorCode.VALIDATION_ERROR
+    })
+    @GetMapping("/popular")
+    ApiResponse<PaginationUtils.Cursor.PageResponse<RecommendationResponse>> getPopularLinks(
+            @CurrentUserId(required = false) Long userId,
+            @Parameter(description = "커서 (첫 요청 시 null, 형식: publicViewCount:linkId)", example = "120:45")
+            @RequestParam(required = false) String cursor,
+            @Parameter(description = "가져올 인기 콘텐츠 수", example = "10")
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
+    );
+
+    @Operation(summary = "외부/공개 링크 조회수 증가", description = """
+                    추천 탭이나 인기글 탭 등에서 링크 카드를 클릭했을 때 호출합니다.
+                    특정 링크의 전역 공개 조회수(publicViewCount)를 1 증가시킵니다.
+                    """)
+    @ApiSpec(status = HttpStatus.OK, errors = {
+            ErrorCode.LINK_NOT_FOUND
+    })
+    @PostMapping("/links/{linkId}/view")
+    ApiResponse<Void> incrementPublicViewCount(
+            @Parameter(description = "클릭한 링크 ID", example = "10") @PathVariable Long linkId
     );
 
     @Operation(summary = "[관리자] 전체 링크 색인", description = """

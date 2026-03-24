@@ -1,0 +1,1 @@
+ALTER TABLE links ADD COLUMN public_view_count BIGINT DEFAULT 0 NOT NULL;
