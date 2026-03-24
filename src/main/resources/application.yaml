@@ -1,3 +1,7 @@
 spring:
-  application:
-    name: server
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
