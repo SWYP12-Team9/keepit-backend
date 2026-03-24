@@ -10,6 +10,7 @@ import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
 /**
@@ -45,6 +46,7 @@ public class UserLinkSearchRepositoryImpl implements UserLinkSearchRepositoryCus
                 .join(userLink.link, link).fetchJoin()  // N+1 방지를 위한 fetch join
                 .where(
                         userLink.user.id.eq(userId),
+                        link.processingStatus.eq(LinkProcessingStatus.READY),
                         cursorCondition(cursorId),
                         keywordCondition(keyword, field)
                 )
@@ -68,6 +70,7 @@ public class UserLinkSearchRepositoryImpl implements UserLinkSearchRepositoryCus
                 .join(referenceUserLink).on(referenceUserLink.userLink.eq(userLink))
                 .where(
                         referenceUserLink.reference.id.eq(referenceId),
+                        link.processingStatus.eq(LinkProcessingStatus.READY),
                         cursorCondition(cursorId),
                         keywordCondition(keyword, field)
                 )
@@ -93,6 +96,7 @@ public class UserLinkSearchRepositoryImpl implements UserLinkSearchRepositoryCus
                 .join(referenceUserLink.reference, reference)
                 .where(
                         reference.user.id.eq(userId),
+                        link.processingStatus.eq(LinkProcessingStatus.READY),
                         cursorCondition(cursorId),
                         keywordCondition(keyword, field)
                 )

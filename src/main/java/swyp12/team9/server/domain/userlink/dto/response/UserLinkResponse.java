@@ -2,6 +2,7 @@ package swyp12.team9.server.domain.userlink.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.UserLink;
@@ -24,6 +25,9 @@ public record UserLinkResponse(
 
         @Schema(description = "AI 요약", example = "디자인 패턴에 대한 종합 가이드")
         String aiSummary,
+
+        @Schema(description = "링크 처리 상태", example = "READY")
+        LinkProcessingStatus processingStatus,
 
         @Schema(description = "읽음 상태", example = "UNREAD")
         LinkStatus status,
@@ -48,6 +52,7 @@ public record UserLinkResponse(
                 .title(userLink.getLink().getTitle())
                 .url(userLink.getLink().getUrl())
                 .aiSummary(userLink.getLink().getAiSummary())
+                .processingStatus(userLink.getLink().getProcessingStatus())
                 .status(userLink.getStatus())
                 .why(userLink.getWhy())
                 .memo(userLink.getMemo())
@@ -67,6 +72,7 @@ public record UserLinkResponse(
                 .title(userLink.getLink().getTitle())
                 .url(userLink.getLink().getUrl())
                 .aiSummary(userLink.getLink().getAiSummary())
+                .processingStatus(userLink.getLink().getProcessingStatus())
                 .status(userLink.getStatus())
                 .why(userLink.getWhy())
                 .memo(userLink.getMemo())

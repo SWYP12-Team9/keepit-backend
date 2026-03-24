@@ -146,8 +146,9 @@ public class SecurityConfig {
                                 // 약관 조회 (익명 허용)
                                 .requestMatchers(HttpMethod.GET, "/api/v1/terms/**").permitAll()
 
-                                // 관리자 전용 API (가장 먼저 체크)
-                                .requestMatchers("/api/v1/references/admin/**").hasRole("ADMIN")  // 관리자 전용
+                                // 관리자 전용 API
+                                .requestMatchers("/api/v1/admin/**").hasRole(UserRole.ADMIN.name())
+                                .requestMatchers("/api/v1/references/admin/**").hasRole(UserRole.ADMIN.name())
 
                                 // API v1 전체 (인증 필요)
                                 .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole(UserRole.USER.name())
