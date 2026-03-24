@@ -96,7 +96,7 @@ java -jar build/libs/server-0.0.1-SNAPSHOT.jar
 
 ## 📁 Project Structure
 
-도메인 중심의 패키지 구조를 사용하며, 각 도메인이 Controller부터 Repository까지 수직으로 소유합니다.
+도메인 중심의 패키지 구조를 사용합니다.
 
 ```
 src/main/java/swyp12/team9/server/
@@ -231,12 +231,15 @@ domain/{domain}/
 
 ## ✨ Key Features
 
-### 🔗 링크 저장 및 관리
-- Cloud Run FastAPI 스크래핑 서버로 제목, 설명, 파비콘 자동 추출
-- Redis Stream 기반 비동기 링크 처리 및 SSE 실시간 알림
-- 스크래핑 정보를 바탕으로 AI 요약 생성
-- 공개/비공개 설정, 읽음 처리 (firstOpenedAt, lastOpenedAt, viewCount 트래킹)
-- why(저장 이유), memo 작성 가능
+### 🔗 링크 관리
+- 링크 저장
+  - Cloud Run FastAPI 스크래핑 서버로 제목, 설명, 파비콘 자동 추출
+  - Redis Stream 기반 비동기 링크 처리 및 SSE 실시간 알림
+  - 스크래핑 정보를 바탕으로 AI 요약 생성
+- 링크 조회
+  - AI 요약 조회
+  - 공개/비공개 설정, 읽음 처리
+  - 저장 이유(why), 메모 작성 가능
 
 ### 📂 레퍼런스(폴더)
 - 링크를 폴더로 분류
@@ -248,10 +251,10 @@ domain/{domain}/
 - 추천 검색
 - why, memo, 제목, AI 요약 필드 대상
 
-### 💡 AI 추천
-- OpenAI 임베딩 기반 유사 링크 추천
-- Elasticsearch 벡터 스토어 활용
-- Redis 캐시를 통한 추천 성능 최적화
+### 💡 추천
+- 카테고리별 추천
+  - OpenAI 임베딩 기반 유사 링크 추천, Elasticsearch 벡터 스토어 활용
+- 인기글 조회
 
 ### 📊 사용자 통계
 - 저장 패턴 (최근 4주)
