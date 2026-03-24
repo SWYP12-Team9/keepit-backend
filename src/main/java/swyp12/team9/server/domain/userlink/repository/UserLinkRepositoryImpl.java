@@ -1,8 +1,10 @@
 package swyp12.team9.server.domain.userlink.repository;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +13,7 @@ import swyp12.team9.server.domain.userlink.dto.DayCountProjection;
 import swyp12.team9.server.domain.userlink.dto.PopularLinkProjection;
 import swyp12.team9.server.domain.userlink.dto.StatusCountProjection;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
+import swyp12.team9.server.domain.userlink.model.QUserLink;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
 import java.time.LocalDateTime;
@@ -156,12 +159,12 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
             return List.of();
         }
 
-        var subUserLink = new swyp12.team9.server.domain.userlink.model.QUserLink("subUserLink");
+        var subUserLink = new QUserLink("subUserLink");
 
         return queryFactory
                 .selectFrom(userLink)
                 .where(userLink.id.in(
-                        com.querydsl.jpa.JPAExpressions
+                        JPAExpressions
                                 .select(subUserLink.id.min())
                                 .from(subUserLink)
                                 .join(referenceUserLink)
@@ -236,9 +239,9 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
      */
     @Override
     public List<PopularLinkProjection> findPopularPublicLinks(Long cursorViewCount, Long cursorLinkId, int size) {
-        var subUserLink = new swyp12.team9.server.domain.userlink.model.QUserLink("subUserLink");
+        var subUserLink = new QUserLink("subUserLink");
 
-        BooleanExpression hasPublicReference = com.querydsl.jpa.JPAExpressions.selectOne()
+        BooleanExpression hasPublicReference = JPAExpressions.selectOne()
                 .from(subUserLink)
                 .join(referenceUserLink).on(referenceUserLink.userLink.eq(subUserLink))
                 .join(referenceUserLink.reference, reference)
@@ -248,7 +251,7 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                         reference.isPublic.eq(true))
                 .exists();
 
-        com.querydsl.core.BooleanBuilder whereBuilder = new com.querydsl.core.BooleanBuilder();
+        BooleanBuilder whereBuilder = new BooleanBuilder();
         whereBuilder.and(hasPublicReference);
         if (cursorViewCount != null && cursorLinkId != null) {
             whereBuilder.and(
