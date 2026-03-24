@@ -214,10 +214,10 @@ public class RecommendationService {
     /**
      * 인기 공개 링크 조회 (링크별 전역 공개 조회수 기준)
      * - Link 기준 전역 공개 조회수(publicViewCount) 내림차순 정렬
-     * - 커서 기반 페이징: viewCount:linkId
+     * - 커서 기반 페이징: publicViewCount:linkId
      *
      * @param userId 현재 로그인한 사용자 ID (현재는 필터링에 사용하지 않음)
-     * @param cursor 커서 (형식: viewCount:linkId)
+     * @param cursor 커서 (형식: publicViewCount:linkId)
      * @param size   페이지 크기
      * @return 인기 콘텐츠 목록
      */
@@ -227,7 +227,7 @@ public class RecommendationService {
         PopularCursor popularCursor = parsePopularCursor(cursor);
 
         List<PopularLinkProjection> results = userLinkRepository.findPopularPublicLinks(
-                popularCursor != null ? popularCursor.viewCount() : null,
+                popularCursor != null ? popularCursor.publicViewCount() : null,
                 popularCursor != null ? popularCursor.linkId() : null,
                 size);
 
@@ -293,17 +293,17 @@ public class RecommendationService {
         Map<Long, UserLink> firstUserLinkByLinkId = firstUserLinks.stream()
                 .collect(Collectors.toMap(ul -> ul.getLink().getId(), ul -> ul));
 
-        Map<Long, Long> viewCountByLinkId = projections.stream()
-                .collect(Collectors.toMap(PopularLinkProjection::linkId, PopularLinkProjection::viewCount));
+        Map<Long, Long> publicViewCountByLinkId = projections.stream()
+                .collect(Collectors.toMap(PopularLinkProjection::linkId, PopularLinkProjection::publicViewCount));
 
         return linkIds.stream()
                 .map(linkId -> {
                     UserLink firstUserLink = firstUserLinkByLinkId.get(linkId);
-                    Long viewCount = viewCountByLinkId.get(linkId);
-                    if (firstUserLink == null || viewCount == null) {
+                    Long publicViewCount = publicViewCountByLinkId.get(linkId);
+                    if (firstUserLink == null || publicViewCount == null) {
                         return null;
                     }
-                    return RecommendationResponse.fromPopular(firstUserLink.getLink(), firstUserLink, viewCount);
+                    return RecommendationResponse.fromPopular(firstUserLink.getLink(), firstUserLink, publicViewCount);
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -408,12 +408,12 @@ public class RecommendationService {
         }
 
         try {
-            long viewCount = Long.parseLong(parts[0]);
+            long publicViewCount = Long.parseLong(parts[0]);
             long linkId = Long.parseLong(parts[1]);
-            if (viewCount < 0 || linkId <= 0) {
+            if (publicViewCount < 0 || linkId <= 0) {
                 return null;
             }
-            return new PopularCursor(viewCount, linkId);
+            return new PopularCursor(publicViewCount, linkId);
         } catch (NumberFormatException e) {
             log.warn("잘못된 인기글 커서 형식: {}", cursor);
             return null;
@@ -421,7 +421,7 @@ public class RecommendationService {
     }
 
     private String toPopularCursor(PopularLinkProjection projection) {
-        return projection.viewCount() + ":" + projection.linkId();
+        return projection.publicViewCount() + ":" + projection.linkId();
     }
 
     private <T> PaginationUtils.Cursor.PageResponse<T> paginateWithCursor(List<T> items, int startIndex, int size) {
@@ -438,7 +438,7 @@ public class RecommendationService {
     }
 
     private record PopularCursor(
-            Long viewCount,
+            Long publicViewCount,
             Long linkId) {
     }
 }

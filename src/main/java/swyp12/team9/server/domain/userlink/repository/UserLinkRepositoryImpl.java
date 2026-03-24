@@ -235,10 +235,10 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
      * 공개 링크 인기글 조회 (링크별 publicViewCount 기준)
      * - N:N 관계: ReferenceUserLink를 통해 공개 여부 판단
      * - 동점 처리: linkId 내림차순
-     * - 커서: (viewCount, linkId) 복합 커서
+     * - 커서: (publicViewCount, linkId) 복합 커서
      */
     @Override
-    public List<PopularLinkProjection> findPopularPublicLinks(Long cursorViewCount, Long cursorLinkId, int size) {
+    public List<PopularLinkProjection> findPopularPublicLinks(Long cursorPublicViewCount, Long cursorLinkId, int size) {
         var subUserLink = new QUserLink("subUserLink");
 
         BooleanExpression hasPublicReference = JPAExpressions.selectOne()
@@ -253,10 +253,10 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
 
         BooleanBuilder whereBuilder = new BooleanBuilder();
         whereBuilder.and(hasPublicReference);
-        if (cursorViewCount != null && cursorLinkId != null) {
+        if (cursorPublicViewCount != null && cursorLinkId != null) {
             whereBuilder.and(
-                    link.publicViewCount.lt(cursorViewCount)
-                            .or(link.publicViewCount.eq(cursorViewCount)
+                    link.publicViewCount.lt(cursorPublicViewCount)
+                            .or(link.publicViewCount.eq(cursorPublicViewCount)
                                     .and(link.id.lt(cursorLinkId))));
         }
 
