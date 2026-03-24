@@ -16,13 +16,7 @@ public class LinkFixture {
      * 기본 Link 엔티티 생성
      */
     public static Link createLink() {
-        return Link.builder()
-                .url(URL)
-                .title(TITLE)
-                .description(DESCRIPTION)
-                .faviconUrl(FAVICON_URL)
-                .content(CONTENT)
-                .build();
+        return Link.create(URL, TITLE, DESCRIPTION, FAVICON_URL, CONTENT);
     }
 
     /**
@@ -30,14 +24,20 @@ public class LinkFixture {
      * 단위 테스트에서 Mock Repository의 반환값으로 사용
      */
     public static Link createLinkWithId(Long id) {
-        Link link = Link.builder()
-                .url(URL)
-                .title(TITLE)
-                .description(DESCRIPTION)
-                .faviconUrl(FAVICON_URL)
-                .content(CONTENT)
-                .build();
+        Link link = Link.create(URL, TITLE, DESCRIPTION, FAVICON_URL, CONTENT);
         setId(link, id);
+        return link;
+    }
+
+    public static Link createPlaceholderLinkWithId(Long id) {
+        Link link = Link.createPlaceholder(URL);
+        setId(link, id);
+        return link;
+    }
+
+    public static Link createFailedLinkWithId(Long id) {
+        Link link = createLinkWithId(id);
+        link.markFailed();
         return link;
     }
 
@@ -45,26 +45,14 @@ public class LinkFixture {
      * 커스텀 URL로 Link 생성
      */
     public static Link createLinkWithUrl(String url) {
-        return Link.builder()
-                .url(url)
-                .title(TITLE)
-                .description(DESCRIPTION)
-                .faviconUrl(FAVICON_URL)
-                .content(CONTENT)
-                .build();
+        return Link.create(url, TITLE, DESCRIPTION, FAVICON_URL, CONTENT);
     }
 
     /**
      * 커스텀 URL과 ID로 Link 생성
      */
     public static Link createLinkWithUrlAndId(Long id, String url) {
-        Link link = Link.builder()
-                .url(url)
-                .title(TITLE)
-                .description(DESCRIPTION)
-                .faviconUrl(FAVICON_URL)
-                .content(CONTENT)
-                .build();
+        Link link = Link.create(url, TITLE, DESCRIPTION, FAVICON_URL, CONTENT);
         setId(link, id);
         return link;
     }

@@ -6,6 +6,7 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.userlink.dto.DayCountProjection;
 import swyp12.team9.server.domain.userlink.dto.StatusCountProjection;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
@@ -30,6 +31,7 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
      * UserLink 목록 조회 (커서 페이징, N:N 관계 고려)
      * - referenceId가 있으면 특정 레퍼런스의 링크만 조회
      * - referenceId가 null이면 전체 링크 조회
+     * - userLink.link.processingStatus.ne(LinkProcessingStatus.FAILED)일때만 조회
      */
     @Override
     public List<UserLink> findUserLinksWithCursor(Long userId, Long referenceId, Long cursorId, Pageable pageable) {
@@ -46,7 +48,8 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
         query.where(
                 userLink.user.id.eq(userId),
                 cursorCondition(cursorId),
-                referenceCondition(referenceId)
+                referenceCondition(referenceId),
+                isNotFailedLink()
         )
         .orderBy(userLink.id.desc())
         .limit(pageable.getPageSize());
@@ -64,6 +67,10 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
         return referenceId != null ? reference.id.eq(referenceId) : null;
     }
 
+    private BooleanExpression isNotFailedLink() {
+        return userLink.link.processingStatus.ne(LinkProcessingStatus.FAILED);
+    }
+
 
     /**
      * 사용자의 status별 링크 개수 집계
@@ -76,7 +83,10 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                         userLink.count()
                 ))
                 .from(userLink)
-                .where(userLink.user.id.eq(userId))
+                .where(
+                        userLink.user.id.eq(userId),
+                        isReadyLink()
+                )
                 .groupBy(userLink.status)
                 .fetch();
     }
@@ -95,7 +105,8 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 .from(userLink)
                 .where(
                         userLink.user.id.eq(userId),
-                        userLink.createdAt.goe(startDate)
+                        userLink.createdAt.goe(startDate),
+                        isReadyLink()
                 )
                 .groupBy(Expressions.numberTemplate(Integer.class, "DAYOFWEEK({0})", userLink.createdAt))
                 .orderBy(Expressions.numberTemplate(Integer.class, "DAYOFWEEK({0})", userLink.createdAt).asc())
@@ -110,7 +121,10 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
         Long count = queryFactory
                 .select(userLink.count())
                 .from(userLink)
-                .where(userLink.user.id.eq(userId))
+                .where(
+                        userLink.user.id.eq(userId),
+                        isReadyLink()
+                )
                 .fetchOne();
 
         return count != null ? count : 0L;
@@ -126,7 +140,8 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 .from(userLink)
                 .where(
                         userLink.user.id.eq(userId),
-                        userLink.status.eq(status)
+                        userLink.status.eq(status),
+                        isReadyLink()
                 )
                 .fetchOne();
 
@@ -146,7 +161,8 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 .join(referenceUserLink.reference, reference)
                 .where(
                         userLink.link.id.in(linkIds),
-                        reference.isPublic.eq(true)
+                        reference.isPublic.eq(true),
+                        isReadyLink()
                 )
                 .orderBy(userLink.createdAt.asc())
                 .fetch();
@@ -164,7 +180,8 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 .join(referenceUserLink).on(referenceUserLink.userLink.eq(userLink))
                 .join(referenceUserLink.reference, reference)
                 .where(
-                        reference.isPublic.eq(true)
+                        reference.isPublic.eq(true),
+                        isReadyLink()
                 )
                 .orderBy(userLink.id.desc())
                 .limit(pageable.getPageSize())
@@ -183,7 +200,8 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 .join(referenceUserLink).on(referenceUserLink.userLink.eq(userLink))
                 .join(referenceUserLink.reference, reference)
                 .where(
-                        reference.isPublic.eq(true)
+                        reference.isPublic.eq(true),
+                        isReadyLink()
                 )
                 .fetch();
     }
@@ -196,7 +214,15 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
         return queryFactory
                 .select(userLink.createdAt.min())
                 .from(userLink)
-                .where(userLink.user.id.eq(userId))
+                .where(
+                        userLink.user.id.eq(userId),
+                        isReadyLink()
+                )
                 .fetchOne();
     }
+
+    private BooleanExpression isReadyLink() {
+        return userLink.link.processingStatus.eq(LinkProcessingStatus.READY);
+    }
+
 }

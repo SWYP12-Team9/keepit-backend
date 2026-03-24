@@ -52,7 +52,7 @@ class FileStorageServiceTest {
         class MultipartUpload {
             @Test
             @DisplayName("성공: 파일을 업로드하고 생성된 키를 반환한다")
-            void success() {
+            void success_UploadMultipartFile() {
                 MultipartFile file = FileFixture.createMultipartFile();
                 given(storage.create(any(BlobInfo.class), any(byte[].class)))
                         .willReturn(mock(Blob.class));
@@ -105,7 +105,7 @@ class FileStorageServiceTest {
         class ByteArrayUpload {
             @Test
             @DisplayName("성공: 바이트 데이터를 업로드하고 키를 반환한다")
-            void success() {
+            void success_UploadByteArray() {
                 given(storage.create(any(BlobInfo.class), any(byte[].class)))
                         .willReturn(mock(Blob.class));
 
@@ -135,7 +135,7 @@ class FileStorageServiceTest {
     class DownloadAndRetrieve {
         @Test
         @DisplayName("성공: 객체 키를 통해 파일 내용을 가져온다")
-        void download_Success() {
+        void success_DownloadFile() {
             given(storage.readAllBytes(any(BlobId.class)))
                     .willReturn(FileFixture.CONTENT);
 
@@ -146,7 +146,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("실패: 파일이 존재하지 않을 때 FILE_NOT_FOUND 반환")
-        void download_Fail_NotFound() {
+        void fail_DownloadFileWhenNotFound() {
             given(storage.readAllBytes(any(BlobId.class)))
                     .willThrow(new StorageException(404, "Not Found"));
 
@@ -157,7 +157,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("실패: GCS 통신 중 에러 발생 시 FILE_DOWNLOAD_FAILED 반환")
-        void download_Fail_StorageException() {
+        void fail_DownloadFileWhenStorageExceptionOccurs() {
             given(storage.readAllBytes(any(BlobId.class)))
                     .willThrow(new StorageException(500, "Internal Server Error"));
 
@@ -168,7 +168,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("성공: 파일 존재 여부 확인 시 존재하면 true 반환")
-        void exists_True() {
+        void success_FileExistsWhenBlobExists() {
             Blob mockBlob = mock(Blob.class);
             given(storage.get(any(BlobId.class))).willReturn(mockBlob);
             given(mockBlob.exists()).willReturn(true);
@@ -180,7 +180,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("실패: 존재하지 않는 키를 조회하면 false를 반환한다")
-        void exists_False() {
+        void fail_FileExistsReturnsFalseWhenKeyDoesNotExist() {
             given(storage.get(any(BlobId.class))).willReturn(null);
 
             boolean exists = fileStorageService.fileExists("non-existent-key");
@@ -190,7 +190,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("실패: 존재 확인 중 StorageException 발생 시 INTERNAL_SERVER_ERROR 반환")
-        void exists_Fail_StorageException() {
+        void fail_FileExistsWhenStorageExceptionOccurs() {
             given(storage.get(any(BlobId.class)))
                     .willThrow(new StorageException(500, "GCS error"));
 
@@ -201,7 +201,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("실패: 존재 확인 중 시스템 에러 발생 시 INTERNAL_SERVER_ERROR 반환")
-        void exists_Fail_Generic() {
+        void fail_FileExistsWhenGenericExceptionOccurs() {
             given(storage.get(any(BlobId.class)))
                     .willThrow(new RuntimeException("System error"));
 
@@ -216,7 +216,7 @@ class FileStorageServiceTest {
     class Management {
         @Test
         @DisplayName("성공: 지정된 객체 키의 파일을 삭제한다")
-        void delete_Success() {
+        void success_DeleteFile() {
             given(storage.delete(any(BlobId.class))).willReturn(true);
 
             fileStorageService.deleteFile(FileFixture.OBJECT_KEY);
@@ -226,7 +226,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("실패: 파일 삭제 중 StorageException 발생 시 FILE_DELETE_FAILED 반환")
-        void delete_Fail_StorageException() {
+        void fail_DeleteFileWhenStorageExceptionOccurs() {
             given(storage.delete(any(BlobId.class)))
                     .willThrow(new StorageException(500, "GCS error"));
 
@@ -237,7 +237,7 @@ class FileStorageServiceTest {
 
         @Test
         @DisplayName("성공: GCS 형식의 파일 전체 URL을 생성한다")
-        void getUrl_Success() {
+        void success_GetFileUrl() {
             String url = fileStorageService.getFileUrl(FileFixture.OBJECT_KEY);
 
             assertThat(url).isEqualTo("https://storage.googleapis.com/" + FileFixture.BUCKET_NAME + "/" + FileFixture.OBJECT_KEY);
