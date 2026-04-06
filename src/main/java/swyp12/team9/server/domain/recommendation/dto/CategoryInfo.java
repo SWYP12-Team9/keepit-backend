@@ -5,13 +5,25 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * 카테고리 정보
  */
-@Schema(description = "카테고리 정보")
-public record CategoryInfo(
+import lombok.*;
 
-        @Schema(description = "카테고리명", example = "경제/시사")
-        String name
-) {
+/**
+ * 카테고리 정보
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Schema(description = "카테고리 정보")
+public class CategoryInfo {
+
+    @Schema(description = "카테고리명", example = "경제/시사")
+    private String name;
+
     public static CategoryInfo from(String categoryName) {
-        return new CategoryInfo(categoryName);
+        return CategoryInfo.builder()
+                .name(categoryName)
+                .build();
     }
 }
