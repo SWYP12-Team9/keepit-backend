@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import lombok.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class PaginationUtils {
@@ -70,7 +69,8 @@ public class PaginationUtils {
 
         @Schema(description = "오프셋 페이징 응답 정보")
         @Getter
-        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        @Setter
+        @NoArgsConstructor
         @AllArgsConstructor(access = AccessLevel.PROTECTED)
         public static class PageResponse<T> {
 
@@ -145,7 +145,8 @@ public class PaginationUtils {
 
         @Schema(description = "커서 기반 페이지 응답 정보")
         @Getter
-        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        @Setter
+        @NoArgsConstructor
         @AllArgsConstructor(access = AccessLevel.PROTECTED)
         public static class PageResponse<T> {
 
@@ -165,7 +166,7 @@ public class PaginationUtils {
             }
 
             public static <T> PageResponse<T> empty() {
-                return new PageResponse<>(new ArrayList<>(), null, false);
+                return new PageResponse<>(new java.util.ArrayList<>(), null, false);
             }
 
         }
