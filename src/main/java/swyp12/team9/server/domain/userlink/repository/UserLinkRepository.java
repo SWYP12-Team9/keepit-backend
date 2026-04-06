@@ -6,8 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import swyp12.team9.server.domain.userlink.model.UserLink;
-import swyp12.team9.server.domain.reference.model.Reference;
-import swyp12.team9.server.domain.reference.relation.model.ReferenceUserLink;
 
 import java.util.List;
 import java.util.Optional;
@@ -48,9 +46,9 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
      * - ReferenceUserLink를 통해 연결된 Reference의 공개 여부로 판단
      */
     @Query("SELECT ul FROM UserLink ul " +
-           "WHERE EXISTS (SELECT 1 FROM ReferenceUserLink rul " +
-           "              JOIN rul.reference r " +
-           "              WHERE rul.userLink = ul AND r.isPublic = true) " +
+           "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
+           "JOIN Reference r ON rul.reference.id = r.id " +
+           "WHERE r.isPublic = true " +
            "AND ul.link.processingStatus = swyp12.team9.server.domain.link.model.LinkProcessingStatus.READY")
     List<UserLink> findAllByReferenceIsPublicTrue();
 
@@ -61,10 +59,11 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
      * @param userLinkId UserLink ID
      * @return Reference가 공개되어 있으면 true, 아니면 false (연결이 없으면 false)
      */
-    @Query("SELECT CASE WHEN COUNT(rul) > 0 THEN true ELSE false END " +
-           "FROM ReferenceUserLink rul " +
-           "JOIN rul.reference r " +
-           "WHERE rul.userLink.id = :userLinkId AND r.isPublic = true")
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+           "FROM UserLink ul " +
+           "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
+           "JOIN Reference r ON rul.reference.id = r.id " +
+           "WHERE ul.id = :userLinkId AND r.isPublic = true")
     boolean isUserLinkInPublicReference(@Param("userLinkId") Long userLinkId);
 
     // ========== 커서 페이징: 내 UserLink 전체 ==========
@@ -104,9 +103,9 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
      */
     @Query("SELECT ul FROM UserLink ul " +
            "JOIN FETCH ul.link l " +
-           "WHERE EXISTS (SELECT 1 FROM ReferenceUserLink rul " +
-           "              JOIN rul.reference r " +
-           "              WHERE rul.userLink = ul AND r.isPublic = true) " +
+           "JOIN ReferenceUserLink rul ON rul.userLink.id = ul.id " +
+           "JOIN Reference r ON rul.reference.id = r.id " +
+           "WHERE r.isPublic = true " +
            "AND l.processingStatus = swyp12.team9.server.domain.link.model.LinkProcessingStatus.READY " +
            "AND (l.title LIKE %:keyword% " +
            "OR l.aiSummary LIKE %:keyword% " +
