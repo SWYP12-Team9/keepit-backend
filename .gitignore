@@ -61,12 +61,3 @@ logs/
 ### Local Configuration ###
 src/main/resources/application-local.yaml
 README-LOCAL.md
-
-### Load Test & Keys ###
-k6-scripts/
-*.pem
-
-### Temporary Security Ignores ###
-src/main/java/swyp12/team9/server/global/config/SecurityConfig.java
-src/main/resources/db/dummy/mock-data-v2.sql
-src/main/java/swyp12/team9/server/domain/recommendation/controller/RecommendationController.java
