@@ -1,12 +1,5 @@
 package swyp12.team9.server.domain.recommendation.service;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
@@ -16,16 +9,20 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
+import swyp12.team9.server.domain.userlink.dto.PopularLinkProjection;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.global.util.PaginationUtils;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * Elasticsearch 벡터 검색 기반 추천 서비스
- * - LinkIndexingService가 인덱싱한 추천 전용 문서를 Elasticsearch에서 검색
+ * - 링크 데이터(title, aiSummary)를 임베딩하여 Elasticsearch에 저장
  * - 카테고리명을 검색어로 유사도 높은 순서로 링크 반환
- * - 추천 인덱싱에 포함된 공개 Reference 소속 UserLink만 추천 대상
- * - 응답 생성 시 선택된 공개 UserLink의 사용자 정보 포함
+ * - 공개 설정된 링크만 추천 대상
+ * - 첫 발견자(가장 먼저 공개 저장한 사용자) 정보 포함
  * - metadata의 indexType으로 추천 전용 문서만 검색 (챗봇 인덱스와 분리)
  */
 @Slf4j
@@ -36,7 +33,6 @@ public class RecommendationService {
 
     private final VectorStore vectorStore;
     private final UserLinkRepository userLinkRepository;
-    private final RecommendationCacheService cacheService;
 
     /**
      * 키워드로 링크 검색 (Elasticsearch 벡터 검색)
@@ -68,7 +64,7 @@ public class RecommendationService {
             StringBuilder filterExpression = new StringBuilder("indexType == 'recommendation'");
 
             if (userId != null) {
-                List<Long> myLinkIds = cacheService.getUserLinkIds(userId);
+                List<Long> myLinkIds = userLinkRepository.findLinkIdsByUserId(userId);
                 log.debug("[추천 검색] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
                 if (!myLinkIds.isEmpty()) {
                     // TODO 양진모: 사용자의 저장 링크가 65,536개(ES terms limit)를 초과할 경우 에러 발생 가능성 있음. 추후
@@ -86,7 +82,7 @@ public class RecommendationService {
             List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
             log.info("[추천 검색] ES 검색 결과: {}개", results.size());
 
-            // 3. 검색 결과에서 중복 Link 제거
+            // 4. 검색 결과에서 중복 Link 제거
             // - 동일 링크를 여러 사용자가 저장한 경우 첫 번째 결과만 유지
             Set<Long> seenLinkIds = new HashSet<>();
             List<Long> filteredUserLinkIds = results.stream()
@@ -136,7 +132,7 @@ public class RecommendationService {
 
     /**
      * 카테고리명을 검색어로 유사도 높은 링크 목록 조회 (Elasticsearch 벡터 검색)
-     * - 현재 사용자가 이미 저장한 링크는 캐시된 후보 조회 후 in-memory filtering으로 제외
+     * - 현재 사용자가 이미 저장한 링크는 제외 (Pre-filtering)
      * - Elasticsearch 장애 시 DB fallback 처리
      *
      * @param userId   현재 로그인한 사용자 ID (null 가능)
@@ -151,6 +147,7 @@ public class RecommendationService {
             int size) {
         try {
             int startIndex = parseCursor(cursor);
+            int topK = calculateTopK(startIndex, size);
 
             // 1. 카테고리명 슬래시 전처리 (고정 카테고리만 적용)
             // - "경제/시사" → "경제 시사"로 변환하여 벡터화 품질 향상
@@ -158,42 +155,105 @@ public class RecommendationService {
                     ? category.replace("/", " ")
                     : category;
 
-            // 1. 카테고리 추천 후보 캐시 조회 (카테고리당 1개 캐시, topK=1000 고정으로 모든 페이지 공유)
-            List<Long> categoryUserLinkIds = cacheService.getCategoryRecommendationUserLinkIds(processedCategory);
-            log.info("[카테고리 추천] 캐시 조회 결과: {}개", categoryUserLinkIds.size());
+            // 2. Elasticsearch 검색 요청 구성
+            // - 카테고리명을 벡터로 변환하여 관련 링크 검색
+            SearchRequest.Builder requestBuilder = SearchRequest.builder()
+                    .query(processedCategory)
+                    .topK(topK);
 
-            if (categoryUserLinkIds.isEmpty()) {
+            // 3. Pre-filtering: 추천 인덱스 타입 + 내가 이미 저장한 linkId는 ES 엔진 레벨에서 제외
+            StringBuilder filterExpression = new StringBuilder("indexType == 'recommendation'");
+
+            if (userId != null) {
+                List<Long> myLinkIds = userLinkRepository.findLinkIdsByUserId(userId);
+                log.debug("[카테고리 추천] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
+                if (!myLinkIds.isEmpty()) {
+                    filterExpression.append(" && linkId nin [")
+                            .append(myLinkIds.stream()
+                                    .map(String::valueOf)
+                                    .collect(Collectors.joining(",")))
+                            .append("]");
+                }
+            }
+
+            requestBuilder.filterExpression(filterExpression.toString());
+
+            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
+            log.info("[카테고리 추천] ES 검색 결과: {}개", results.size());
+
+            // 4. 검색 결과에서 중복 Link 제거 (동일 링크는 한 번만 노출)
+            Set<Long> seenLinkIds = new HashSet<>();
+            List<Long> filteredUserLinkIds = results.stream()
+                    .filter(doc -> {
+                        Long linkId = getLongFromMetadata(doc.getMetadata(), "linkId");
+                        if (linkId == null || seenLinkIds.contains(linkId)) {
+                            return false;
+                        }
+                        seenLinkIds.add(linkId);
+                        return true;
+                    })
+                    .map(doc -> getLongFromMetadata(doc.getMetadata(), "userLinkId"))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            if (filteredUserLinkIds.isEmpty()) {
                 return PaginationUtils.Cursor.PageResponse.empty();
             }
 
-            // 2. 사용자 저장 linkId 캐시 조회 (DB 쿼리 절약)
-            Set<Long> myLinkIds = userId != null
-                    ? new HashSet<>(cacheService.getUserLinkIds(userId))
-                    : Collections.emptySet();
-            log.debug("[카테고리 추천] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
-
-            // 3. 필요한 범위만 DB 조회 (전체 1000건 → cursor 위치 + size * 3 + myLinkIds 수)
-            // myLinkIds 필터링으로 일부 제거될 수 있으므로 3배 버퍼 적용
-            int fetchEnd = Math.min(startIndex + size * 3 + myLinkIds.size(), categoryUserLinkIds.size());
-            List<Long> idsToFetch = categoryUserLinkIds.subList(0, fetchEnd);
-            log.debug("[카테고리 추천] DB 조회 범위: {}건 / 전체 {}건", fetchEnd, categoryUserLinkIds.size());
-
-            // 4. DB 조회 후 내 링크 in-memory 제외
-            List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(idsToFetch, category);
-            if (!myLinkIds.isEmpty()) {
-                allResults = allResults.stream()
-                        .filter(resp -> !myLinkIds.contains(resp.id()))
-                        .collect(Collectors.toList());
-            }
-
+            // 5. UserLink 정보를 바탕으로 응답 DTO 생성
+            List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(filteredUserLinkIds, category);
             return paginateWithCursor(allResults, startIndex, size);
 
         } catch (Exception e) {
-            log.error("카테고리 추천 캐시 조회 실패: {}", e.getMessage());
+            // Elasticsearch 장애 시 DB 기반 검색으로 대체
+            log.error("Elasticsearch 유사도 검색 실패: {}", e.getMessage());
             return fallbackGetRecentLinks(userId, category, category, cursor, size);
         }
     }
 
+    /**
+     * 인기 공개 링크 조회 (링크별 전역 공개 조회수 기준)
+     * - Link 기준 전역 공개 조회수(publicViewCount) 내림차순 정렬
+     * - 커서 기반 페이징: publicViewCount:linkId
+     *
+     * @param userId 현재 로그인한 사용자 ID (현재는 필터링에 사용하지 않음)
+     * @param cursor 커서 (형식: publicViewCount:linkId)
+     * @param size   페이지 크기
+     * @return 인기 콘텐츠 목록
+     */
+    public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getPopularPublicLinks(Long userId,
+            String cursor,
+            int size) {
+        PopularCursor popularCursor = parsePopularCursor(cursor);
+
+        List<PopularLinkProjection> results = userLinkRepository.findPopularPublicLinks(
+                popularCursor != null ? popularCursor.publicViewCount() : null,
+                popularCursor != null ? popularCursor.linkId() : null,
+                size);
+
+        if (results.isEmpty()) {
+            return PaginationUtils.Cursor.PageResponse.empty();
+        }
+
+        boolean hasNext = results.size() > size;
+        List<PopularLinkProjection> pageContents = hasNext
+                ? results.subList(0, size)
+                : results;
+
+        List<RecommendationResponse> responses = buildPopularResponses(pageContents);
+
+        if (responses.isEmpty()) {
+            return PaginationUtils.Cursor.PageResponse.empty();
+        }
+
+        String nextCursor = null;
+        if (hasNext) {
+            PopularLinkProjection last = pageContents.getLast();
+            nextCursor = toPopularCursor(last);
+        }
+
+        return PaginationUtils.Cursor.PageResponse.of(responses, nextCursor, hasNext);
+    }
 
     /**
      * UserLink ID 목록으로부터 응답 객체 생성
@@ -218,6 +278,36 @@ public class RecommendationService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 인기 링크 응답 생성
+     * - 링크별 첫 공개 저장자(가장 빠른 createdAt)를 user 정보로 사용
+     * - projection 순서(link 인기순)를 그대로 유지
+     */
+    private List<RecommendationResponse> buildPopularResponses(List<PopularLinkProjection> projections) {
+        List<Long> linkIds = projections.stream()
+                .map(PopularLinkProjection::linkId)
+                .toList();
+
+        // DB 레벨에서 링크별 첫 번째 공개 저장자(최초 등록자)만 1건씩 조회 (성능 최적화)
+        List<UserLink> firstUserLinks = userLinkRepository.findFirstPublicUserLinksByLinkIds(linkIds);
+        Map<Long, UserLink> firstUserLinkByLinkId = firstUserLinks.stream()
+                .collect(Collectors.toMap(ul -> ul.getLink().getId(), ul -> ul));
+
+        Map<Long, Long> publicViewCountByLinkId = projections.stream()
+                .collect(Collectors.toMap(PopularLinkProjection::linkId, PopularLinkProjection::publicViewCount));
+
+        return linkIds.stream()
+                .map(linkId -> {
+                    UserLink firstUserLink = firstUserLinkByLinkId.get(linkId);
+                    Long publicViewCount = publicViewCountByLinkId.get(linkId);
+                    if (firstUserLink == null || publicViewCount == null) {
+                        return null;
+                    }
+                    return RecommendationResponse.fromPopular(firstUserLink.getLink(), firstUserLink, publicViewCount);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
 
     /**
      * Elasticsearch 메타데이터에서 Long 타입 값 안전하게 추출
@@ -306,6 +396,33 @@ public class RecommendationService {
         }
     }
 
+    private PopularCursor parsePopularCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        String[] parts = cursor.split(":");
+        if (parts.length != 2) {
+            log.warn("잘못된 인기글 커서 형식: {}", cursor);
+            return null;
+        }
+
+        try {
+            long publicViewCount = Long.parseLong(parts[0]);
+            long linkId = Long.parseLong(parts[1]);
+            if (publicViewCount < 0 || linkId <= 0) {
+                return null;
+            }
+            return new PopularCursor(publicViewCount, linkId);
+        } catch (NumberFormatException e) {
+            log.warn("잘못된 인기글 커서 형식: {}", cursor);
+            return null;
+        }
+    }
+
+    private String toPopularCursor(PopularLinkProjection projection) {
+        return projection.publicViewCount() + ":" + projection.linkId();
+    }
 
     private <T> PaginationUtils.Cursor.PageResponse<T> paginateWithCursor(List<T> items, int startIndex, int size) {
         int fromIndex = Math.max(startIndex, 0);
@@ -320,4 +437,8 @@ public class RecommendationService {
         return PaginationUtils.Cursor.PageResponse.of(contents, nextCursor, hasNext);
     }
 
+    private record PopularCursor(
+            Long publicViewCount,
+            Long linkId) {
+    }
 }
