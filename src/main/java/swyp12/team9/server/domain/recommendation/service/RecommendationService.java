@@ -223,6 +223,7 @@ public class RecommendationService {
      */
     @org.springframework.cache.annotation.Cacheable(
             value = "popularLinks",
+            sync = true,
             key = "'cursor:' + (#cursor != null ? #cursor : 'null') + '_size:' + #size"
     )
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getPopularPublicLinks(Long userId,
