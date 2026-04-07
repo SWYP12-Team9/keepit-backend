@@ -71,8 +71,13 @@ public class RedisConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        var ptv = com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("swyp12.team9.server.")
+                .allowIfSubType("java.util.")
+                .allowIfSubType("java.time.")
+                .build();
         objectMapper.activateDefaultTyping(
-                objectMapper.getPolymorphicTypeValidator(),
+                ptv,
                 ObjectMapper.DefaultTyping.NON_FINAL
         );
 
