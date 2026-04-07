@@ -2,6 +2,7 @@ package swyp12.team9.server.global.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
@@ -71,7 +72,7 @@ public class RedisConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        var ptv = com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator.builder()
+        var ptv = BasicPolymorphicTypeValidator.builder()
                 .allowIfSubType("swyp12.team9.server.")
                 .allowIfSubType("java.util.")
                 .allowIfSubType("java.time.")

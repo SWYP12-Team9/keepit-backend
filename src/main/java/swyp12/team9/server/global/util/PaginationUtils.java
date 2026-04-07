@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PaginationUtils {
@@ -166,7 +167,7 @@ public class PaginationUtils {
             }
 
             public static <T> PageResponse<T> empty() {
-                return new PageResponse<>(new java.util.ArrayList<>(), null, false);
+                return new PageResponse<>(new ArrayList<>(), null, false);
             }
 
         }
