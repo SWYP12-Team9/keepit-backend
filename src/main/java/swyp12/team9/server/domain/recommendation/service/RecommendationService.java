@@ -12,6 +12,7 @@ import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
 import swyp12.team9.server.domain.userlink.dto.PopularLinkProjection;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
+import org.springframework.cache.annotation.Cacheable;
 import swyp12.team9.server.global.util.PaginationUtils;
 
 import java.util.*;
@@ -221,7 +222,7 @@ public class RecommendationService {
      * @param size   페이지 크기
      * @return 인기 콘텐츠 목록
      */
-    @org.springframework.cache.annotation.Cacheable(
+    @Cacheable(
             value = "popularLinks",
             sync = true,
             key = "'cursor:' + (#cursor != null ? #cursor : 'null') + '_size:' + #size"
