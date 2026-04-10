@@ -70,15 +70,29 @@ public class RedisConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // 레코드(record)도 final이지만 이름표(@class)를 달도록 매뉴얼 개조
         var ptv = BasicPolymorphicTypeValidator.builder()
                 .allowIfSubType("swyp12.team9.server.")
                 .allowIfSubType("java.util.")
                 .allowIfSubType("java.time.")
                 .build();
-        objectMapper.activateDefaultTyping(
-                ptv,
-                ObjectMapper.DefaultTyping.NON_FINAL
-        );
+
+        // 커스텀 리졸버: NON_FINAL 규칙을 따르되, 레코드(isRecord)인 경우에도 이름표를 붙임
+        ObjectMapper.DefaultTypeResolverBuilder typer = new ObjectMapper.DefaultTypeResolverBuilder(
+                ObjectMapper.DefaultTyping.NON_FINAL, ptv) {
+            @Override
+            public boolean useForType(com.fasterxml.jackson.databind.JavaType t) {
+                if (t.isRawClass() && t.getRawClass().isRecord()) {
+                    return true;
+                }
+                return super.useForType(t);
+            }
+        };
+        typer = typer.init(com.fasterxml.jackson.annotation.JsonTypeInfo.Id.CLASS, null);
+        typer = typer.inclusion(com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+        typer = typer.typeProperty("@class");
+        objectMapper.setDefaultTyping(typer);
 
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 

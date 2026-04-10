@@ -70,8 +70,7 @@ public class PaginationUtils {
 
         @Schema(description = "오프셋 페이징 응답 정보")
         @Getter
-        @Setter
-        @NoArgsConstructor
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
         @AllArgsConstructor(access = AccessLevel.PROTECTED)
         public static class PageResponse<T> {
 
@@ -146,8 +145,7 @@ public class PaginationUtils {
 
         @Schema(description = "커서 기반 페이지 응답 정보")
         @Getter
-        @Setter
-        @NoArgsConstructor
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
         @AllArgsConstructor(access = AccessLevel.PROTECTED)
         public static class PageResponse<T> {
 

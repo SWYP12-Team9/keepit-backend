@@ -11,28 +11,18 @@ import lombok.*;
 /**
  * 추천 콘텐츠의 사용자 정보 (첫 발견자)
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Schema(description = "첫 발견자 정보")
-public class UserInfo {
+public record UserInfo(
+        @Schema(description = "사용자 이름", example = "홍길동")
+        String name,
 
-    @Schema(description = "사용자 ID", example = "1")
-    private Long userId;
-
-    @Schema(description = "닉네임", example = "홍길동")
-    private String nickname;
-
-    @Schema(description = "프로필 이미지 URL", example = "https://example.com/profile.jpg")
-    private String profileImageUrl;
-
-    public static UserInfo from(User user) {
-        return UserInfo.builder()
-                .userId(user.getId())
-                .nickname(user.getNickname())
-                .profileImageUrl(user.getProfileImageUrl())
-                .build();
+        @Schema(description = "프로필 이미지 URL", example = "https://example.com/profile.png")
+        String profileImage
+) {
+    public static UserInfo from(swyp12.team9.server.domain.user.model.User user) {
+        return new UserInfo(
+                user.getNickname(),
+                user.getProfileImageUrl()
+        );
     }
 }
