@@ -83,15 +83,15 @@ public class RedisConfig {
                 ObjectMapper.DefaultTyping.NON_FINAL, ptv) {
             @Override
             public boolean useForType(com.fasterxml.jackson.databind.JavaType t) {
-                if (t.isRawClass() && t.getRawClass().isRecord()) {
+                if (t.getRawClass() != null && t.getRawClass().isRecord()) {
                     return true;
                 }
                 return super.useForType(t);
             }
         };
-        typer = typer.init(com.fasterxml.jackson.annotation.JsonTypeInfo.Id.CLASS, null);
-        typer = typer.inclusion(com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
-        typer = typer.typeProperty("@class");
+        typer.init(com.fasterxml.jackson.annotation.JsonTypeInfo.Id.CLASS, null);
+        typer.inclusion(com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+        typer.typeProperty("@class");
         objectMapper.setDefaultTyping(typer);
 
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
