@@ -64,8 +64,6 @@ public class RedisConfig {
      * @Cacheable 기반 캐시 매니저
      * - 인기글 탭 성능 최적화용
      * - popularLinks: 5분 TTL (인기순 집계는 자주 바뀌지 않음)
-     * - categoryRecommendations: 10분 TTL (ES 벡터 검색 결과)
-     * - userLinkIds: 5분 TTL (중복 추천 제외용 내 링크 목록)
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -93,10 +91,6 @@ public class RedisConfig {
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
         // 인기글 목록: 5분 (조회수가 변해도 5분마다 갱신)
         cacheConfigurations.put("popularLinks", defaultConfig.entryTtl(Duration.ofMinutes(5)));
-        // 카테고리별 추천: 10분 (ES 벡터 검색 결과 재사용)
-        cacheConfigurations.put("categoryRecommendations", defaultConfig.entryTtl(Duration.ofMinutes(10)));
-        // 내 링크 ID 목록: 5분 (중복 추천 제외용)
-        cacheConfigurations.put("userLinkIds", defaultConfig.entryTtl(Duration.ofMinutes(5)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
