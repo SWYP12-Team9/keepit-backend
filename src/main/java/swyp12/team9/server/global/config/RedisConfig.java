@@ -78,20 +78,8 @@ public class RedisConfig {
                 .allowIfSubType("java.time.")
                 .build();
 
-        // 커스텀 리졸버: NON_FINAL 규칙을 따르되, 레코드(isRecord)인 경우에도 이름표를 붙임
-        ObjectMapper.DefaultTypeResolverBuilder typer = new ObjectMapper.DefaultTypeResolverBuilder(
-                ObjectMapper.DefaultTyping.NON_FINAL, ptv) {
-            @Override
-            public boolean useForType(com.fasterxml.jackson.databind.JavaType t) {
-                if (t.getRawClass() != null && t.getRawClass().isRecord()) {
-                    return true;
-                }
-                return super.useForType(t);
-            }
-        };
-        typer.init(com.fasterxml.jackson.annotation.JsonTypeInfo.Id.CLASS, null);
-        typer.inclusion(com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
-        typer.typeProperty("@class");
+        // 커스텀 리졸버 적용: 분리된 RecordTypeResolverBuilder 활용
+        ObjectMapper.DefaultTypeResolverBuilder typer = new RecordTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL, ptv);
         objectMapper.setDefaultTyping(typer);
 
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
