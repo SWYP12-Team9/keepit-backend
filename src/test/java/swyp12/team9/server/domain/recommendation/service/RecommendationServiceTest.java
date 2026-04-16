@@ -69,9 +69,8 @@ class RecommendationServiceTest {
         RecommendationResponse response = result.getContents().get(0);
         
         assertThat(response.id()).isNotNull();
-        assertThat(response.thumbnail()).startsWith("http"); // 썸네일이 유효한 URL인가?
         assertThat(response.publicViewCount()).isGreaterThanOrEqualTo(0L);
-        assertThat(response.user().name()).isEqualTo("테스터");
+        assertThat(response.user().nickname()).isEqualTo("테스터");
 
         checkSerializationCompatibility(response);
     }
@@ -93,7 +92,7 @@ class RecommendationServiceTest {
             // 3. 복원된 데이터가 원본과 일치하는가?
             assertThat(recovered.id()).isEqualTo(original.id());
             assertThat(recovered.title()).isEqualTo(original.title());
-            assertThat(recovered.user().name()).isEqualTo(original.user().name());
+            assertThat(recovered.user().nickname()).isEqualTo(original.user().nickname());
             
         } catch (Exception e) {
             throw new AssertionError("포장 용기(직렬화) 최적화 실패! Redis에서 에러 날 확률 100%입니다: " + e.getMessage());

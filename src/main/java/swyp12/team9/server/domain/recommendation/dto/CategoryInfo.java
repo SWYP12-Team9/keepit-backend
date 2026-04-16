@@ -7,10 +7,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(description = "카테고리 정보")
 public record CategoryInfo(
-        @Schema(description = "카테고리 이름", example = "개발")
+
+        @Schema(description = "카테고리명", example = "경제/시사")
         String name
 ) {
-    public static CategoryInfo from(String name) {
-        return new CategoryInfo(name);
+    public static CategoryInfo from(String categoryName) {
+        return new CategoryInfo(categoryName);
     }
 }

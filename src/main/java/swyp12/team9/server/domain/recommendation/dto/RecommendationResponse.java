@@ -9,53 +9,49 @@ import swyp12.team9.server.domain.userlink.model.UserLink;
  */
 @Schema(description = "추천 콘텐츠 응답")
 public record RecommendationResponse(
+
         @Schema(description = "콘텐츠 ID (Link ID)", example = "1")
         Long id,
 
-        @Schema(description = "콘텐츠 제목", example = "개발자 커리어 가이드")
-        String title,
-
-        @Schema(description = "콘텐츠 URL", example = "https://example.com/dev-guide")
+        @Schema(description = "URL", example = "https://example.com/article")
         String url,
 
-        @Schema(description = "썸네일 이미지 URL (favicon)", example = "https://example.com/favicon.png")
-        String thumbnail,
+        @Schema(description = "제목", example = "추천 아티클 제목")
+        String title,
 
-        @Schema(description = "AI 요약 내용")
+        @Schema(description = "AI 요약", example = "이 글의 핵심 요약...")
         String aiSummary,
 
-        @Schema(description = "전역 공개 조회수", example = "150")
-        Long publicViewCount,
+        @Schema(description = "카테고리 정보")
+        CategoryInfo category,
 
-        @Schema(description = "관련 카테고리")
-        String category,
+        @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
+        UserInfo user,
 
-        @Schema(description = "최초 등록자 정보")
-        UserInfo user
+        @Schema(description = "전역 공개 조회수 (인기글 탭에서만 제공)", example = "128")
+        Long publicViewCount
 ) {
     public static RecommendationResponse from(Link link, UserLink firstUserLink, String category) {
         return new RecommendationResponse(
                 link.getId(),
-                link.getTitle(),
                 link.getUrl(),
-                link.getFaviconUrl(),
+                link.getTitle(),
                 link.getAiSummary(),
-                link.getPublicViewCount(),
-                category,
-                UserInfo.from(firstUserLink.getUser())
+                category != null ? CategoryInfo.from(category) : null,
+                UserInfo.from(firstUserLink.getUser()),
+                null
         );
     }
 
     public static RecommendationResponse fromPopular(Link link, UserLink firstUserLink, Long publicViewCount) {
         return new RecommendationResponse(
                 link.getId(),
-                link.getTitle(),
                 link.getUrl(),
-                link.getFaviconUrl(),
+                link.getTitle(),
                 link.getAiSummary(),
-                publicViewCount,
-                null, 
-                UserInfo.from(firstUserLink.getUser())
+                null,
+                UserInfo.from(firstUserLink.getUser()),
+                publicViewCount
         );
     }
 }
