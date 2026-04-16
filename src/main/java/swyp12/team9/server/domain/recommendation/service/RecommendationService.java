@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
+import swyp12.team9.server.domain.userlink.dto.PopularLinkProjection;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 import swyp12.team9.server.global.util.PaginationUtils;
@@ -45,9 +46,9 @@ public class RecommendationService {
      * @return 검색 결과 목록 (유사도 순)
      */
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> searchByKeyword(Long userId,
-                                                                                        String keyword,
-                                                                                        String cursor,
-                                                                                        int size) {
+            String keyword,
+            String cursor,
+            int size) {
         try {
             int startIndex = parseCursor(cursor);
             int topK = calculateTopK(startIndex, size);
@@ -123,8 +124,8 @@ public class RecommendationService {
      * @return 최신 공개 링크 목록
      */
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getRecentPublicLinks(Long userId,
-                                                                                             String cursor,
-                                                                                             int size) {
+            String cursor,
+            int size) {
         // 빈 키워드로 fallback 메서드를 활용 (최신순 정렬)
         return fallbackGetRecentLinks(userId, null, "", cursor, size);
     }
@@ -141,9 +142,9 @@ public class RecommendationService {
      * @return 추천 콘텐츠 목록 (유사도 순)
      */
     public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getRecommendationsByCategory(Long userId,
-                                                                                                     String category,
-                                                                                                     String cursor,
-                                                                                                     int size) {
+            String category,
+            String cursor,
+            int size) {
         try {
             int startIndex = parseCursor(cursor);
             int topK = calculateTopK(startIndex, size);
@@ -211,6 +212,50 @@ public class RecommendationService {
     }
 
     /**
+     * 인기 공개 링크 조회 (링크별 전역 공개 조회수 기준)
+     * - Link 기준 전역 공개 조회수(publicViewCount) 내림차순 정렬
+     * - 커서 기반 페이징: publicViewCount:linkId
+     *
+     * @param userId 현재 로그인한 사용자 ID (현재는 필터링에 사용하지 않음)
+     * @param cursor 커서 (형식: publicViewCount:linkId)
+     * @param size   페이지 크기
+     * @return 인기 콘텐츠 목록
+     */
+    public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getPopularPublicLinks(Long userId,
+            String cursor,
+            int size) {
+        PopularCursor popularCursor = parsePopularCursor(cursor);
+
+        List<PopularLinkProjection> results = userLinkRepository.findPopularPublicLinks(
+                popularCursor != null ? popularCursor.publicViewCount() : null,
+                popularCursor != null ? popularCursor.linkId() : null,
+                size);
+
+        if (results.isEmpty()) {
+            return PaginationUtils.Cursor.PageResponse.empty();
+        }
+
+        boolean hasNext = results.size() > size;
+        List<PopularLinkProjection> pageContents = hasNext
+                ? results.subList(0, size)
+                : results;
+
+        List<RecommendationResponse> responses = buildPopularResponses(pageContents);
+
+        if (responses.isEmpty()) {
+            return PaginationUtils.Cursor.PageResponse.empty();
+        }
+
+        String nextCursor = null;
+        if (hasNext) {
+            PopularLinkProjection last = pageContents.getLast();
+            nextCursor = toPopularCursor(last);
+        }
+
+        return PaginationUtils.Cursor.PageResponse.of(responses, nextCursor, hasNext);
+    }
+
+    /**
      * UserLink ID 목록으로부터 응답 객체 생성
      * - DB에서 UserLink 조회 후 요청 순서대로 정렬
      * - 검색 키워드와 함께 응답 DTO로 변환
@@ -230,6 +275,37 @@ public class RecommendationService {
                 .map(userLinkMap::get)
                 .filter(Objects::nonNull)
                 .map(ul -> RecommendationResponse.from(ul.getLink(), ul, keyword))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 인기 링크 응답 생성
+     * - 링크별 첫 공개 저장자(가장 빠른 createdAt)를 user 정보로 사용
+     * - projection 순서(link 인기순)를 그대로 유지
+     */
+    private List<RecommendationResponse> buildPopularResponses(List<PopularLinkProjection> projections) {
+        List<Long> linkIds = projections.stream()
+                .map(PopularLinkProjection::linkId)
+                .toList();
+
+        // DB 레벨에서 링크별 첫 번째 공개 저장자(최초 등록자)만 1건씩 조회 (성능 최적화)
+        List<UserLink> firstUserLinks = userLinkRepository.findFirstPublicUserLinksByLinkIds(linkIds);
+        Map<Long, UserLink> firstUserLinkByLinkId = firstUserLinks.stream()
+                .collect(Collectors.toMap(ul -> ul.getLink().getId(), ul -> ul));
+
+        Map<Long, Long> publicViewCountByLinkId = projections.stream()
+                .collect(Collectors.toMap(PopularLinkProjection::linkId, PopularLinkProjection::publicViewCount));
+
+        return linkIds.stream()
+                .map(linkId -> {
+                    UserLink firstUserLink = firstUserLinkByLinkId.get(linkId);
+                    Long publicViewCount = publicViewCountByLinkId.get(linkId);
+                    if (firstUserLink == null || publicViewCount == null) {
+                        return null;
+                    }
+                    return RecommendationResponse.fromPopular(firstUserLink.getLink(), firstUserLink, publicViewCount);
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -259,10 +335,10 @@ public class RecommendationService {
     // ========== Fallback 메서드 (Elasticsearch 장애 시 DB에서 키워드 기반 검색 수행) ==========
 
     private PaginationUtils.Cursor.PageResponse<RecommendationResponse> fallbackGetRecentLinks(Long userId,
-                                                                                                String category,
-                                                                                                String keyword,
-                                                                                                String cursor,
-                                                                                                int size) {
+            String category,
+            String keyword,
+            String cursor,
+            int size) {
         int startIndex = parseCursor(cursor);
 
         // 1. 현재 사용자가 이미 저장한 링크 ID 목록 조회 (중복 추천 방지용)
@@ -320,6 +396,34 @@ public class RecommendationService {
         }
     }
 
+    private PopularCursor parsePopularCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        String[] parts = cursor.split(":");
+        if (parts.length != 2) {
+            log.warn("잘못된 인기글 커서 형식: {}", cursor);
+            return null;
+        }
+
+        try {
+            long publicViewCount = Long.parseLong(parts[0]);
+            long linkId = Long.parseLong(parts[1]);
+            if (publicViewCount < 0 || linkId <= 0) {
+                return null;
+            }
+            return new PopularCursor(publicViewCount, linkId);
+        } catch (NumberFormatException e) {
+            log.warn("잘못된 인기글 커서 형식: {}", cursor);
+            return null;
+        }
+    }
+
+    private String toPopularCursor(PopularLinkProjection projection) {
+        return projection.publicViewCount() + ":" + projection.linkId();
+    }
+
     private <T> PaginationUtils.Cursor.PageResponse<T> paginateWithCursor(List<T> items, int startIndex, int size) {
         int fromIndex = Math.max(startIndex, 0);
         if (fromIndex >= items.size()) {
@@ -331,5 +435,10 @@ public class RecommendationService {
         boolean hasNext = toIndex < items.size();
         String nextCursor = hasNext ? String.valueOf(toIndex) : null;
         return PaginationUtils.Cursor.PageResponse.of(contents, nextCursor, hasNext);
+    }
+
+    private record PopularCursor(
+            Long publicViewCount,
+            Long linkId) {
     }
 }

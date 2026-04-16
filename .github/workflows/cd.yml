@@ -2,7 +2,8 @@ name: CD - App Deploy
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
 
 env:
   GAR_LOCATION: asia-northeast3
