@@ -68,20 +68,16 @@ class RecommendationServiceTest {
 
         RecommendationResponse response = result.getContents().get(0);
         
-        // [토스 철학 3번: 손님 입장에서 검증] 
-        // 메서드 호출 여부보다 "요리가 손님에게 나갔을 때 완벽한가"를 봅니다.
         assertThat(response.id()).isNotNull();
         assertThat(response.thumbnail()).startsWith("http"); // 썸네일이 유효한 URL인가?
         assertThat(response.publicViewCount()).isGreaterThanOrEqualTo(0L);
         assertThat(response.user().name()).isEqualTo("테스터");
 
-        // [토스 철학 5번: 포장 용기(직렬화) 테스트]
-        // 우리가 겪었던 Redis 역직렬화 에러를 방지하기 위해 JSON 변환-복원 테스트를 직접 수행합니다.
         checkSerializationCompatibility(response);
     }
 
     /**
-     * 📦 [승인 테스트] JSON 직렬화/역직렬화가 깨지지 않는지 확인합니다.
+     * [승인 테스트] JSON 직렬화/역직렬화가 깨지지 않는지 확인합니다.
      * 필드명을 바꾸거나 record 구조를 변경했을 때 Redis에서 터지는 걸 미리 방지합니다.
      */
     private void checkSerializationCompatibility(RecommendationResponse original) {
@@ -126,7 +122,7 @@ class RecommendationServiceTest {
     }
 
     // ==========================================
-    // 🛠️ 도우미 메서드 (Fixture Helpers)
+    // 도우미 메서드 (Fixture Helpers)
     // ==========================================
     
     private Link createMockLink(Long id) {
