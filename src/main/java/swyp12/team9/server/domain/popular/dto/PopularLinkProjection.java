@@ -1,4 +1,4 @@
-package swyp12.team9.server.domain.userlink.dto;
+package swyp12.team9.server.domain.popular.dto;
 
 /**
  * 공개 링크 인기글 집계용 프로젝션
