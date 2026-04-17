@@ -11,8 +11,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.popular.dto.PopularLinkProjection;
+import swyp12.team9.server.domain.popular.dto.PopularResponse;
 import swyp12.team9.server.domain.popular.repository.PopularRepository;
-import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
 import swyp12.team9.server.domain.user.model.User;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.global.util.PaginationUtils;
@@ -53,7 +53,7 @@ class PopularServiceTest {
                 .willReturn(List.of(mockUserLink));
 
         // when
-        PaginationUtils.Cursor.PageResponse<RecommendationResponse> result =
+        PaginationUtils.Cursor.PageResponse<PopularResponse> result =
                 popularService.getPopularPublicLinks(userId, cursor, size);
 
         // then
@@ -61,7 +61,7 @@ class PopularServiceTest {
         assertThat(result.getNextCursor()).isNull();
         assertThat(result.getContents()).hasSize(1);
 
-        RecommendationResponse response = result.getContents().get(0);
+        PopularResponse response = result.getContents().get(0);
 
         assertThat(response.id()).isNotNull();
         assertThat(response.publicViewCount()).isGreaterThanOrEqualTo(0L);
@@ -70,11 +70,11 @@ class PopularServiceTest {
         checkSerializationCompatibility(response);
     }
 
-    private void checkSerializationCompatibility(RecommendationResponse original) {
+    private void checkSerializationCompatibility(PopularResponse original) {
         try {
             ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
             String json = mapper.writeValueAsString(original);
-            RecommendationResponse recovered = mapper.readValue(json, RecommendationResponse.class);
+            PopularResponse recovered = mapper.readValue(json, PopularResponse.class);
 
             assertThat(recovered.id()).isEqualTo(original.id());
             assertThat(recovered.title()).isEqualTo(original.title());
@@ -97,7 +97,7 @@ class PopularServiceTest {
                 .willReturn(List.of());
 
         // when
-        PaginationUtils.Cursor.PageResponse<RecommendationResponse> result =
+        PaginationUtils.Cursor.PageResponse<PopularResponse> result =
                 popularService.getPopularPublicLinks(userId, cursor, size);
 
         // then

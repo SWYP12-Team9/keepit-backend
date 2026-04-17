@@ -6,8 +6,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.popular.dto.PopularLinkProjection;
+import swyp12.team9.server.domain.popular.dto.PopularResponse;
 import swyp12.team9.server.domain.popular.repository.PopularRepository;
-import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.global.util.PaginationUtils;
 
@@ -39,7 +39,7 @@ public class PopularService {
             sync = true,
             key = "'cursor:' + (#cursor != null ? #cursor : 'null') + '_size:' + #size"
     )
-    public PaginationUtils.Cursor.PageResponse<RecommendationResponse> getPopularPublicLinks(Long userId,
+    public PaginationUtils.Cursor.PageResponse<PopularResponse> getPopularPublicLinks(Long userId,
             String cursor,
             int size) {
         PopularCursor popularCursor = parsePopularCursor(cursor);
@@ -58,7 +58,7 @@ public class PopularService {
                 ? results.subList(0, size)
                 : results;
 
-        List<RecommendationResponse> responses = buildPopularResponses(pageContents);
+        List<PopularResponse> responses = buildPopularResponses(pageContents);
 
         if (responses.isEmpty()) {
             return PaginationUtils.Cursor.PageResponse.empty();
@@ -78,7 +78,7 @@ public class PopularService {
      * - 링크별 첫 공개 저장자(가장 빠른 createdAt)를 user 정보로 사용
      * - projection 순서(link 인기순)를 그대로 유지
      */
-    private List<RecommendationResponse> buildPopularResponses(List<PopularLinkProjection> projections) {
+    private List<PopularResponse> buildPopularResponses(List<PopularLinkProjection> projections) {
         List<Long> linkIds = projections.stream()
                 .map(PopularLinkProjection::linkId)
                 .toList();
@@ -98,7 +98,7 @@ public class PopularService {
                     if (firstUserLink == null || publicViewCount == null) {
                         return null;
                     }
-                    return RecommendationResponse.fromPopular(firstUserLink.getLink(), firstUserLink, publicViewCount);
+                    return PopularResponse.from(firstUserLink.getLink(), firstUserLink, publicViewCount);
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());

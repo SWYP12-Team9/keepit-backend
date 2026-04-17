@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import swyp12.team9.server.domain.recommendation.dto.RecommendationResponse;
+import swyp12.team9.server.domain.popular.dto.PopularResponse;
 import swyp12.team9.server.global.annotation.ApiSpec;
 import swyp12.team9.server.global.annotation.CurrentUserId;
 import swyp12.team9.server.global.common.dto.ApiResponse;
@@ -17,7 +17,7 @@ import swyp12.team9.server.global.exception.ErrorCode;
 import swyp12.team9.server.global.util.PaginationUtils;
 
 @Tag(name = "Popular", description = "인기 콘텐츠 API - 탐색 페이지")
-@RequestMapping("/api/v1/popular")
+@RequestMapping("/api/v1/popular-links")
 public interface PopularApi {
 
     @Operation(summary = "인기글 조회", description = """
@@ -30,7 +30,7 @@ public interface PopularApi {
             ErrorCode.VALIDATION_ERROR
     })
     @GetMapping
-    ApiResponse<PaginationUtils.Cursor.PageResponse<RecommendationResponse>> getPopularLinks(
+    ApiResponse<PaginationUtils.Cursor.PageResponse<PopularResponse>> getPopularLinks(
             @CurrentUserId(required = false) Long userId,
             @Parameter(description = "커서 (첫 요청 시 null, 형식: publicViewCount:linkId)", example = "120:45")
             @RequestParam(required = false) String cursor,
