@@ -66,15 +66,6 @@ public class RecommendationController implements RecommendationApi {
         return ApiResponse.ok(recommendations);
     }
 
-    @Override
-    public ApiResponse<PaginationUtils.Cursor.PageResponse<RecommendationResponse>> getPopularLinks(
-            Long userId,
-            String cursor,
-            int size) {
-        PaginationUtils.Cursor.PageResponse<RecommendationResponse> popularLinks =
-                recommendationService.getPopularPublicLinks(userId, cursor, size);
-        return ApiResponse.ok(popularLinks);
-    }
 
     @Override
     public ApiResponse<Void> incrementPublicViewCount(Long linkId) {
