@@ -26,7 +26,10 @@ public record RecommendationResponse(
         CategoryInfo category,
 
         @Schema(description = "첫 발견자 정보 (가장 먼저 공개 저장한 사용자)")
-        UserInfo user
+        UserInfo user,
+
+        @Schema(description = "전역 공개 조회수 (인기글 탭에서만 제공)", example = "128")
+        Long publicViewCount
 ) {
     public static RecommendationResponse from(Link link, UserLink firstUserLink, String category) {
         return new RecommendationResponse(
@@ -35,7 +38,20 @@ public record RecommendationResponse(
                 link.getTitle(),
                 link.getAiSummary(),
                 category != null ? CategoryInfo.from(category) : null,
-                UserInfo.from(firstUserLink.getUser())
+                UserInfo.from(firstUserLink.getUser()),
+                null
+        );
+    }
+
+    public static RecommendationResponse fromPopular(Link link, UserLink firstUserLink, Long publicViewCount) {
+        return new RecommendationResponse(
+                link.getId(),
+                link.getUrl(),
+                link.getTitle(),
+                link.getAiSummary(),
+                null,
+                UserInfo.from(firstUserLink.getUser()),
+                publicViewCount
         );
     }
 }

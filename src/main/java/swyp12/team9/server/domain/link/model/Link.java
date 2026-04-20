@@ -55,6 +55,9 @@ public class Link extends BaseEntity {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
+    @Column(name = "public_view_count", nullable = false)
+    private Long publicViewCount = 0L;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "processing_status", nullable = false, length = 20)
     private LinkProcessingStatus processingStatus;
@@ -77,6 +80,7 @@ public class Link extends BaseEntity {
         this.content = content;
         this.aiSummary = aiSummary;
         this.processingStatus = processingStatus != null ? processingStatus : LinkProcessingStatus.PENDING;
+        this.publicViewCount = 0L;
     }
 
     public static Link create(String url, String title, String description, String faviconUrl, String content) {
@@ -99,6 +103,10 @@ public class Link extends BaseEntity {
 
     public void updateAiSummary(String aiSummary) {
         this.aiSummary = aiSummary;
+    }
+
+    public void incrementPublicViewCount() {
+        this.publicViewCount++;
     }
 
     public void updateFromScraping(String title, String description, String faviconUrl, String content) {
