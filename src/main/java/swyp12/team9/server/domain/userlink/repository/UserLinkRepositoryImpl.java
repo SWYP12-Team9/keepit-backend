@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.userlink.dto.DayCountProjection;
-import swyp12.team9.server.domain.userlink.dto.PopularLinkProjection;
 import swyp12.team9.server.domain.userlink.dto.StatusCountProjection;
 import swyp12.team9.server.domain.userlink.model.LinkStatus;
 import swyp12.team9.server.domain.userlink.model.QUserLink;
@@ -149,34 +148,6 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
         return count != null ? count : 0L;
     }
 
-    /**
-     * 여러 Link ID들에 대해 각 링크의 첫 번째 공개 UserLink를 조회 (최초 등록자)
-     * - 서브쿼리를 통해 링크별로 가장 먼저 생성된(ID가 가장 작은) UserLink ID를 추출 후 조회
-     */
-    @Override
-    public List<UserLink> findFirstPublicUserLinksByLinkIds(List<Long> linkIds) {
-        if (linkIds == null || linkIds.isEmpty()) {
-            return List.of();
-        }
-
-        var subUserLink = new QUserLink("subUserLink");
-
-        return queryFactory
-                .selectFrom(userLink)
-                .where(userLink.id.in(
-                        JPAExpressions
-                                .select(subUserLink.id.min())
-                                .from(subUserLink)
-                                .join(referenceUserLink)
-                                .on(referenceUserLink.userLink.eq(subUserLink))
-                                .join(referenceUserLink.reference, reference)
-                                .where(
-                                        subUserLink.link.id.in(linkIds),
-                                        subUserLink.link.processingStatus.eq(LinkProcessingStatus.READY),
-                                        reference.isPublic.eq(true))
-                                .groupBy(subUserLink.link.id)))
-                .fetch();
-    }
 
     /**
      * 공개된 UserLink 목록 조회 (Reference.isPublic = true)
@@ -231,48 +202,6 @@ public class UserLinkRepositoryImpl implements UserLinkRepositoryCustom {
                 .fetchOne();
     }
 
-    /**
-     * 공개 링크 인기글 조회 (링크별 publicViewCount 기준)
-     * - N:N 관계: ReferenceUserLink를 통해 공개 여부 판단
-     * - 동점 처리: linkId 내림차순
-     * - 커서: (publicViewCount, linkId) 복합 커서
-     */
-    @Override
-    public List<PopularLinkProjection> findPopularPublicLinks(Long cursorPublicViewCount, Long cursorLinkId, int size) {
-        var subUserLink = new QUserLink("subUserLink");
-
-        BooleanExpression hasPublicReference = JPAExpressions.selectOne()
-                .from(subUserLink)
-                .join(referenceUserLink).on(referenceUserLink.userLink.eq(subUserLink))
-                .join(referenceUserLink.reference, reference)
-                .where(
-                        subUserLink.link.id.eq(link.id),
-                        subUserLink.link.processingStatus.eq(LinkProcessingStatus.READY),
-                        reference.isPublic.eq(true))
-                .exists();
-
-        BooleanBuilder whereBuilder = new BooleanBuilder();
-        whereBuilder.and(hasPublicReference);
-        if (cursorPublicViewCount != null && cursorLinkId != null) {
-            whereBuilder.and(
-                    link.publicViewCount.lt(cursorPublicViewCount)
-                            .or(link.publicViewCount.eq(cursorPublicViewCount)
-                                    .and(link.id.lt(cursorLinkId))));
-        }
-
-        return queryFactory
-                .select(Projections.constructor(
-                        PopularLinkProjection.class,
-                        link.id,
-                        link.publicViewCount))
-                .from(userLink)
-                .join(userLink.link, link)
-                .where(whereBuilder)
-                .groupBy(link.id, link.publicViewCount)
-                .orderBy(link.publicViewCount.desc(), link.id.desc())
-                .limit(size + 1L)
-                .fetch();
-    }
 
     private BooleanExpression isReadyLink() {
         return userLink.link.processingStatus.eq(LinkProcessingStatus.READY);
