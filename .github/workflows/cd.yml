@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+      - develop
+
+concurrency:
+  group: cd-${{ github.ref_name }}
+  cancel-in-progress: false
 
 env:
   GAR_LOCATION: asia-northeast3
@@ -13,10 +18,15 @@ env:
 jobs:
   cd:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ github.ref_name == 'main' && 'production' || 'develop' }}
 
     permissions:
       contents: read
       id-token: write
+
+    env:
+      IMAGE_TAG: ${{ vars.IMAGE_TAG }}
 
     steps:
       - name: Checkout code
@@ -53,7 +63,7 @@ jobs:
           push: true
           tags: |
             ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
-            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
+            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ env.IMAGE_TAG }}
           cache-from: type=registry,ref=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:buildcache,mode=max
 
@@ -65,13 +75,15 @@ jobs:
           key: ${{ secrets.GCP_SSH_KEY }}
           envs: ENV_FILE,DOCKER_IMAGE
           script: |
-            cd ~/app
-            echo "$ENV_FILE" > .env
-            export DOCKER_IMAGE="$DOCKER_IMAGE"
-            gcloud auth configure-docker asia-northeast3-docker.pkg.dev --quiet
-            docker compose pull app
-            docker compose up -d --no-deps --force-recreate app
-            docker image prune -f
+            bash -lc '
+              set -eu
+              cd ~/app
+              printf "%s" "$ENV_FILE" > .env
+              gcloud auth configure-docker asia-northeast3-docker.pkg.dev --quiet
+              DOCKER_IMAGE="$DOCKER_IMAGE" docker compose pull
+              DOCKER_IMAGE="$DOCKER_IMAGE" docker compose up -d
+              docker image prune -f
+            '
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
-          DOCKER_IMAGE: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
+          DOCKER_IMAGE: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
