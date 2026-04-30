@@ -273,8 +273,8 @@ public class UserLinkService {
         // UserLink 삭제
         userLinkRepository.delete(userLink);
 
-        // 인덱스 삭제 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
-        eventPublisher.publishEvent(UserLinkDeletedEvent.of(userLinkId));
+        // 추천 인덱스 삭제 및 추천 캐시 무효화 이벤트 발행 (트랜잭션 커밋 후 비동기 처리)
+        eventPublisher.publishEvent(UserLinkDeletedEvent.of(userLinkId, userId));
 
         log.info("사용자 링크 삭제 완료 - userId: {}, userLinkId: {}", userId, userLinkId);
     }

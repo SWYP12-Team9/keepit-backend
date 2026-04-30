@@ -1,8 +1,10 @@
 package swyp12.team9.server.domain.reference.service;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp12.team9.server.domain.reference.dto.ReferenceCursor;
@@ -15,6 +17,7 @@ import swyp12.team9.server.domain.reference.dto.response.ReferenceResponse;
 import swyp12.team9.server.domain.auth.exception.UnauthorizedException;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.exception.ReferenceTitleDuplicateException;
+import swyp12.team9.server.domain.reference.event.ReferenceVisibilityChangedEvent;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
 import swyp12.team9.server.domain.user.exception.UserNotFoundException;
@@ -34,6 +37,7 @@ public class ReferenceService {
     private final ReferenceRepository referenceRepository;
     private final UserRepository userRepository;
     private final UserLinkRepository userLinkRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 레퍼런스 생성
@@ -177,6 +181,9 @@ public class ReferenceService {
     public ReferenceResponse updateReference(Long userId, Long referenceId, ReferenceUpdateRequest request) {
         Reference reference = getReferenceById(referenceId);
 
+        // 공개 여부가 실제로 바뀐 경우에만 추천 인덱싱을 다시 처리하기 위해 변경 전 상태를 보관한다.
+        Boolean previousIsPublic = reference.getIsPublic();
+
         // 소유자 검증
         reference.validateOwner(userId);
 
@@ -185,6 +192,11 @@ public class ReferenceService {
                 request.description(),
                 request.isPublic(),
                 request.colorCode());
+
+        // 공개/비공개 전환은 추천 노출 대상 변경이므로, 커밋 후 이벤트 리스너에서 연결된 UserLink를 재인덱싱한다.
+        if (!Objects.equals(previousIsPublic, reference.getIsPublic())) {
+            eventPublisher.publishEvent(ReferenceVisibilityChangedEvent.of(referenceId, reference.getIsPublic()));
+        }
 
         log.info("레퍼런스 수정 완료 - userId: {}, referenceId: {}", userId, referenceId);
         return ReferenceResponse.from(reference);
