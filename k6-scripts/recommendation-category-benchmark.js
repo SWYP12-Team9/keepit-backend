@@ -2,7 +2,7 @@ import http from 'k6/http';
 import {check, group, sleep} from 'k6';
 import {Counter, Trend} from 'k6/metrics';
 
-const BASE_URL = __ENV.BASE_URL || 'https://dev.keepit.im';
+const BASE_URL = __ENV.BASE_URL;
 const USERNAME = __ENV.USERNAME || 'testuser';
 const PASSWORD = __ENV.PASSWORD || 'password123';
 const CATEGORY = __ENV.CATEGORY || '경제/시사';
@@ -41,6 +41,10 @@ export const options = {
 };
 
 export function setup() {
+  if (!BASE_URL) {
+    throw new Error('BASE_URL env is required');
+  }
+
   let accessToken = '';
 
   if (USE_AUTH) {
