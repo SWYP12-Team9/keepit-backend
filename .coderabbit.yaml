@@ -9,7 +9,7 @@ tone_instructions: >
 reviews:
   profile: chill
   request_changes_workflow: false
-  high_level_summary: true.   # PR 전체 요약 자동 생성
+  high_level_summary: true   # PR 전체 요약 자동 생성
   changed_files_summary: true # 파일별 개별 요약
   sequence_diagrams: true     # 코드 흐름 시퀀스 다이어그램 생성
   assess_linked_issues: true  # 연결된 이슈 요구사항 충족 여부 체크
