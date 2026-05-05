@@ -32,6 +32,16 @@ public interface ReferenceUserLinkRepository extends JpaRepository<ReferenceUser
     List<ReferenceUserLink> findByUserLinkId(@Param("userLinkId") Long userLinkId);
 
     /**
+     * Reference ID로 연결된 ReferenceUserLink 목록 조회 (UserLink FETCH JOIN)
+     * @param referenceId Reference ID
+     * @return ReferenceUserLink 리스트
+     */
+    @Query("SELECT rul FROM ReferenceUserLink rul " +
+            "JOIN FETCH rul.userLink " +
+            "WHERE rul.reference.id = :referenceId")
+    List<ReferenceUserLink> findByReferenceId(@Param("referenceId") Long referenceId);
+
+    /**
      * UserLink ID로 해당하는 ReferenceUserLink 모두 삭제
      * @param userLinkId UserLink ID
      */

@@ -17,8 +17,8 @@ import swyp12.team9.server.domain.userlink.model.UserLink;
 import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 /**
- * 추천 시스템 전용 Elasticsearch 색인 서비스
- * - 공개 설정된 UserLink를 Elasticsearch에 색인
+ * 추천 시스템 전용 Elasticsearch 인덱싱 서비스
+ * - 공개 Reference에 속한 READY UserLink를 Elasticsearch에 인덱싱
  * - metadata의 indexType으로 추천 인덱스 구분
  * - 탐색 탭의 추천 기능에서만 사용
  */
@@ -29,10 +29,12 @@ public class LinkIndexingService {
 
     private final UserLinkRepository userLinkRepository;
     private final VectorStore vectorStore;
+    private final RecommendationCacheService cacheService;
 
     /**
-     * 공개된 링크만 Elasticsearch에 색인
-     * - Reference의 is_public = true인 UserLink만 대상 - title과 aiSummary가 둘 다 있는 링크만 색인 (유효성 검증)
+     * 추천 대상 UserLink 전체를 Elasticsearch에 인덱싱
+     * - 공개 Reference에 속한 UserLink만 대상
+     * - READY 상태이고 title과 aiSummary가 둘 다 있는 링크만 인덱싱
      * - 검색 대상: title, aiSummary, why, memo 통합
      */
     @Transactional(readOnly = true)
@@ -41,7 +43,7 @@ public class LinkIndexingService {
         List<UserLink> publicUserLinks = userLinkRepository.findAllByReferenceIsPublicTrue();
 
         if (publicUserLinks.isEmpty()) {
-            log.info("색인할 공개 UserLink가 없습니다.");
+            log.info("인덱싱할 공개 UserLink가 없습니다.");
             return;
         }
 
@@ -52,32 +54,33 @@ public class LinkIndexingService {
 
         int skippedCount = publicUserLinks.size() - validUserLinks.size();
         if (skippedCount > 0) {
-            log.info("Link의 title 또는 aiSummary가 없어 {} 개의 UserLink 색인 제외", skippedCount);
+            log.info("Link의 title 또는 aiSummary가 없어 {} 개의 UserLink 인덱싱 제외", skippedCount);
         }
 
         if (validUserLinks.isEmpty()) {
-            log.info("색인 가능한 유효한 UserLink가 없습니다.");
+            log.info("인덱싱 가능한 유효한 UserLink가 없습니다.");
             return;
         }
 
-        // 3. Document 객체로 변환하여 Elasticsearch에 벌크 색인
+        // 3. Document 객체로 변환하여 Elasticsearch에 벌크 인덱싱
         List<Document> documents = validUserLinks.stream()
                 .map(this::createDocument)
                 .collect(Collectors.toList());
 
         vectorStore.add(documents);
-        log.info("총 {} 개의 UserLink를 Elasticsearch에 색인 완료", documents.size());
+        cacheService.evictCategoryRecommendationIds();
+        log.info("총 {} 개의 UserLink를 Elasticsearch에 인덱싱 완료", documents.size());
     }
 
     /**
-     * 특정 링크를 가진 모든 공개 UserLink를 Elasticsearch에 색인
+     * 특정 Link를 사용하는 공개 Reference 소속 UserLink를 Elasticsearch에 인덱싱
      * - 신규 링크 추가 시 또는 링크 정보 수정 시 호출
      *
-     * @param linkId 색인할 링크 ID
+     * @param linkId 인덱싱할 링크 ID
      */
     @Transactional(readOnly = true)
     public void indexLink(Long linkId) {
-        // 1. 해당 링크를 참조하는 모든 공개 UserLink 조회 (Reference 기준)
+        // 1. 해당 Link를 참조하는 공개 Reference 소속 UserLink 조회
         List<UserLink> publicUserLinks = userLinkRepository.findAllByReferenceIsPublicTrue()
                 .stream()
                 .filter(ul -> ul.getLink().getId().equals(linkId))
@@ -88,27 +91,28 @@ public class LinkIndexingService {
             return;
         }
 
-        // 2. 유효한 내용이 있는 UserLink만 색인 (title, aiSummary 필수)
+        // 2. 유효한 내용이 있는 UserLink만 인덱싱 (title, aiSummary 필수)
         List<Document> documents = publicUserLinks.stream()
                 .filter(ul -> hasValidContent(ul.getLink()))
                 .map(this::createDocument)
                 .toList();
 
         if (documents.isEmpty()) {
-            log.warn("색인 제외 (Link의 title 또는 aiSummary 없음) - ID: {}", linkId);
+            log.warn("인덱싱 제외 (Link의 title 또는 aiSummary 없음) - ID: {}", linkId);
             return;
         }
 
-        // 3. Elasticsearch에 색인 (upsert 동작)
+        // 3. Elasticsearch에 인덱싱 (upsert 동작)
         vectorStore.add(documents);
-        log.info("Link ID {} 에 대한 {} 개의 UserLink 색인 완료", linkId, documents.size());
+        cacheService.evictCategoryRecommendationIds();
+        log.info("Link ID {} 에 대한 {} 개의 UserLink 인덱싱 완료", linkId, documents.size());
     }
 
     /**
-     * 단일 UserLink를 Elasticsearch에 색인 또는 삭제
-     * - UserLink의 why, memo 수정 시 호출 - Reference의 공개 상태 변경 시 색인 추가/삭제 처리
+     * 단일 UserLink를 Elasticsearch에 인덱싱 또는 삭제
+     * - UserLink 생성 또는 Reference 공개 상태 변경 시 인덱싱 추가/삭제 처리
      *
-     * @param userLinkId 색인/삭제할 UserLink ID
+     * @param userLinkId 인덱싱/삭제할 UserLink ID
      */
     @Transactional(readOnly = true)
     public void indexUserLink(Long userLinkId) {
@@ -118,18 +122,26 @@ public class LinkIndexingService {
             if (isPublic && hasValidContent(ul.getLink())) {
                 Document document = createDocument(ul);
                 vectorStore.add(List.of(document));
-                log.info("UserLink 색인 완료 - ID: {}", userLinkId);
+                cacheService.evictCategoryRecommendationIds();
+                log.info("UserLink 인덱싱 완료 - ID: {}", userLinkId);
             } else {
                 // Reference가 비공개이거나 유효하지 않으면 Elasticsearch에서 삭제하여 검색 결과에서 제외
                 vectorStore.delete(List.of("recommendation-" + userLinkId));
-                log.info("UserLink 색인 삭제 (Reference 비공개 또는 유효하지 않음) - ID: {}", userLinkId);
+                cacheService.evictCategoryRecommendationIds();
+                log.info("UserLink 인덱스 삭제 (Reference 비공개 또는 유효하지 않음) - ID: {}", userLinkId);
             }
         });
     }
 
+    public void deleteUserLink(Long userLinkId) {
+        vectorStore.delete(List.of("recommendation-" + userLinkId));
+        cacheService.evictCategoryRecommendationIds();
+        log.info("UserLink 추천 인덱스 삭제 완료 - ID: {}", userLinkId);
+    }
+
     /**
-     * Link의 title과 aiSummary 유효성 검증
-     * - 두 필드 모두 필수 (검색 품질 보장)
+     * Link의 추천 인덱싱 가능 여부 검증
+     * - READY 상태와 title, aiSummary가 모두 필요함
      *
      * @param link 검증할 Link 엔티티
      * @return 유효 여부
@@ -184,7 +196,7 @@ public class LinkIndexingService {
         metadata.put("faviconUrl", link.getFaviconUrl() != null ? link.getFaviconUrl() : "");
 
         // 3. Document 생성 (ID는 "recommendation-{userLinkId}" 형식)
-        // - 동일 ID로 재색인 시 upsert(업데이트) 동작
+        // - 동일 ID로 재인덱싱 시 upsert(업데이트) 동작
         return new Document("recommendation-" + userLink.getId(), content, metadata);
     }
 }
