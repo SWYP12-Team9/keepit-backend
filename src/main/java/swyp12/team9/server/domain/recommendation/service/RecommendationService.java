@@ -182,7 +182,7 @@ public class RecommendationService {
             List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(idsToFetch, category);
             if (!myLinkIds.isEmpty()) {
                 allResults = allResults.stream()
-                        .filter(resp -> !myLinkIds.contains(resp.getId()))
+                        .filter(resp -> !myLinkIds.contains(resp.id()))
                         .collect(Collectors.toList());
             }
 
