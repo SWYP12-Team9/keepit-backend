@@ -31,6 +31,12 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
     List<Long> findUserIdsByLinkId(@Param("linkId") Long linkId);
 
     /**
+     * UserLink ID로 소유자 User ID 조회
+     */
+    @Query("SELECT ul.user.id FROM UserLink ul WHERE ul.id = :userLinkId")
+    Optional<Long> findUserIdById(@Param("userLinkId") Long userLinkId);
+
+    /**
      * 사용자 ID와 링크 ID로 UserLink 조회
      */
     Optional<UserLink> findByUserIdAndLinkId(Long userId, Long linkId);
