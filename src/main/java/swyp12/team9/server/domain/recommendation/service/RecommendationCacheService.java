@@ -18,6 +18,7 @@ import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
  * 추천 API에서 반복되는 외부 검색/DB 조회 결과를 Redis에 캐싱한다.
  * - categoryRecommendationIds: 카테고리별 추천 후보 UserLink ID 목록
  * - userLinkIds: 사용자별 저장 Link ID 목록
+ * 빈 카테고리 추천 결과는 색인 전 조회 결과가 Redis에 고정되지 않도록 캐시하지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,8 +33,9 @@ public class RecommendationCacheService {
     /**
      * 카테고리 추천 후보를 조회한다.
      * 캐시 miss 시 Elasticsearch vector search를 수행하고, 결과 UserLink ID 목록을 Redis에 저장한다.
+     * 결과가 비어 있으면 추후 색인 데이터가 들어왔을 때 다시 조회할 수 있도록 캐시하지 않는다.
      */
-    @Cacheable(value = "categoryRecommendationIds", key = "#category")
+    @Cacheable(value = "categoryRecommendationIds", key = "#category", unless = "#result == null || #result.isEmpty()")
     public List<Long> getCategoryRecommendationUserLinkIds(String category) {
         return loadCategoryRecommendationUserLinkIds(category);
     }
@@ -67,8 +69,9 @@ public class RecommendationCacheService {
     /**
      * 사용자가 이미 저장한 원본 Link ID 목록을 조회한다.
      * 추천/검색 응답에서 이미 저장한 링크를 제외하기 위해 UserLink ID가 아닌 Link ID를 캐싱한다.
+     * 저장 링크가 없는 사용자는 빈 목록을 캐시해 반복 DB 조회를 줄인다.
      */
-    @Cacheable(value = "userLinkIds", key = "#userId")
+    @Cacheable(value = "userLinkIds", key = "#userId", unless = "#result == null")
     public List<Long> getUserLinkIds(Long userId) {
         return loadUserLinkIds(userId);
     }
@@ -98,6 +101,7 @@ public class RecommendationCacheService {
 
     /**
      * Elasticsearch metadata 값은 Integer/Long/String 등으로 역직렬화될 수 있어 Long으로 통일한다.
+     * Redis 캐시 hit 이후의 ID 타입 정규화는 RecommendationService에서 한 번 더 수행한다.
      */
     private Long getLongFromMetadata(java.util.Map<String, Object> metadata, String key) {
         Object value = metadata.get(key);
