@@ -160,8 +160,13 @@ public class RecommendationService {
                     : category;
 
             // 1. 카테고리 추천 후보 캐시 조회 (카테고리당 1개 캐시, topK=1000 고정으로 모든 페이지 공유)
-            List<Long> categoryUserLinkIds = normalizeIds(cacheService.getCategoryRecommendationUserLinkIds(processedCategory));
-            log.info("[카테고리 추천] 캐시 조회 결과: {}개", categoryUserLinkIds.size());
+            List<?> rawCategoryUserLinkIds = cacheService.getCategoryRecommendationUserLinkIds(processedCategory);
+            log.info("[카테고리 추천] 캐시 원본 조회 결과: category={}, rawCount={}, firstValueType={}",
+                    processedCategory, rawCategoryUserLinkIds.size(), getFirstValueType(rawCategoryUserLinkIds));
+
+            List<Long> categoryUserLinkIds = normalizeIds(rawCategoryUserLinkIds);
+            log.info("[카테고리 추천] 캐시 정규화 결과: category={}, normalizedCount={}",
+                    processedCategory, categoryUserLinkIds.size());
 
             if (categoryUserLinkIds.isEmpty()) {
                 return PaginationUtils.Cursor.PageResponse.empty();
@@ -171,13 +176,14 @@ public class RecommendationService {
             Set<Long> myLinkIds = userId != null
                     ? new HashSet<>(normalizeIds(cacheService.getUserLinkIds(userId)))
                     : Collections.emptySet();
-            log.debug("[카테고리 추천] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
+            log.info("[카테고리 추천] 사용자 저장 링크 필터: userId={}, myLinkCount(저장한 링크 수)={}", userId, myLinkIds.size());
 
             // 3. 필요한 범위만 DB 조회 (전체 1000건 → cursor 위치 + size * 3 + myLinkIds 수)
             // myLinkIds 필터링으로 일부 제거될 수 있으므로 3배 버퍼 적용
             int fetchEnd = Math.min(startIndex + size * 3 + myLinkIds.size(), categoryUserLinkIds.size());
             List<Long> idsToFetch = categoryUserLinkIds.subList(0, fetchEnd);
-            log.debug("[카테고리 추천] DB 조회 범위: {}건 / 전체 {}건", fetchEnd, categoryUserLinkIds.size());
+            log.info("[카테고리 추천] DB 조회 범위: {}건 / 전체 {}건, startIndex={}, size={}, fetchEnd={}, totalCandidateCount={}",
+                    fetchEnd, categoryUserLinkIds.size(), startIndex, size, fetchEnd, categoryUserLinkIds.size());
 
             // 4. DB 조회 후 내 링크 in-memory 제외
             List<RecommendationResponse> allResults = buildResponsesFromUserLinkIds(idsToFetch, category);
@@ -186,6 +192,8 @@ public class RecommendationService {
                         .filter(resp -> !myLinkIds.contains(resp.id()))
                         .collect(Collectors.toList());
             }
+            log.info("[카테고리 추천] 응답 생성 결과: category={}, responseCount={}",
+                    processedCategory, allResults.size());
 
             return paginateWithCursor(allResults, startIndex, size);
 
@@ -207,6 +215,8 @@ public class RecommendationService {
      */
     private List<RecommendationResponse> buildResponsesFromUserLinkIds(List<Long> userLinkIds, String keyword) {
         List<UserLink> userLinks = userLinkRepository.findAllById(userLinkIds);
+        log.info("[추천 응답 생성] UserLink DB 조회 결과: requestedCount={}, foundCount={}",
+                userLinkIds.size(), userLinks.size());
 
         // findAllById는 순서를 보장하지 않으므로, 요청한 ID 순서대로 재정렬
         Map<Long, UserLink> userLinkMap = userLinks.stream()
@@ -217,6 +227,19 @@ public class RecommendationService {
                 .filter(Objects::nonNull)
                 .map(ul -> RecommendationResponse.from(ul.getLink(), ul, keyword))
                 .collect(Collectors.toList());
+    }
+
+    private String getFirstValueType(List<?> values) {
+        if (values.isEmpty() || values.get(0) == null) {
+            return "none";
+        }
+        Object firstValue = values.get(0);
+        if (firstValue instanceof List<?> list && !list.isEmpty()) {
+            Object firstNestedValue = list.get(0);
+            return firstValue.getClass().getName() + "<first=" +
+                    (firstNestedValue != null ? firstNestedValue.getClass().getName() : "null") + ">";
+        }
+        return firstValue.getClass().getName();
     }
 
 
@@ -263,10 +286,10 @@ public class RecommendationService {
         if (value instanceof Number number) {
             return number.longValue();
         }
-        if (value instanceof List<?> list && list.size() == 2) {
+        if (value instanceof List<?> list && isTypedValueWrapper(list.get(0), list.size())) {
             return toLong(list.get(1));
         }
-        if (value.getClass().isArray() && Array.getLength(value) == 2) {
+        if (value.getClass().isArray() && isTypedValueWrapper(Array.get(value, 0), Array.getLength(value))) {
             return toLong(Array.get(value, 1));
         }
         try {
@@ -274,6 +297,12 @@ public class RecommendationService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private boolean isTypedValueWrapper(Object typeMarker, int size) {
+        return size == 2
+                && typeMarker instanceof String marker
+                && marker.startsWith("java.");
     }
 
     // ========== Fallback 메서드 (Elasticsearch 장애 시 DB에서 키워드 기반 검색 수행) ==========
