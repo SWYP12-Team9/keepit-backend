@@ -1,5 +1,6 @@
 package swyp12.team9.server.domain.recommendation.service;
 
+import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -243,7 +244,7 @@ public class RecommendationService {
     }
 
     /**
-     * Redis 캐시 hit 시 숫자 ID가 Integer 등으로 역직렬화될 수 있어 Long으로 통일한다.
+     * Redis 캐시 hit 시 숫자 ID가 Integer, String, typed JSON 배열 등으로 역직렬화될 수 있어 Long으로 통일한다.
      */
     private List<Long> normalizeIds(List<?> ids) {
         return ids.stream()
@@ -261,6 +262,12 @@ public class RecommendationService {
         }
         if (value instanceof Number number) {
             return number.longValue();
+        }
+        if (value instanceof List<?> list && list.size() == 2) {
+            return toLong(list.get(1));
+        }
+        if (value.getClass().isArray() && Array.getLength(value) == 2) {
+            return toLong(Array.get(value, 1));
         }
         try {
             return Long.parseLong(value.toString());
