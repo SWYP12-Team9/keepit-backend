@@ -18,7 +18,7 @@ import swyp12.team9.server.domain.userlink.repository.UserLinkRepository;
 
 /**
  * 추천 인덱싱과 추천 캐시 무효화를 도메인 이벤트 기반으로 처리한다.
- * 트랜잭션이 커밋된 뒤 비동기로 실행해, 저장/수정 요청의 응답 시간을 인덱싱 작업과 분리한다.
+ * 트랜잭션 커밋 후 비동기로 실행해 저장/수정 요청의 응답 시간을 인덱싱과 캐시 갱신 작업에서 분리한다.
  */
 @Slf4j
 @Component
@@ -32,7 +32,7 @@ public class RecommendationIndexingEventListener {
 
     /**
      * UserLink 생성 후 사용자의 저장 Link ID 캐시를 지우고 추천 인덱싱을 시도한다.
-     * 생성 직후 Link가 아직 READY가 아니면 LinkIndexingService에서 추천 인덱스 삭제/제외로 처리된다.
+     * 생성 직후 Link가 아직 READY가 아니거나 공개 Reference에 속하지 않으면 LinkIndexingService에서 추천 인덱스 제외로 처리한다.
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -46,7 +46,7 @@ public class RecommendationIndexingEventListener {
 
     /**
      * UserLink 삭제 후 해당 사용자의 저장 Link ID 캐시와 추천 인덱스를 함께 제거한다.
-     * 삭제 후에는 DB에서 UserLink를 다시 조회할 수 없으므로 이벤트에 userId를 함께 담아 전달한다.
+     * 삭제 후에는 DB에서 UserLink를 다시 조회할 수 없으므로 이벤트의 userId로 사용자별 캐시를 무효화한다.
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -58,7 +58,7 @@ public class RecommendationIndexingEventListener {
 
     /**
      * Reference 공개 여부가 바뀌면 연결된 모든 UserLink를 다시 인덱싱한다.
-     * 공개 전환은 추천 인덱스 추가, 비공개 전환은 추천 인덱스 삭제로 이어진다.
+     * 공개 전환은 추천 인덱스 추가, 비공개 전환은 추천 인덱스 삭제와 카테고리 후보 캐시 무효화로 이어진다.
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -73,7 +73,7 @@ public class RecommendationIndexingEventListener {
 
     /**
      * Link AI 요약이 완료되면 해당 Link를 사용하는 공개 UserLink들을 추천 인덱스에 반영한다.
-     * PENDING 상태라 제외됐던 링크가 READY가 된 뒤 추천 후보로 들어오는 흐름이다.
+     * PENDING 상태라 제외됐던 링크가 READY가 되면 추천 후보에 들어오고, 카테고리 후보 캐시도 갱신 대상이 된다.
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

@@ -68,7 +68,7 @@ public class RecommendationService {
             StringBuilder filterExpression = new StringBuilder("indexType == 'recommendation'");
 
             if (userId != null) {
-                List<Long> myLinkIds = cacheService.getUserLinkIds(userId);
+                List<Long> myLinkIds = normalizeIds(cacheService.getUserLinkIds(userId));
                 log.debug("[추천 검색] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
                 if (!myLinkIds.isEmpty()) {
                     // TODO 양진모: 사용자의 저장 링크가 65,536개(ES terms limit)를 초과할 경우 에러 발생 가능성 있음. 추후
@@ -159,7 +159,7 @@ public class RecommendationService {
                     : category;
 
             // 1. 카테고리 추천 후보 캐시 조회 (카테고리당 1개 캐시, topK=1000 고정으로 모든 페이지 공유)
-            List<Long> categoryUserLinkIds = cacheService.getCategoryRecommendationUserLinkIds(processedCategory);
+            List<Long> categoryUserLinkIds = normalizeIds(cacheService.getCategoryRecommendationUserLinkIds(processedCategory));
             log.info("[카테고리 추천] 캐시 조회 결과: {}개", categoryUserLinkIds.size());
 
             if (categoryUserLinkIds.isEmpty()) {
@@ -168,7 +168,7 @@ public class RecommendationService {
 
             // 2. 사용자 저장 linkId 캐시 조회 (DB 쿼리 절약)
             Set<Long> myLinkIds = userId != null
-                    ? new HashSet<>(cacheService.getUserLinkIds(userId))
+                    ? new HashSet<>(normalizeIds(cacheService.getUserLinkIds(userId)))
                     : Collections.emptySet();
             log.debug("[카테고리 추천] userId: {}, 저장한 링크 수: {}", userId, myLinkIds.size());
 
@@ -235,6 +235,33 @@ public class RecommendationService {
             return (Long) value;
         if (value instanceof Number)
             return ((Number) value).longValue();
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Redis 캐시 hit 시 숫자 ID가 Integer 등으로 역직렬화될 수 있어 Long으로 통일한다.
+     */
+    private List<Long> normalizeIds(List<?> ids) {
+        return ids.stream()
+                .map(this::toLong)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Long longValue) {
+            return longValue;
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
         try {
             return Long.parseLong(value.toString());
         } catch (NumberFormatException e) {
