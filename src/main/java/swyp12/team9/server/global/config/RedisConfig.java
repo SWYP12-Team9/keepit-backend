@@ -16,6 +16,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
@@ -84,20 +85,25 @@ public class RedisConfig {
         objectMapper.setDefaultTyping(typer);
 
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        RedisSerializationContext.SerializationPair<Object> jsonValueSerializer =
+                RedisSerializationContext.SerializationPair.fromSerializer(serializer);
+        RedisSerializationContext.SerializationPair<Object> jdkValueSerializer =
+                RedisSerializationContext.SerializationPair.fromSerializer(new JdkSerializationRedisSerializer());
 
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(5))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
+                .serializeValuesWith(jsonValueSerializer)
                 .disableCachingNullValues();
 
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
         // 인기글 목록: 5분 (조회수가 변해도 5분마다 갱신)
         cacheConfigurations.put("popularLinks", defaultConfig.entryTtl(Duration.ofMinutes(5)));
-        // 카테고리 추천 후보 ID 목록: 30분 (인덱싱 변경 시 명시적으로 무효화)
-        cacheConfigurations.put("categoryRecommendationIds", defaultConfig.entryTtl(Duration.ofMinutes(30)));
-        // 사용자 저장 링크 ID 목록: 10분 (UserLink 생성/삭제 시 해당 사용자 캐시 무효화)
-        cacheConfigurations.put("userLinkIds", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        // ID 목록 캐시는 JSON typed wrapper 호환 이슈를 피하기 위해 JDK serializer로 저장한다.
+        cacheConfigurations.put("categoryRecommendationIds", defaultConfig.entryTtl(Duration.ofMinutes(30))
+                .serializeValuesWith(jdkValueSerializer));
+        cacheConfigurations.put("userLinkIds", defaultConfig.entryTtl(Duration.ofMinutes(10))
+                .serializeValuesWith(jdkValueSerializer));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
