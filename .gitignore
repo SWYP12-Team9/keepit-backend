@@ -63,5 +63,9 @@ src/main/resources/application-local.yaml
 README-LOCAL.md
 
 
+### Agent Skills ###
+AGENTS.md
+docs/agents/
+
 ### Load Test & Keys ###
 *.pem

@@ -2,12 +2,14 @@ package swyp12.team9.server.domain.userlink.repository;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import swyp12.team9.server.domain.userlink.model.UserLink;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -95,6 +97,15 @@ public interface UserLinkRepository extends JpaRepository<UserLink, Long>, UserL
      */
     List<UserLink> findByUserIdAndStatusAndIdLessThanOrderByIdDesc(
             Long userId, swyp12.team9.server.domain.userlink.model.LinkStatus status, Long cursor, Pageable pageable);
+
+    // ========== 조회수 ==========
+    @Modifying
+    @Query("UPDATE UserLink ul SET ul.viewCount = ul.viewCount + :increment WHERE ul.id = :id")
+    int incrementViewCountById(@Param("id") Long id, @Param("increment") long increment);
+
+    default void batchIncrementViewCount(Map<Long, Long> countMap) {
+        countMap.forEach(this::incrementViewCountById);
+    }
 
     // ========== 추천 시스템용 ==========
     /**
