@@ -94,7 +94,6 @@ public class UserLink extends BaseEntity {
             this.firstOpenedAt = LocalDateTime.now();
         }
         this.lastOpenedAt = LocalDateTime.now();
-        this.viewCount++;
     }
 
     public void validateOwner(Long userId) {
