@@ -62,7 +62,7 @@
 
 - 사용자는 Vercel에 배포된 Next.js 화면에 접속하고 화면에서 발생한 API 요청은 Nginx를 거쳐 Spring 서버로 전달되는 흐름
   
-- GitHub에 코드를 푸시하면, 프론트엔드는 Vercel에서 빌드 및 배포되고 백엔드는 GitHub Actions가 빌드와 테스트를 수행한 뒤 GCP의 Artifact Registry를 통해 배포되는 CI/CD 파이프라인 구조
+- GitHub에 코드를 푸시하면, 프론트엔드는 Vercel에서 빌드 및 배포되고 백엔드는 GitHub Actions가 빌드·테스트 후 Docker 이미지를 GCP Artifact Registry에 업로드한 뒤 배포 대상에 배포하는 CI/CD 파이프라인 구조
 - 현재 Cloud SQL(MySQL)에 데이터를 저장하고, 파일은 Cloud Storage에 저장하는 구조
 - Redis는 캐시와 이벤트 스트림, Elasticsearch는 검색과 벡터 검색, Kibana는 그 검색 데이터를 관리·확인하는 용도로 연결되어 있고, OpenAI는 AI 요약과 임베딩 생성에 사용
 - FastAPI는 Cloud Run 위에서 별도로 동작하며 웹 스크래핑을 할 때 사용
