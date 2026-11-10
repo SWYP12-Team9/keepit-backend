@@ -11,18 +11,23 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.UUID;
 
-public class JwtUtil {
+public final class JwtUtil {
 
-    private static final SecretKey secretKey;
-    private static final Long accessTokenExpiresIn;
-    private static final Long refreshTokenExpiresIn;
+    private static volatile SecretKey secretKey;
+    private static volatile long accessTokenExpiresIn;
+    private static volatile long refreshTokenExpiresIn;
 
-    static  {
-        String secretKeyString = "himynameissecretkeyysociallogin!!";
-        secretKey = new SecretKeySpec(secretKeyString.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
+    private JwtUtil() {
+    }
 
-        accessTokenExpiresIn = 604800L * 1000 * 4; // 1시간(3600L * 1000)
-        refreshTokenExpiresIn = 604800L * 1000 * 4; // 7일 * 4 = 28일
+    // 서명 키와 만료 시간은 설정(jwt.*)에서 주입한다. 애플리케이션 시작 시 JwtConfig가 한 번 호출한다.
+    public static void configure(String secret, long accessExpiresInMs, long refreshExpiresInMs) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("jwt.secret(JWT_SECRET)은 32바이트 이상이어야 합니다.");
+        }
+        secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
+        accessTokenExpiresIn = accessExpiresInMs;
+        refreshTokenExpiresIn = refreshExpiresInMs;
     }
 
     // JWT 클레임 username 파싱
