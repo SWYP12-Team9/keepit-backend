@@ -202,6 +202,12 @@ link:
         base-seconds: ${LINK_STREAM_RECOVERY_BACKOFF_BASE_SECONDS:30}
         multiplier: ${LINK_STREAM_RECOVERY_BACKOFF_MULTIPLIER:2.0}
         max-delay-seconds: ${LINK_STREAM_RECOVERY_BACKOFF_MAX_DELAY_SECONDS:300}
+    # Stream 등록이 누락된 채 PENDING에 머문 링크 재발행 (LinkPendingRepublisher)
+    republish:
+      enabled: ${LINK_STREAM_REPUBLISH_ENABLED:true}
+      fixed-delay-ms: ${LINK_STREAM_REPUBLISH_DELAY_MS:60000}
+      stale-minutes: ${LINK_STREAM_REPUBLISH_STALE_MINUTES:5}
+      batch-size: ${LINK_STREAM_REPUBLISH_BATCH_SIZE:100}
 
 discord:
   webhook:
