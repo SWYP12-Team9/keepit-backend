@@ -15,6 +15,7 @@ import swyp12.team9.server.domain.userlink.dto.response.UserLinkListResponse;
 import swyp12.team9.server.domain.userlink.dto.response.UserLinkResponse;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.service.LinkService;
+import swyp12.team9.server.domain.link.service.ViewCountCacheService;
 import swyp12.team9.server.domain.reference.exception.ReferenceNotFoundException;
 import swyp12.team9.server.domain.reference.model.Reference;
 import swyp12.team9.server.domain.reference.repository.ReferenceRepository;
@@ -51,6 +52,7 @@ public class UserLinkService {
     private final ReferenceService referenceService;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final ViewCountCacheService viewCountCacheService;
 
     /**
      * 사용자 링크 생성 - 중복 체크를 먼저 수행한 후 Link 생성 - LinkService를 통해 Link 스크래핑 로직 처리 referenceId와 newReference는 둘 중 하나만 선택 둘 다
@@ -154,9 +156,11 @@ public class UserLinkService {
         }
         userLink.validateOwner(userId);
 
-        // 읽음 처리(조회수 증가)
+        // 읽음 처리 (status, timestamp)
         userLink.markAsRead();
-        log.debug("조회수 증가 - userLinkId: {}, viewCount: {}", userLinkId, userLink.getViewCount());
+
+        // 조회수 증가 (Redis → batch flush to DB)
+        viewCountCacheService.incrementUserLinkViewCount(userLinkId);
 
         // UserLink에 연결된 Reference 조회 (단일)
         Reference reference = referenceUserLinkRepository.findByUserLinkId(userLinkId).stream()

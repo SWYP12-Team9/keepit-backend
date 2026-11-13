@@ -10,6 +10,7 @@ import swyp12.team9.server.domain.link.exception.LinkNotFoundException;
 import swyp12.team9.server.domain.link.model.Link;
 import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 import swyp12.team9.server.domain.link.repository.LinkRepository;
+import swyp12.team9.server.domain.link.service.ViewCountCacheService;
 
 
 @Slf4j
@@ -20,6 +21,7 @@ public class LinkService {
     private final LinkRepository linkRepository;
     private final LinkSaveService linkSaveService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ViewCountCacheService viewCountCacheService;
 
     /**
      * URL로 기존 Link를 조회하거나, 없으면 스크래핑을 통해 새로 생성합니다.
@@ -74,13 +76,14 @@ public class LinkService {
 
     /**
      * 외부(추천/인기 탭 등)에서 링크 카드를 클릭했을 때 공개 조회수를 1 증가시킵니다.
+     * Redis를 통해 실시간 기록 후, 스케줄러가 주기적으로 DB에 일괄 반영합니다.
      */
     @Transactional
     public void incrementPublicViewCount(Long linkId) {
-        int updatedCount = linkRepository.incrementPublicViewCount(linkId);
-        if (updatedCount == 0) {
+        if (!linkRepository.existsById(linkId)) {
             throw new LinkNotFoundException();
         }
-        log.debug("Link 공개 조회수 증가 - linkId: {}", linkId);
+        viewCountCacheService.incrementPublicViewCount(linkId);
+        log.debug("Link 공개 조회수 증가 (Redis) - linkId: {}", linkId);
     }
 }

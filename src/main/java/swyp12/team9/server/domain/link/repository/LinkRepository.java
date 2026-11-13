@@ -11,6 +11,7 @@ import swyp12.team9.server.domain.link.model.LinkProcessingStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -47,4 +48,12 @@ public interface LinkRepository extends JpaRepository<Link, Long> {
     @Modifying
     @Query("UPDATE Link l SET l.publicViewCount = l.publicViewCount + 1 WHERE l.id = :linkId")
     int incrementPublicViewCount(@Param("linkId") Long linkId);
+
+    @Modifying
+    @Query("UPDATE Link l SET l.publicViewCount = l.publicViewCount + :increment WHERE l.id = :id")
+    int incrementPublicViewCountById(@Param("id") Long id, @Param("increment") long increment);
+
+    default void batchIncrementPublicViewCount(Map<Long, Long> countMap) {
+        countMap.forEach(this::incrementPublicViewCountById);
+    }
 }
