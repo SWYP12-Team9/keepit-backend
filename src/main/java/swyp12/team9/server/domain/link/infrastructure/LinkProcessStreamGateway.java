@@ -49,6 +49,11 @@ public class LinkProcessStreamGateway {
         return Boolean.TRUE.equals(acquired);
     }
 
+    // 처리 락이 남아 있으면 Stream 어딘가에서 작업이 진행 중(또는 재시도 대기 중)이다.
+    public boolean isProcessing(Long linkId) {
+        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(LinkStreamRedisKeys.processingLockKey(linkId)));
+    }
+
     // 처리 중인 작업이 아직 살아 있음을 표시하기 위해 락 TTL만 연장
     public void extendProcessingLock(Long linkId, Duration ttl) {
         stringRedisTemplate.expire(LinkStreamRedisKeys.processingLockKey(linkId), ttl);
