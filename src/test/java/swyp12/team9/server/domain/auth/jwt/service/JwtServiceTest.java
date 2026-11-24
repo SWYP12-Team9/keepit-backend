@@ -28,6 +28,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ExtendWith(MockitoExtension.class)
 class JwtServiceTest {
 
+    @org.junit.jupiter.api.BeforeAll
+    static void configureJwt() {
+        JwtUtil.configure("test-only-jwt-secret-key-at-least-32-bytes", 3_600_000L, 2_419_200_000L);
+    }
+
     private static final Long USER_ID = 1L;
     private static final String USERNAME = "tester";
     private static final String ROLE = "ROLE_USER";
