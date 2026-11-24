@@ -4,11 +4,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -27,17 +33,62 @@ public class RecommendationCacheService {
     private final VectorStore vectorStore;
     private final UserLinkRepository userLinkRepository;
     private final MeterRegistry meterRegistry;
+    private final CacheManager cacheManager;
 
     private static final int MAX_TOP_K = 1000;
+    private static final String CATEGORY_CACHE = "categoryRecommendationIds";
+
+    // 캐시 miss 시 같은 카테고리의 동시 요청을 하나의 조회로 병합하기 위한 진행 중 조회 목록
+    // ponytail: JVM 안에서만 병합한다. 서버가 여러 대면 서버마다 1번씩 조회하므로, 그때는 Redis 락(SET NX)으로 확장
+    private final ConcurrentMap<String, CompletableFuture<List<Long>>> inFlightCategoryLoads = new ConcurrentHashMap<>();
 
     /**
      * 카테고리 추천 후보를 조회한다.
      * 캐시 miss 시 Elasticsearch vector search를 수행하고, 결과 UserLink ID 목록을 Redis에 저장한다.
      * 결과가 비어 있으면 추후 색인 데이터가 들어왔을 때 다시 조회할 수 있도록 캐시하지 않는다.
+     *
+     * 캐시 스탬피드 방지: 캐시가 빈 순간(만료, 전체 무효화) 같은 카테고리 요청이 몰리면 첫 요청만 벡터 검색을 하고
+     * 나머지는 그 결과를 기다려 함께 받는다. @Cacheable(sync = true)는 unless(빈 결과 미캐싱)와 함께 쓸 수 없어 직접 구현했다.
      */
-    @Cacheable(value = "categoryRecommendationIds", key = "#category", unless = "#result == null || #result.isEmpty()")
+    @SuppressWarnings("unchecked")
     public List<Long> getCategoryRecommendationUserLinkIds(String category) {
-        return loadCategoryRecommendationUserLinkIds(category);
+        Cache cache = cacheManager.getCache(CATEGORY_CACHE);
+        Cache.ValueWrapper cached = cache.get(category);
+        if (cached != null) {
+            return (List<Long>) cached.get();
+        }
+
+        CompletableFuture<List<Long>> myLoad = new CompletableFuture<>();
+        CompletableFuture<List<Long>> runningLoad = inFlightCategoryLoads.putIfAbsent(category, myLoad);
+        if (runningLoad != null) {
+            try {
+                return runningLoad.join();
+            } catch (CompletionException e) {
+                // 첫 요청의 조회 실패(ES 장애 등)를 그대로 전달해 호출부의 DB fallback이 동일하게 동작하게 한다.
+                if (e.getCause() instanceof RuntimeException cause) {
+                    throw cause;
+                }
+                throw e;
+            }
+        }
+
+        try {
+            // 병합 목록에 등록하기 직전에 다른 요청이 조회를 끝내고 캐시에 넣었을 수 있다.
+            Cache.ValueWrapper filled = cache.get(category);
+            List<Long> result = filled != null
+                    ? (List<Long>) filled.get()
+                    : loadCategoryRecommendationUserLinkIds(category);
+            if (filled == null && result != null && !result.isEmpty()) {
+                cache.put(category, result);
+            }
+            myLoad.complete(result);
+            return result;
+        } catch (RuntimeException e) {
+            myLoad.completeExceptionally(e);
+            throw e;
+        } finally {
+            inFlightCategoryLoads.remove(category, myLoad);
+        }
     }
 
     /**
@@ -95,7 +146,7 @@ public class RecommendationCacheService {
      * 추천 인덱싱 결과가 바뀐 경우 카테고리 후보 캐시를 전체 제거한다.
      * 현재 카테고리 수가 적어 부분 무효화보다 전체 무효화가 단순하고 안전하다.
      */
-    @CacheEvict(value = "categoryRecommendationIds", allEntries = true)
+    @CacheEvict(value = CATEGORY_CACHE, allEntries = true)
     public void evictCategoryRecommendationIds() {
     }
 

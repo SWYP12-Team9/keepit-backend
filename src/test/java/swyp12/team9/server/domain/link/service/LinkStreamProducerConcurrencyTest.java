@@ -30,7 +30,7 @@ import swyp12.team9.server.global.config.RedisStreamConfig;
 /**
  * 실제 Redis에서 동일 linkId 동시 발행 시 Stream 작업이 1건만 생기는지 검증한다.
  * Spring 컨텍스트 없이 Producer/Gateway만 조립하므로 Consumer가 메시지를 가져가지 않는다.
- * Redis가 없으면 건너뛴다. 포트: REDIS_TEST_PORT (기본 6379), DB 15 사용 후 비움.
+ * Redis가 없으면 건너뛴다. REDIS_TEST_PORT를 지정했을 때만 실행 (다른 로컬 Redis를 건드리지 않도록 기본 포트 없음), DB 15 사용 후 비움.
  */
 class LinkStreamProducerConcurrencyTest {
 
@@ -44,7 +44,8 @@ class LinkStreamProducerConcurrencyTest {
 
     @BeforeAll
     static void connect() {
-        int port = Integer.parseInt(System.getenv().getOrDefault("REDIS_TEST_PORT", "6379"));
+        assumeTrue(System.getenv("REDIS_TEST_PORT") != null, "REDIS_TEST_PORT 미지정 - 동시성 테스트 건너뜀");
+        int port = Integer.parseInt(System.getenv("REDIS_TEST_PORT"));
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration("localhost", port);
         config.setDatabase(15);
         connectionFactory = new LettuceConnectionFactory(config);
